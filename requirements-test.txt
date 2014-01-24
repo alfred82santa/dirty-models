@@ -1,2 +1,4 @@
 pep8
 flake8
+coverage
+nose

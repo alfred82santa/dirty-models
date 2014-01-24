@@ -20,7 +20,7 @@ class BaseField:
         return value
 
     def check_value(self, value):
-        return True
+        return False
 
     def can_use_value(self, value):
         return True
@@ -49,6 +49,8 @@ class BaseField:
             self.set_value(obj, self.use_value(value))
 
     def __delete__(self, obj):
+        if self._name is None:
+            raise AttributeError("Field name must be set")
         self.delete_value(obj)
 
 

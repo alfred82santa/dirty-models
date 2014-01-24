@@ -292,3 +292,35 @@ class TestFields(TestCase):
         model = TestModel()
         model.field_name = {}
         self.assertIsNone(model.field_name)
+
+    def test_int_field_delete_value(self):
+
+        class TestModel(BaseModel):
+            field_name = IntegerField()
+
+        model = TestModel()
+        model.field_name = 3
+        self.assertEqual(model.field_name, 3)
+
+        del model.field_name
+        self.assertIsNone(model.field_name)
+
+        # Check field descriptor exists
+        model.field_name = "3"
+        self.assertEqual(model.field_name, 3)
+
+    def test_int_field_bad_definition(self):
+
+        class TestModel():
+            field_name = IntegerField()
+
+        model = TestModel()
+
+        with self.assertRaisesRegexp(AttributeError, "Field name must be set"):
+            model.field_name = 3
+
+        with self.assertRaisesRegexp(AttributeError, "Field name must be set"):
+            model.field_name
+
+        with self.assertRaisesRegexp(AttributeError, "Field name must be set"):
+            del model.field_name
