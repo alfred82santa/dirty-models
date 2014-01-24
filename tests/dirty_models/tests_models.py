@@ -153,8 +153,12 @@ class TestModels(TestCase):
         class TestStringField(BaseField):
             pass
 
-        class CarModel(metaclass=DirtyModelMeta):
+        class CarModel(BaseModel):
             wheels = TestIntegerField(name='other_wheel_name')
             colour = TestStringField()
 
         self.assertTrue(hasattr(CarModel, 'other_wheel_name'))
+        
+        test_car = CarModel()
+        test_car.wheels = 12
+        self.assertEqual(test_car.other_wheel_name, 12)
