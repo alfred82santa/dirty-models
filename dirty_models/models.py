@@ -81,7 +81,7 @@ class BaseModel(metaclass=DirtyModelMeta):
             if key not in self._deleted_fields and not result.get(key):
                 try:
                     result[key] = value.export_data()
-                except AttributeError as e:
+                except AttributeError:
                     result[key] = value
 
         return result

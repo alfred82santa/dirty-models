@@ -1,5 +1,5 @@
 from unittest import TestCase
-from dirty_models.models import BaseModel, DirtyModelMeta
+from dirty_models.models import BaseModel
 from dirty_models.fields import BaseField
 
 
@@ -151,10 +151,6 @@ class TestModels(TestCase):
         self.assertEqual(self.model._deleted_fields, [])
         self.assertEqual(self.model._modified_data, {})
 
-        expected_data = {
-            'testField1': 'Value1Modified',
-            'testField4': {'testField1': 'Field Value1',
-                           'testField2': 'Field Value2 Modified'}}
         self.assertEqual(set(self.model._original_data.keys()),
                          set(['testField1', 'testField4']))
         self.assertEqual(

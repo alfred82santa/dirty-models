@@ -1,5 +1,6 @@
 from unittest import TestCase
-from dirty_models.fields import *
+from dirty_models.fields import (IntegerField, StringField, BooleanField,
+                                 FloatField)
 from dirty_models.models import BaseModel
 
 
