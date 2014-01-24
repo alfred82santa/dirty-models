@@ -2,11 +2,12 @@ from .fields import BaseField
 
 
 class DirtyModelMeta(type):
+
     def __new__(cls, name, bases, classdict):
         result = super().__new__(cls, name, bases, classdict)
-        
+
         fields = {key: field for key, field in result.__dict__.items()}
-        
+
         for key, field in fields.items():
             if isinstance(field, BaseField):
                 if not field.name:
@@ -24,7 +25,7 @@ class BaseModel(metaclass=DirtyModelMeta):
         self._deleted_fields = []
         self.import_data(data)
         self.import_data(kwargs)
-        
+
     def set_field_value(self, name, value):
         """
         Set the value to the field modified_data
@@ -62,7 +63,7 @@ class BaseModel(metaclass=DirtyModelMeta):
             for key, value in data.items():
                 if hasattr(self, key):
                     setattr(self, key, value)
-                
+
     def export_data(self):
         """
         Get the results with the modified_data
@@ -82,14 +83,14 @@ class BaseModel(metaclass=DirtyModelMeta):
                     result[key] = value.export_data()
                 except AttributeError as e:
                     result[key] = value
-                
+
         return result
 
     def export_modified_data(self):
         """
         Get the modified data
         """
-        #TODO: why None? Try to get a better flag
+        # TODO: why None? Try to get a better flag
         result = {key: None for key in self._deleted_fields}
 
         for key, value in self._modified_data.items():
@@ -121,7 +122,8 @@ class BaseModel(metaclass=DirtyModelMeta):
 
         modified_dict = self._original_data
         modified_dict.update(self._modified_data)
-        self._original_data = dict((k, flat_field(v)) for k, v in modified_dict.items()
+        self._original_data = dict((k, flat_field(v))
+                                   for k, v in modified_dict.items()
                                    if k not in self._deleted_fields)
 
         self.clear_modified_data()

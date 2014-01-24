@@ -6,7 +6,7 @@ setup(
     author='alfred82santa',
     version='0.1',
     author_email='alfred82santa@gmail.com',
-    packages = find_packages(exclude=['test*']),
+    packages=find_packages(exclude=['test*']),
     include_package_data=True,
     test_suite="nose.collector",
     tests_require="nose",
