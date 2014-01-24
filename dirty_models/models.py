@@ -3,13 +3,15 @@ from .fields import BaseField
 
 class DirtyModelMeta(type):
     def __new__(cls, name, bases, classdict):
-        result = type.__new__(cls, name, bases, classdict)
-        for key, field in result.__dict__.items():
+        result = super().__new__(cls, name, bases, classdict)
+        
+        fields = {key: field for key, field in result.__dict__.items()}
+        
+        for key, field in fields.items():
             if isinstance(field, BaseField):
                 if not field.name:
                     field.name = key
                 elif key != field.name:
-                    delattr(result, key)
                     setattr(result, field.name, field)
         return result
 
@@ -87,23 +89,18 @@ class BaseModel(metaclass=DirtyModelMeta):
         """
         Get the modified data
         """
-        result = {}
+        #TODO: why None? Try to get a better flag
+        result = {key: None for key in self._deleted_fields}
 
         for key, value in self._modified_data.items():
-            if key in self._deleted_fields:
-                #TODO: why None? Try to get a better flag
-                result[key] = None
-            else:
+            if key not in result.keys():
                 try:
                     result[key] = value.export_modified_data()
                 except AttributeError:
                     result[key] = value
 
         for key, value in self._original_data.items():
-            if key in self._deleted_fields:
-                #TODO: why None? Try to get a better flag
-                result[key] = None
-            elif not result.get(key):
+            if key not in result.keys():
                 try:
                     result[key] = value.export_modified_data()
                 except AttributeError:
