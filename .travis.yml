@@ -6,4 +6,4 @@ install: "pip install -r requirements-test.txt"
 # command to run tests
 script:
     - flake8 .
-    - nosetests
+    - nosetests --with-coverage -d
