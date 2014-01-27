@@ -1,7 +1,12 @@
+
 class BaseField:
 
-    def __init__(self, name=None):
+    """Base field descriptor."""
+
+    def __init__(self, name=None, doc=None):
+        self._name = None
         self.name = name
+        self.__doc__ = doc
 
     @property
     def name(self):
@@ -34,7 +39,7 @@ class BaseField:
     def delete_value(self, obj):
         obj.delete_field_value(self.name)
 
-    def __get__(self, obj, cls):
+    def __get__(self, obj, cls=None):
         if obj is None:
             return self
         if self._name is None:
@@ -56,6 +61,8 @@ class BaseField:
 
 class IntegerField(BaseField):
 
+    """It allows to use an integer as value in a field."""
+
     def convert_value(self, value):
         return int(value)
 
@@ -68,6 +75,8 @@ class IntegerField(BaseField):
 
 
 class FloatField(BaseField):
+
+    """It allows to use a float as value in a field."""
 
     def convert_value(self, value):
         return float(value)
@@ -82,6 +91,8 @@ class FloatField(BaseField):
 
 
 class BooleanField(BaseField):
+
+    """It allows to use a boolean as value in a field."""
 
     def convert_value(self, value):
         if isinstance(value, str):
@@ -101,6 +112,8 @@ class BooleanField(BaseField):
 
 class StringField(BaseField):
 
+    """It allows to use a string as value in a field."""
+
     def convert_value(self, value):
         return str(value)
 
@@ -109,3 +122,46 @@ class StringField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, (int, float))
+
+
+class ModelField(BaseField):
+
+    """It allows to use a model as value in a field. Model type must be
+    defined on constructor using param model_class. If it is not defined
+    self model will be used. It means model inside field will be the same
+    class than model who define field."""
+
+    def __init__(self, name=None, doc=None, model_class=None):
+        super(ModelField, self).__init__(name, doc)
+        self._model_class = None
+
+        self.model_class = model_class
+
+    @property
+    def model_class(self):
+        return self._model_class
+
+    @model_class.setter
+    def model_class(self, model_class):
+        self._model_class = model_class
+
+    def convert_value(self, value):
+        return self._model_class(value)
+
+    def check_value(self, value):
+        return isinstance(value, self._model_class)
+
+    def can_use_value(self, value):
+        return isinstance(value, dict)
+
+    def __set__(self, obj, value):
+        if self._name is None:
+            raise AttributeError("Field name must be set")
+
+        original = self.get_value(obj)
+        if original is None:
+            super(ModelField, self).__set__(obj, value)
+        elif self.check_value(value):
+            original.import_data(value.export_data())
+        elif self.can_use_value(value):
+            original.import_data(value)

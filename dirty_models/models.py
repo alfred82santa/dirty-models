@@ -1,10 +1,11 @@
-from .fields import BaseField
+from .fields import BaseField, ModelField
 
 
 class DirtyModelMeta(type):
 
     def __new__(cls, name, bases, classdict):
-        result = super().__new__(cls, name, bases, classdict)
+        result = super(DirtyModelMeta, cls).__new__(
+            cls, name, bases, classdict)
 
         fields = {key: field for key, field in result.__dict__.items()}
 
@@ -14,6 +15,8 @@ class DirtyModelMeta(type):
                     field.name = key
                 elif key != field.name:
                     setattr(result, field.name, field)
+                if isinstance(field, ModelField) and not field.model_class:
+                    field.model_class = result
         return result
 
 
