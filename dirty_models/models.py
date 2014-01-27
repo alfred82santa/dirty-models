@@ -64,7 +64,10 @@ class BaseModel(metaclass=DirtyModelMeta):
         """
         if name in self._deleted_fields:
             return None
-        return self._modified_data.get(name) or self._original_data.get(name)
+        modified = self._modified_data.get(name)
+        if modified is not None:
+            return modified
+        return self._original_data.get(name)
 
     def delete_field_value(self, name):
         """

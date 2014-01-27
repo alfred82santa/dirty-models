@@ -3,6 +3,7 @@ fields.py
 
 Fields to be used with dirty_models
 """
+from .types import ListModel
 
 
 class BaseField:
@@ -182,3 +183,35 @@ class ModelField(BaseField):
             original.import_data(value.export_data())
         elif self.can_use_value(value):
             original.import_data(value)
+
+
+class ArrayField(BaseField):
+
+    def __init__(self, name=None, model_object=BaseField()):
+        super(ArrayField, self).__init__(name)
+        self._model_object = model_object
+
+    def convert_value(self, value):
+        def convert_element(element):
+            if not self._model_object.check_value(element) and self._model_object.can_use_value(element):
+                return self._model_object.convert_value(element)
+            return element
+        return ListModel([convert_element(element) for element in value], field_type=self._model_object)
+
+    def check_value(self, value):
+        if isinstance(value, ListModel) and (type(value.field_type) == type(self._model_object)):
+            for v in value:
+                if not self._model_object.check_value(v):
+                    return False
+        else:
+            return False
+        return True
+
+    def can_use_value(self, value):
+        if isinstance(value, (set, list, ListModel)):
+            for v in value:
+                if self._model_object.can_use_value(v) or self._model_object.check_value(v):
+                    return True
+            return False
+        else:
+            return False
