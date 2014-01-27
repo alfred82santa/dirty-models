@@ -4,6 +4,7 @@ fields.py
 Fields to be used with dirty_models
 """
 
+
 class BaseField:
 
     """Base field descriptor."""
