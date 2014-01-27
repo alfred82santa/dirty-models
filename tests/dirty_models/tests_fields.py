@@ -376,7 +376,7 @@ class TestFields(TestCase):
         self.assertEqual(model.field_name_2, "ooo")
         self.assertEqual(model.field_name_1.field_name_2, "eee")
 
-    def test_model_field_on_class_using_dict_with_original_data(self):
+    def test_model_field_on_class_using_model_with_original_data(self):
 
         class TestModel(BaseModel):
             field_name_1 = ModelField()
@@ -387,6 +387,21 @@ class TestFields(TestCase):
 
         model.flat_data()
         model.field_name_1 = TestModel({"field_name_2": "aaa"})
+        self.assertIsInstance(model.field_name_1, TestModel)
+        self.assertEqual(model.field_name_2, "ooo")
+        self.assertEqual(model.field_name_1.field_name_2, "aaa")
+
+    def test_model_field_on_class_using_dict_with_original_data(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        model = TestModel({"field_name_1": {"field_name_2": "eee"},
+                           "field_name_2": "ooo"})
+
+        model.flat_data()
+        model.field_name_1 = {"field_name_2": "aaa"}
         self.assertIsInstance(model.field_name_1, TestModel)
         self.assertEqual(model.field_name_2, "ooo")
         self.assertEqual(model.field_name_1.field_name_2, "aaa")

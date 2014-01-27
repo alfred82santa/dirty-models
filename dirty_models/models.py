@@ -4,7 +4,8 @@ from .fields import BaseField, ModelField
 class DirtyModelMeta(type):
 
     def __new__(cls, name, bases, classdict):
-        result = super(DirtyModelMeta, cls).__new__(cls, name, bases, classdict)
+        result = super(DirtyModelMeta, cls).__new__(
+            cls, name, bases, classdict)
 
         fields = {key: field for key, field in result.__dict__.items()}
 

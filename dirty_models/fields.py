@@ -1,6 +1,8 @@
 
 class BaseField:
+
     """Base field descriptor."""
+
     def __init__(self, name=None, doc=None):
         self._name = None
         self.name = name
@@ -58,7 +60,9 @@ class BaseField:
 
 
 class IntegerField(BaseField):
+
     """It allows to use an integer as value in a field."""
+
     def convert_value(self, value):
         return int(value)
 
@@ -71,7 +75,9 @@ class IntegerField(BaseField):
 
 
 class FloatField(BaseField):
+
     """It allows to use a float as value in a field."""
+
     def convert_value(self, value):
         return float(value)
 
@@ -85,6 +91,7 @@ class FloatField(BaseField):
 
 
 class BooleanField(BaseField):
+
     """It allows to use a boolean as value in a field."""
 
     def convert_value(self, value):
@@ -104,7 +111,9 @@ class BooleanField(BaseField):
 
 
 class StringField(BaseField):
+
     """It allows to use a string as value in a field."""
+
     def convert_value(self, value):
         return str(value)
 
@@ -116,6 +125,7 @@ class StringField(BaseField):
 
 
 class ModelField(BaseField):
+
     """It allows to use a model as value in a field. Model type must be
     defined on constructor using param model_class. If it is not defined
     self model will be used. It means model inside field will be the same
