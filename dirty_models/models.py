@@ -1,7 +1,18 @@
+"""
+models.py
+
+Base model for dirty_models.
+"""
+
 from .fields import BaseField, ModelField
 
 
 class DirtyModelMeta(type):
+
+    """
+    Metaclass for dirty_models. It sets automatic fieldnames and
+    automatic model_class for ModelField fields.
+    """
 
     def __new__(cls, name, bases, classdict):
         result = super(DirtyModelMeta, cls).__new__(
@@ -22,11 +33,17 @@ class DirtyModelMeta(type):
 
 class BaseModel(metaclass=DirtyModelMeta):
 
-    def __init__(self, data={}, **kwargs):
+    """
+    Base model with dirty feature. It store original data and save
+    modifications in other side.
+    """
+
+    def __init__(self, data=None, **kwargs):
         self._original_data = {}
         self._modified_data = {}
         self._deleted_fields = []
-        self.import_data(data)
+        if isinstance(data, dict):
+            self.import_data(data)
         self.import_data(kwargs)
 
     def set_field_value(self, name, value):
@@ -117,6 +134,9 @@ class BaseModel(metaclass=DirtyModelMeta):
         Pass all the data from modified_data to original_data
         """
         def flat_field(value):
+            """
+            Flat field data
+            """
             try:
                 value.flat_data()
                 return value
