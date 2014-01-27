@@ -1,3 +1,9 @@
+"""
+fields.py
+
+Fields to be used with dirty_models
+"""
+
 
 class BaseField:
 
@@ -10,33 +16,42 @@ class BaseField:
 
     @property
     def name(self):
+        """Name getter: Field name or field alias that it will be set."""
         return self._name
 
     @name.setter
     def name(self, name):
+        """Name setter: Field name or field alias that it will be set."""
         self._name = name
 
     def use_value(self, value):
+        """Converts value to field type or use original"""
         if self.check_value(value):
             return value
         return self.convert_value(value)
 
     def convert_value(self, value):
+        """Converts value to field type"""
         return value
 
     def check_value(self, value):
+        """Checks whether value is field's type"""
         return False
 
     def can_use_value(self, value):
+        """Checks whether value could be converted to field's type"""
         return True
 
     def set_value(self, obj, value):
+        """Sets value to model"""
         obj.set_field_value(self.name, value)
 
     def get_value(self, obj):
+        """Gets value from model"""
         return obj.get_field_value(self.name)
 
     def delete_value(self, obj):
+        """Removes field value from model"""
         obj.delete_field_value(self.name)
 
     def __get__(self, obj, cls=None):
@@ -139,10 +154,12 @@ class ModelField(BaseField):
 
     @property
     def model_class(self):
+        """Model_class getter: model class used on field"""
         return self._model_class
 
     @model_class.setter
     def model_class(self, model_class):
+        """Model_class setter: model class used on field"""
         self._model_class = model_class
 
     def convert_value(self, value):
