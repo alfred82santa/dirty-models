@@ -3,6 +3,7 @@ fields.py
 
 Fields to be used with dirty_models
 """
+from datetime import datetime, date, time
 
 
 class BaseField:
@@ -139,12 +140,105 @@ class StringField(BaseField):
         return isinstance(value, (int, float))
 
 
+class DateTimeBaseField(BaseField):
+
+    """Base field for time or/and date fields."""
+
+    def __init__(self, name=None, doc=None, parse_format=None):
+        super(DateTimeBaseField, self).__init__(name, doc)
+        self._parse_format = None
+        self.parse_format = parse_format
+
+    @property
+    def parse_format(self):
+        """Model_class getter: model class used on field"""
+        return self._parse_format
+
+    @parse_format.setter
+    def parse_format(self, value):
+        """Parse_format setter: datetime format used on field"""
+        self._parse_format = value
+
+
+class TimeField(DateTimeBaseField):
+
+    """It allows to use a time as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, list):
+            return time(*value)
+        elif isinstance(value, dict):
+            return time(**value)
+        elif isinstance(value, int):
+            return self.convert_value(datetime.fromtimestamp(value))
+        elif isinstance(value, str):
+            return self.convert_value(
+                datetime.strptime(value, self.parse_format))
+        elif isinstance(value, datetime):
+            return value.timetz()
+
+    def check_value(self, value):
+        return isinstance(value, time)
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, datetime, list, dict))
+
+
+class DateField(DateTimeBaseField):
+
+    """It allows to use a date as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, list):
+            return date(*value)
+        elif isinstance(value, dict):
+            return date(**value)
+        elif isinstance(value, int):
+            return self.convert_value(datetime.fromtimestamp(value))
+        elif isinstance(value, str):
+            return self.convert_value(
+                datetime.strptime(value, self.parse_format))
+        elif isinstance(value, datetime):
+            return value.date()
+
+    def check_value(self, value):
+        return type(value) is date
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, datetime, list, dict))
+
+
+class DateTimeField(DateTimeBaseField):
+
+    """It allows to use a datetime as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, list):
+            return datetime(*value)
+        elif isinstance(value, dict):
+            return datetime(**value)
+        elif isinstance(value, int):
+            return datetime.fromtimestamp(value)
+        elif isinstance(value, str):
+            return datetime.strptime(value, self.parse_format)
+        elif isinstance(value, date):
+            return datetime(date)
+
+    def check_value(self, value):
+        return type(value) is datetime
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, date, dict, list))
+
+
 class ModelField(BaseField):
 
-    """It allows to use a model as value in a field. Model type must be
+    """
+    It allows to use a model as value in a field. Model type must be
     defined on constructor using param model_class. If it is not defined
     self model will be used. It means model inside field will be the same
-    class than model who define field."""
+    class than model who define field.
+    """
 
     def __init__(self, name=None, doc=None, model_class=None):
         super(ModelField, self).__init__(name, doc)

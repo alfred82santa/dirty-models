@@ -1,7 +1,10 @@
 from unittest import TestCase
 from dirty_models.fields import (IntegerField, StringField, BooleanField,
-                                 FloatField, ModelField)
+                                 FloatField, ModelField, TimeField, DateField,
+                                 DateTimeField)
 from dirty_models.models import BaseModel
+
+from datetime import time, date, datetime, timezone
 
 
 class TestFields(TestCase):
@@ -415,3 +418,143 @@ class TestFields(TestCase):
 
         with self.assertRaisesRegexp(AttributeError, "Field name must be set"):
             model.field_name = {}
+
+    def test_time_field_using_int(self):
+        field = TimeField()
+        self.assertFalse(field.check_value(3333))
+        self.assertTrue(field.can_use_value(3333))
+        self.assertEqual(field.use_value(3333),
+                         datetime(year=1970, month=1,
+                                  day=1, hour=0, minute=55,
+                                  second=33, tzinfo=timezone.utc).astimezone()
+                                                                 .time())
+
+    def test_time_field_using_float(self):
+        field = TimeField()
+        self.assertFalse(field.check_value(3.0))
+        self.assertFalse(field.can_use_value(3.0))
+        self.assertIsNone(field.use_value(3.0))
+
+    def test_time_field_using_str(self):
+        field = TimeField(parse_format="%H:%M:%S")
+        self.assertFalse(field.check_value("03:13:23"))
+        self.assertTrue(field.can_use_value("03:13:23"))
+        self.assertEqual(field.use_value("03:13:23"),
+                         time(hour=3, minute=13, second=23))
+
+    def test_time_field_using_list(self):
+        field = TimeField()
+        self.assertFalse(field.check_value([3, 13, 23]))
+        self.assertTrue(field.can_use_value([3, 13, 23]))
+        self.assertEqual(field.use_value([3, 13, 23]),
+                         time(hour=3, minute=13, second=23))
+
+    def test_time_field_using_dict(self):
+        field = TimeField()
+        self.assertFalse(field.check_value({"hour": 3, "minute": 13, "second": 23}))
+        self.assertTrue(field.can_use_value({"hour": 3, "minute": 13, "second": 23}))
+        self.assertEqual(field.use_value({"hour": 3, "minute": 13, "second": 23}),
+                         time(hour=3, minute=13, second=23))
+
+    def test_time_field_using_datetime(self):
+        field = TimeField()
+        dt = datetime(year=1970, month=1, day=1, hour=3, minute=13, second=23)
+        self.assertFalse(field.check_value(dt))
+        self.assertTrue(field.can_use_value(dt))
+        self.assertEqual(field.use_value(dt),
+                         time(hour=3, minute=13, second=23))
+
+    def test_time_field_using_time(self):
+        field = TimeField()
+        t = time(hour=3, minute=13, second=23)
+        self.assertTrue(field.check_value(t))
+        self.assertEqual(field.use_value(t),
+                         time(hour=3, minute=13, second=23))
+
+    def test_date_field_using_int(self):
+        field = DateField()
+        self.assertFalse(field.check_value(1433333333))
+        self.assertTrue(field.can_use_value(1433333333))
+        self.assertEqual(field.use_value(1433333333),
+                         datetime(year=2015, month=6,
+                                  day=3, hour=0, minute=15,
+                                  second=33, tzinfo=timezone.utc).astimezone()
+                                                                 .date())
+
+    def test_date_field_using_float(self):
+        field = DateField()
+        self.assertFalse(field.check_value(3.0))
+        self.assertFalse(field.can_use_value(3.0))
+        self.assertIsNone(field.use_value(3.0))
+
+    def test_date_field_using_str(self):
+        field = DateField(parse_format="%d/%m/%Y")
+        self.assertFalse(field.check_value("23/03/2015"))
+        self.assertTrue(field.can_use_value("23/03/2015"))
+        self.assertEqual(field.use_value("23/03/2015"),
+                         date(year=2015, month=3, day=23))
+
+    def test_date_field_using_list(self):
+        field = DateField()
+        self.assertFalse(field.check_value([2015, 3, 23]))
+        self.assertTrue(field.can_use_value([2015, 3, 23]))
+        self.assertEqual(field.use_value([2015, 3, 23]),
+                         date(year=2015, month=3, day=23))
+
+    def test_date_field_using_dict(self):
+        field = DateField()
+        self.assertFalse(field.check_value({"year": 2015, "month": 3, "day": 23}))
+        self.assertTrue(field.can_use_value({"year": 2015, "month": 3, "day": 23}))
+        self.assertEqual(field.use_value({"year": 2015, "month": 3, "day": 23}),
+                         date(year=2015, month=3, day=23))
+
+    def test_date_field_using_datetime(self):
+        field = DateField()
+        dt = datetime(year=2015, month=3, day=23, hour=3, minute=13, second=23)
+        self.assertFalse(field.check_value(dt))
+        self.assertTrue(field.can_use_value(dt))
+        self.assertEqual(field.use_value(dt),
+                         datetime(year=2015, month=3, day=23).date())
+
+    def test_date_field_using_date(self):
+        field = DateField()
+        d = date(year=2015, month=3, day=23)
+        self.assertTrue(field.check_value(d))
+        self.assertEqual(field.use_value(d),
+                         date(year=2015, month=3, day=23))
+
+    def test_datetime_field_using_int(self):
+        field = DateTimeField()
+        self.assertFalse(field.check_value(1433333333))
+        self.assertTrue(field.can_use_value(1433333333))
+        self.assertEqual(field.use_value(1433333333),
+                         datetime(year=2015, month=6,
+                                  day=3, hour=12, minute=8,
+                                  second=53, tzinfo=timezone.utc).astimezone().replace(tzinfo=None))
+
+    def test_datetime_field_using_float(self):
+        field = DateTimeField()
+        self.assertFalse(field.check_value(3.0))
+        self.assertFalse(field.can_use_value(3.0))
+        self.assertIsNone(field.use_value(3.0))
+
+    def test_datetime_field_using_str(self):
+        field = DateTimeField(parse_format="%d/%m/%Y")
+        self.assertFalse(field.check_value("23/03/2015"))
+        self.assertTrue(field.can_use_value("23/03/2015"))
+        self.assertEqual(field.use_value("23/03/2015"),
+                         datetime(year=2015, month=3, day=23))
+
+    def test_datetime_field_using_list(self):
+        field = DateTimeField()
+        self.assertFalse(field.check_value([2015, 3, 23]))
+        self.assertTrue(field.can_use_value([2015, 3, 23]))
+        self.assertEqual(field.use_value([2015, 3, 23]),
+                         datetime(year=2015, month=3, day=23))
+
+    def test_datetime_field_using_dict(self):
+        field = DateTimeField()
+        self.assertFalse(field.check_value({"year": 2015, "month": 3, "day": 23}))
+        self.assertTrue(field.can_use_value({"year": 2015, "month": 3, "day": 23}))
+        self.assertEqual(field.use_value({"year": 2015, "month": 3, "day": 23}),
+                         datetime(year=2015, month=3, day=23))
