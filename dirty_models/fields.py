@@ -4,6 +4,7 @@ fields.py
 Fields to be used with dirty_models
 """
 from datetime import datetime, date, time
+from .types import ListModel
 
 
 class BaseField:
@@ -276,3 +277,50 @@ class ModelField(BaseField):
             original.import_data(value.export_data())
         elif self.can_use_value(value):
             original.import_data(value)
+
+
+class ArrayField(BaseField):
+
+    """
+    It allows to create a ListModel (iterable in dirty_models.types) of different elements according
+    to the specified field_type. So it is possible to have a list of Integers, Strings, Models, etc.
+    When using a model with no specified model_class the model inside field.
+    """
+
+    def __init__(self, name=None, field_type=BaseField()):
+        super(ArrayField, self).__init__(name)
+        self._field_type = field_type
+
+    @property
+    def field_type(self):
+        """field_type getter: field type used on array"""
+        return self._field_type
+
+    @field_type.setter
+    def field_type(self, value):
+        """Model_class setter: field type used on array"""
+        self._field_type = value
+
+    def convert_value(self, value):
+        def convert_element(element):
+            """
+            Helper to convert a single item
+            """
+            if not self._field_type.check_value(element) and self._field_type.can_use_value(element):
+                return self._field_type.convert_value(element)
+            return element
+        return ListModel([convert_element(element) for element in value], field_type=self._field_type)
+
+    def check_value(self, value):
+        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self._field_type)):
+            return False
+        return True
+
+    def can_use_value(self, value):
+        if isinstance(value, (set, list, ListModel)):
+            for item in value:
+                if self._field_type.can_use_value(item) or self._field_type.check_value(item):
+                    return True
+            return False
+        else:
+            return False

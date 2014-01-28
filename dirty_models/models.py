@@ -4,7 +4,7 @@ models.py
 Base model for dirty_models.
 """
 
-from .fields import BaseField, ModelField
+from .fields import BaseField, ModelField, ArrayField
 
 
 class DirtyModelMeta(type):
@@ -28,6 +28,9 @@ class DirtyModelMeta(type):
                     setattr(result, field.name, field)
                 if isinstance(field, ModelField) and not field.model_class:
                     field.model_class = result
+                if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
+                        and not field.field_type.model_class:
+                    field.field_type.model_class = result
         return result
 
 
@@ -64,7 +67,10 @@ class BaseModel(metaclass=DirtyModelMeta):
         """
         if name in self._deleted_fields:
             return None
-        return self._modified_data.get(name) or self._original_data.get(name)
+        modified = self._modified_data.get(name)
+        if modified is not None:
+            return modified
+        return self._original_data.get(name)
 
     def delete_field_value(self, name):
         """
