@@ -1,6 +1,7 @@
 from unittest import TestCase
 from dirty_models.types import ListModel
 from dirty_models.fields import StringField
+from dirty_models.fields import IntegerField
 
 
 class TestTypes(TestCase):
@@ -108,6 +109,10 @@ class TestTypes(TestCase):
         self.assertEqual(test_list._modified_data, ["2", "6"])
         self.assertEqual(test_list._original_data, ["2", "4", "6"])
 
+    def test_pop_unitialised(self):
+        test_list = ListModel()
+        self.assertRaises(IndexError, test_list.pop, 0)
+
     def test_count_elements(self):
         test_list = ListModel([2, 3, "4", 6])
         self.assertEqual(test_list.count(3), 1)
@@ -115,9 +120,23 @@ class TestTypes(TestCase):
         test_list.flat_data()
         self.assertEqual(test_list.count(3), 0)
 
+    def test_count_unitialised(self):
+        test_list = ListModel()
+        self.assertEqual(test_list.count("whatever"), 0)
+
     def test_length_unitialised(self):
         test_list = ListModel()
         self.assertEqual(0, len(test_list))
+
+    def test_reverse(self):
+        test_list = ListModel(["one", "two", "three", []], field_type=StringField())
+        test_list.reverse()
+        self.assertEqual(["three", "two", "one"], list(test_list))
+
+    def test_sort(self):
+        test_list = ListModel(["one", "two", 1, 2, 9, 3, "three", []], field_type=IntegerField())
+        test_list.sort()
+        self.assertEqual([1, 2, 3, 9], list(test_list))
 
     def test_length_initialised(self):
         test_list = ListModel([2, 3, "4", 6])
@@ -128,3 +147,8 @@ class TestTypes(TestCase):
         test_list.flat_data()
         self.assertEqual(4, len(test_list))
         self.assertEqual(4, len(test_list))
+
+    def test_import_data(self):
+        test_list = ListModel()
+        test_list.import_data(set([1, 2]))
+        self.assertTrue(1 in test_list)

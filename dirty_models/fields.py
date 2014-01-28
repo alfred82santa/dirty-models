@@ -187,30 +187,32 @@ class ModelField(BaseField):
 
 class ArrayField(BaseField):
 
-    def __init__(self, name=None, model_object=BaseField()):
+    """
+    It allows to create a ListModel (iterable in dirty_models.types) of different elements according
+    to the specified field_type. So it is possible to have a list of Integers, Strings, Models, etc.
+    When using a model with no specified model_class the model inside field.
+    """
+
+    def __init__(self, name=None, field_type=BaseField()):
         super(ArrayField, self).__init__(name)
-        self._model_object = model_object
+        self._field_type = field_type
 
     def convert_value(self, value):
         def convert_element(element):
-            if not self._model_object.check_value(element) and self._model_object.can_use_value(element):
-                return self._model_object.convert_value(element)
+            if not self._field_type.check_value(element) and self._field_type.can_use_value(element):
+                return self._field_type.convert_value(element)
             return element
-        return ListModel([convert_element(element) for element in value], field_type=self._model_object)
+        return ListModel([convert_element(element) for element in value], field_type=self._field_type)
 
     def check_value(self, value):
-        if isinstance(value, ListModel) and (type(value.field_type) == type(self._model_object)):
-            for v in value:
-                if not self._model_object.check_value(v):
-                    return False
-        else:
+        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self._field_type)):
             return False
         return True
 
     def can_use_value(self, value):
         if isinstance(value, (set, list, ListModel)):
             for v in value:
-                if self._model_object.can_use_value(v) or self._model_object.check_value(v):
+                if self._field_type.can_use_value(v) or self._field_type.check_value(v):
                     return True
             return False
         else:
