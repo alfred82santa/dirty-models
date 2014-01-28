@@ -1,7 +1,7 @@
 from unittest import TestCase
-from dirty_models.fields import (IntegerField, StringField, BooleanField,
-                                 FloatField, ModelField)
+from dirty_models.fields import (IntegerField, StringField, BooleanField, ModelField, FloatField, ArrayField)
 from dirty_models.models import BaseModel
+from dirty_models.types import ListModel
 
 
 class TestFields(TestCase):
@@ -130,6 +130,15 @@ class TestFields(TestCase):
         model = TestModel()
         model.field_name = 3
         self.assertEqual(model.field_name, 3)
+
+    def test_string_field_on_class_using_empty_string(self):
+
+        class TestModel(BaseModel):
+            field_name = StringField()
+
+        model = TestModel()
+        model.field_name = ""
+        self.assertEqual(model.field_name, "")
 
     def test_int_field_on_class_using_float(self):
 
@@ -415,3 +424,333 @@ class TestFields(TestCase):
 
         with self.assertRaisesRegexp(AttributeError, "Field name must be set"):
             model.field_name = {}
+
+    def test_array_field(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        test_model_1.field_name_2 = "hello"
+        test_model_1.field_name_1 = TestModel()
+
+        array_model.array_field = set([test_model_1])
+        self.assertEqual(ListModel([test_model_1]).export_data(), array_model.array_field.export_data())
+        self.assertEqual(test_model_1, array_model.array_field[0])
+
+    def test_array_field_with_ListModel(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        test_model_1.field_name_2 = "hello"
+        test_model_1.field_name_1 = TestModel()
+
+        array_model.array_field = ListModel([test_model_1])
+        self.assertEqual(test_model_1, array_model.array_field[0])
+
+    def test_array_field_extend(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        array_model.array_field = ListModel([test_model_1])
+
+        test_model_2 = TestModel()
+        array_model.array_field.extend(set([test_model_2]))
+
+        self.assertEqual(test_model_1, array_model.array_field[0])
+        self.assertEqual(test_model_2, array_model.array_field[1])
+
+    def test_array_field_invalid_value_to_add(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        array_model.array_field = ListModel([test_model_1])
+
+        array_model.array_field.extend(ListModel(["This is not a valid model"]))
+
+        self.assertEqual(test_model_1, array_model.array_field[0])
+        self.assertRaises(IndexError, array_model.array_field.__getitem__, 1)
+
+    def test_array_field_invalid_value_set(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+        array_model.array_field = ["Unexpected string", TestModel()]
+
+        self.assertEqual(1, len(array_model.array_field))
+
+    def test_array_field_not_iterable(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=BooleanField())
+
+        model = ArrayModel()
+        model.array_field = "This is not a list"
+        self.assertIsNone(model.array_field)
+
+    def test_array_field_list_invalid_types(self):
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ["This is not a list", "This neither"]
+        self.assertIsNone(model.array_field)
+
+    def test_array_field_conversion(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ["This is not a list", "2"]
+        self.assertEquals(model.array_field[0], 2)
+
+    def test_array_set_value_list_field(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ListModel(["this is not an integer"], field_type=IntegerField())
+        self.assertEqual(0, len(model.array_field))
+
+    def test_array_set_value_list_field_valid_and_convertible(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ListModel(["3"], field_type=IntegerField())
+        self.assertEqual(1, len(model.array_field))
+
+    def test_array_del(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        array_model.array_field = [test_model_1]
+        self.assertEqual(0, array_model.array_field.index(test_model_1))
+        del array_model.array_field[0]
+        self.assertEqual(0, len(array_model.array_field))
+
+    def test_array_model_export_data(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        test_model_1.field_name_1 = TestModel()
+        test_model_1.field_name_2 = "Test model 1"
+
+        test_model_2 = TestModel()
+        test_model_2.field_name_1 = TestModel()
+        test_model_2.field_name_2 = "Test model 2"
+
+        array_model.array_field = [test_model_1, test_model_2]
+
+        expected_data = {
+            "array_field": [{"field_name_1": {}, "field_name_2": "Test model 1"},
+                            {"field_name_1": {}, "field_name_2": "Test model 2"}]
+        }
+
+        self.assertEqual(expected_data, array_model.export_data())
+
+    def test_array_model_export_data_integers(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ["3", 4]
+
+        self.assertEqual({"array_field": [3, 4]}, model.export_data())
+
+    def test_array_model_export_data_not_modified(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        test_model_1.field_name_1 = TestModel()
+        test_model_1.field_name_2 = "Test model 1"
+
+        test_model_2 = TestModel()
+        test_model_2.field_name_1 = TestModel()
+        test_model_2.field_name_2 = "Test model 2"
+
+        array_model.array_field = [test_model_1, test_model_2]
+        array_model.flat_data()
+
+        expected_data = {
+            "array_field": [{"field_name_1": {}, "field_name_2": "Test model 1"},
+                            {"field_name_1": {}, "field_name_2": "Test model 2"}]
+        }
+
+        self.assertEqual(expected_data, array_model.export_data())
+
+    def test_array_model_export_data_unitialised(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ["3", 4]
+        model.array_field.clear()
+
+        self.assertEqual({"array_field": []}, model.export_data())
+
+    def test_array_model_export_modified_data(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        test_model_1.field_name_1 = TestModel()
+        test_model_1.field_name_2 = "Test model 1"
+
+        test_model_2 = TestModel()
+        test_model_2.field_name_1 = TestModel()
+        test_model_2.field_name_2 = "Test model 2"
+
+        array_model.array_field = [test_model_1, test_model_2]
+
+        expected_data = {
+            "array_field": [{"field_name_1": {}, "field_name_2": "Test model 1"},
+                            {"field_name_1": {}, "field_name_2": "Test model 2"}]
+        }
+
+        self.assertEqual(expected_data, array_model.export_modified_data())
+
+    def test_array_model_export_modified_data_flattered(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+
+        test_model_1 = TestModel()
+        test_model_1.field_name_1 = TestModel()
+        test_model_1.field_name_2 = "Test model 1"
+
+        test_model_2 = TestModel()
+        test_model_2.field_name_1 = TestModel()
+        test_model_2.field_name_2 = "Test model 2"
+
+        array_model.array_field = [test_model_1, test_model_2]
+
+        expected_data = {
+            "array_field": [{"field_name_1": {}},
+                            {"field_name_1": {}}]
+        }
+        array_model.flat_data()
+        self.assertEqual(expected_data, array_model.export_modified_data())
+
+    def test_array_model_export_modified_data_integers(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ["3", 4]
+
+        self.assertEqual({"array_field": [3, 4]}, model.export_modified_data())
+
+    def test_array_model_export_modified_data_unitialised(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        model = ArrayModel()
+        model.array_field = ["3", 4]
+        model.array_field.clear()
+
+        self.assertEqual({"array_field": []}, model.export_modified_data())
+
+    def test_array_model_import_data(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        array_model = ArrayModel()
+        array_model.import_data({"array_field": [1, 2, 3, 4]})
+        self.assertEqual(4, len(array_model.array_field))
+
+    def test_array_model_with_model_field_no_model_class(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField())
+
+        array_model = ArrayModel()
+        array_model_indented_1 = ArrayModel()
+        array_model_indented_2 = ArrayModel()
+        array_model.array_field = [array_model_indented_1, array_model_indented_2, "not valid :)"]
+        self.assertEqual(list(array_model.array_field), [array_model_indented_1, array_model_indented_2])
