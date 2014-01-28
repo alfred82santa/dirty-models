@@ -223,7 +223,8 @@ class DateTimeField(DateTimeBaseField):
         elif isinstance(value, str):
             return datetime.strptime(value, self.parse_format)
         elif isinstance(value, date):
-            return datetime(date)
+            return datetime(year=value.year, month=value.month,
+                            day=value.day)
 
     def check_value(self, value):
         return type(value) is datetime
@@ -289,7 +290,8 @@ class ArrayField(BaseField):
 
     def __init__(self, name=None, field_type=BaseField()):
         super(ArrayField, self).__init__(name)
-        self._field_type = field_type
+        self._field_type = None
+        self.field_type = field_type
 
     @property
     def field_type(self):
@@ -306,20 +308,20 @@ class ArrayField(BaseField):
             """
             Helper to convert a single item
             """
-            if not self._field_type.check_value(element) and self._field_type.can_use_value(element):
-                return self._field_type.convert_value(element)
+            if not self.field_type.check_value(element) and self._field_type.can_use_value(element):
+                return self.field_type.convert_value(element)
             return element
-        return ListModel([convert_element(element) for element in value], field_type=self._field_type)
+        return ListModel([convert_element(element) for element in value], field_type=self.field_type)
 
     def check_value(self, value):
-        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self._field_type)):
+        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self.field_type)):
             return False
         return True
 
     def can_use_value(self, value):
         if isinstance(value, (set, list, ListModel)):
             for item in value:
-                if self._field_type.can_use_value(item) or self._field_type.check_value(item):
+                if self.field_type.can_use_value(item) or self.field_type.check_value(item):
                     return True
             return False
         else:

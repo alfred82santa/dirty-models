@@ -569,6 +569,25 @@ class TestFields(TestCase):
         self.assertEqual(field.use_value({"year": 2015, "month": 3, "day": 23}),
                          datetime(year=2015, month=3, day=23))
 
+    def test_datetime_field_using_date(self):
+        field = DateTimeField()
+        d = date(year=2015, month=3, day=23)
+        self.assertFalse(field.check_value(d))
+        self.assertTrue(field.can_use_value(d))
+        self.assertEqual(field.use_value(d),
+                         datetime(year=2015, month=3, day=23))
+
+    def test_datetime_field_using_datetime(self):
+        field = DateTimeField()
+        d = datetime(year=2015, month=3, day=23,
+                     hour=0, minute=15, second=33,
+                     tzinfo=timezone.utc)
+        self.assertTrue(field.check_value(d))
+        self.assertEqual(field.use_value(d),
+                         datetime(year=2015, month=3, day=23,
+                                  hour=0, minute=15, second=33,
+                                  tzinfo=timezone.utc))
+
     def test_array_field(self):
 
         class TestModel(BaseModel):
