@@ -28,9 +28,9 @@ class DirtyModelMeta(type):
                     setattr(result, field.name, field)
                 if isinstance(field, ModelField) and not field.model_class:
                     field.model_class = result
-                if isinstance(field, ArrayField) and isinstance(field._field_type, ModelField) \
-                        and not field._field_type.model_class:
-                    field._field_type.model_class = result
+                if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
+                        and not field.field_type.model_class:
+                    field.field_type.model_class = result
         return result
 
 

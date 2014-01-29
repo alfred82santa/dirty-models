@@ -3,6 +3,7 @@ fields.py
 
 Fields to be used with dirty_models
 """
+from datetime import datetime, date, time
 from .types import ListModel
 
 
@@ -140,12 +141,106 @@ class StringField(BaseField):
         return isinstance(value, (int, float))
 
 
+class DateTimeBaseField(BaseField):
+
+    """Base field for time or/and date fields."""
+
+    def __init__(self, name=None, doc=None, parse_format=None):
+        super(DateTimeBaseField, self).__init__(name, doc)
+        self._parse_format = None
+        self.parse_format = parse_format
+
+    @property
+    def parse_format(self):
+        """Model_class getter: model class used on field"""
+        return self._parse_format
+
+    @parse_format.setter
+    def parse_format(self, value):
+        """Parse_format setter: datetime format used on field"""
+        self._parse_format = value
+
+
+class TimeField(DateTimeBaseField):
+
+    """It allows to use a time as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, list):
+            return time(*value)
+        elif isinstance(value, dict):
+            return time(**value)
+        elif isinstance(value, int):
+            return self.convert_value(datetime.fromtimestamp(value))
+        elif isinstance(value, str):
+            return self.convert_value(
+                datetime.strptime(value, self.parse_format))
+        elif isinstance(value, datetime):
+            return value.timetz()
+
+    def check_value(self, value):
+        return isinstance(value, time)
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, datetime, list, dict))
+
+
+class DateField(DateTimeBaseField):
+
+    """It allows to use a date as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, list):
+            return date(*value)
+        elif isinstance(value, dict):
+            return date(**value)
+        elif isinstance(value, int):
+            return self.convert_value(datetime.fromtimestamp(value))
+        elif isinstance(value, str):
+            return self.convert_value(
+                datetime.strptime(value, self.parse_format))
+        elif isinstance(value, datetime):
+            return value.date()
+
+    def check_value(self, value):
+        return type(value) is date
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, datetime, list, dict))
+
+
+class DateTimeField(DateTimeBaseField):
+
+    """It allows to use a datetime as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, list):
+            return datetime(*value)
+        elif isinstance(value, dict):
+            return datetime(**value)
+        elif isinstance(value, int):
+            return datetime.fromtimestamp(value)
+        elif isinstance(value, str):
+            return datetime.strptime(value, self.parse_format)
+        elif isinstance(value, date):
+            return datetime(year=value.year, month=value.month,
+                            day=value.day)
+
+    def check_value(self, value):
+        return type(value) is datetime
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, date, dict, list))
+
+
 class ModelField(BaseField):
 
-    """It allows to use a model as value in a field. Model type must be
+    """
+    It allows to use a model as value in a field. Model type must be
     defined on constructor using param model_class. If it is not defined
     self model will be used. It means model inside field will be the same
-    class than model who define field."""
+    class than model who define field.
+    """
 
     def __init__(self, name=None, doc=None, model_class=None):
         super(ModelField, self).__init__(name, doc)
@@ -195,24 +290,38 @@ class ArrayField(BaseField):
 
     def __init__(self, name=None, field_type=BaseField()):
         super(ArrayField, self).__init__(name)
-        self._field_type = field_type
+        self._field_type = None
+        self.field_type = field_type
+
+    @property
+    def field_type(self):
+        """field_type getter: field type used on array"""
+        return self._field_type
+
+    @field_type.setter
+    def field_type(self, value):
+        """Model_class setter: field type used on array"""
+        self._field_type = value
 
     def convert_value(self, value):
         def convert_element(element):
-            if not self._field_type.check_value(element) and self._field_type.can_use_value(element):
-                return self._field_type.convert_value(element)
+            """
+            Helper to convert a single item
+            """
+            if not self.field_type.check_value(element) and self._field_type.can_use_value(element):
+                return self.field_type.convert_value(element)
             return element
-        return ListModel([convert_element(element) for element in value], field_type=self._field_type)
+        return ListModel([convert_element(element) for element in value], field_type=self.field_type)
 
     def check_value(self, value):
-        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self._field_type)):
+        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self.field_type)):
             return False
         return True
 
     def can_use_value(self, value):
         if isinstance(value, (set, list, ListModel)):
-            for v in value:
-                if self._field_type.can_use_value(v) or self._field_type.check_value(v):
+            for item in value:
+                if self.field_type.can_use_value(item) or self.field_type.check_value(item):
                     return True
             return False
         else:

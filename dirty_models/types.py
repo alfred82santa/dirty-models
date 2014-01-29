@@ -1,3 +1,20 @@
+"""
+Internal types for dirty models
+"""
+
+
+def modified_data_decorator(function):
+    """
+    Decorator to initialise the modified_data if necessary. To be used in list functions
+    to modify the list
+    """
+    def func(*args, **kwargs):
+        """Decorator"""
+        args[0].initialise_modified_data()
+        return function(*args, **kwargs)
+    return func
+
+
 class ListModel():
 
     """
@@ -26,25 +43,22 @@ class ListModel():
         except AttributeError:
             return value
 
-    def initialise_modified_data(function):
+    def initialise_modified_data(self):
         """
-        Decorator to initialise the modified_data if necessary. To be used in list functions
-        to modify the list
+        Initialise the modified_data if necessary
         """
-        def func(*args, **kwargs):
-            if args[0]._modified_data is None:
-                if args[0]._original_data:
-                    args[0]._modified_data = list(args[0]._original_data)
-                else:
-                    args[0]._modified_data = []
-            return function(*args, **kwargs)
-        return func
+        if self._modified_data is None:
+            if self._original_data:
+                self._modified_data = list(self._original_data)
+            else:
+                self._modified_data = []
 
-    @initialise_modified_data
+    @modified_data_decorator
     def __setitem__(self, key, value):
         """
         Function to set a value to an element e.g list[key] = value
         """
+
         if (self._original_data is not None and self._original_data.__getitem__(key) != value)\
                 or not self._original_data:
             validated_value = self.get_validated_object(value)
@@ -62,7 +76,7 @@ class ListModel():
         if self._original_data:
             return self._original_data.__getitem__(item)
 
-    @initialise_modified_data
+    @modified_data_decorator
     def __delitem__(self, key):
         """
         Delete item from a list
@@ -79,7 +93,7 @@ class ListModel():
             return len(self._original_data)
         return 0
 
-    @initialise_modified_data
+    @modified_data_decorator
     def append(self, item):
         """
         Appending elements to our list
@@ -88,7 +102,7 @@ class ListModel():
         if validated_value is not None:
             self._modified_data.append(validated_value)
 
-    @initialise_modified_data
+    @modified_data_decorator
     def insert(self, index, p_object):
         """
         Insert an element to a list
@@ -114,14 +128,14 @@ class ListModel():
         self._original_data = None
         self._modified_data = None
 
-    @initialise_modified_data
+    @modified_data_decorator
     def remove(self, value):
         """
         Deleting an element from the list
         """
         return self._modified_data.remove(value)
 
-    @initialise_modified_data
+    @modified_data_decorator
     def extend(self, iterable):
         """
         Given an iterable, it adds the elements to our list
@@ -129,7 +143,7 @@ class ListModel():
         for value in iterable:
             self.append(value)
 
-    @initialise_modified_data
+    @modified_data_decorator
     def pop(self, index=None):
         """
         Obtains and delete the element from the list
@@ -147,7 +161,7 @@ class ListModel():
             return self._original_data.count(value)
         return 0
 
-    @initialise_modified_data
+    @modified_data_decorator
     def reverse(self):
         """
         Reverses the list order
@@ -155,7 +169,7 @@ class ListModel():
         if self._modified_data:
             self._modified_data.reverse()
 
-    @initialise_modified_data
+    @modified_data_decorator
     def sort(self):
         """
         Sorts the list
@@ -179,6 +193,9 @@ class ListModel():
         """
 
         def flat_field(value):
+            """
+            Flat item
+            """
             try:
                 value.flat_data()
                 return value
@@ -194,6 +211,9 @@ class ListModel():
         """
 
         def export_field(value):
+            """
+            Export item
+            """
             try:
                 return value.export_data()
             except AttributeError:
@@ -211,6 +231,9 @@ class ListModel():
         """
 
         def export_modfield(value, is_modified_seq=True):
+            """
+            Export modified item
+            """
             try:
                 return value.export_modified_data()
             except AttributeError:
@@ -221,7 +244,7 @@ class ListModel():
             return [export_modfield(value) for value in self._modified_data]
 
         if self._original_data is not None:
-            return list(filter(lambda x: x is not None, [export_modfield(value) for value in self._original_data]))
+            return list(x for x in [export_modfield(value) for value in self._original_data] if x is not None)
         return []
 
     def import_data(self, data):
