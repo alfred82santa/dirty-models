@@ -22,16 +22,19 @@ class DirtyModelMeta(type):
 
         for key, field in fields.items():
             if isinstance(field, BaseField):
-                if not field.name:
-                    field.name = key
-                elif key != field.name:
-                    setattr(result, field.name, field)
-                if isinstance(field, ModelField) and not field.model_class:
-                    field.model_class = result
-                if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
-                        and not field.field_type.model_class:
-                    field.field_type.model_class = result
+                cls.process_base_field(cls, field, key, result)
         return result
+
+    def process_base_field(cls, field, key, instance):
+        if not field.name:
+            field.name = key
+        elif key != field.name:
+            setattr(instance, field.name, field)
+        if isinstance(field, ModelField) and not field.model_class:
+            field.model_class = instance
+        if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
+                and not field.field_type.model_class:
+            field.field_type.model_class = instance
 
 
 class BaseModel(metaclass=DirtyModelMeta):
