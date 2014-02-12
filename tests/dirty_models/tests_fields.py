@@ -171,6 +171,16 @@ class TestFields(TestCase):
         model.field_name = ""
         self.assertIsNone(model.field_name)
 
+    def test_string_id_field_on_class_using_empty_string_and_delete_value(self):
+
+        class TestModel(BaseModel):
+            field_name = StringIdField()
+
+        model = TestModel()
+        model.field_name = "name"
+        model.field_name = ""
+        self.assertIsNone(model.field_name)
+
     def test_int_field_on_class_using_float(self):
 
         class TestModel(BaseModel):
