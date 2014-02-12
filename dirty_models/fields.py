@@ -150,6 +150,7 @@ class StringIdField(StringField):
         if value:
             obj.set_field_value(self.name, value)
 
+
 class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
