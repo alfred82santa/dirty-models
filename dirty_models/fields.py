@@ -149,6 +149,8 @@ class StringIdField(StringField):
         """Sets value to model if not empty"""
         if value:
             obj.set_field_value(self.name, value)
+        else:
+            self.delete_value(obj)
 
 
 class DateTimeBaseField(BaseField):
