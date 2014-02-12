@@ -141,6 +141,15 @@ class StringField(BaseField):
         return isinstance(value, (int, float))
 
 
+class StringIdField(StringField):
+
+    """It allows to use a stringId as value in a field."""
+
+    def set_value(self, obj, value):
+        """Sets value to model if not empty"""
+        if value:
+            obj.set_field_value(self.name, value)
+
 class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""

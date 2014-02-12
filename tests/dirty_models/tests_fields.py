@@ -1,7 +1,7 @@
 from unittest import TestCase
 from dirty_models.fields import (IntegerField, StringField, BooleanField,
                                  FloatField, ModelField, TimeField, DateField,
-                                 DateTimeField, ArrayField)
+                                 DateTimeField, ArrayField, StringIdField)
 from dirty_models.models import BaseModel
 from dirty_models.types import ListModel
 
@@ -143,6 +143,33 @@ class TestFields(TestCase):
         model = TestModel()
         model.field_name = ""
         self.assertEqual(model.field_name, "")
+
+    def test_string_id_field_on_class_using_string(self):
+
+        class TestModel(BaseModel):
+            field_name = StringIdField()
+
+        model = TestModel()
+        model.field_name = "id"
+        self.assertIsNotNone(model.field_name)
+
+    def test_string_id_field_on_class_using_number(self):
+
+            class TestModel(BaseModel):
+                field_name = StringIdField()
+
+            model = TestModel()
+            model.field_name = 1
+            self.assertIsNotNone(model.field_name)
+
+    def test_string_id_field_on_class_using_empty_string(self):
+
+        class TestModel(BaseModel):
+            field_name = StringIdField()
+
+        model = TestModel()
+        model.field_name = ""
+        self.assertIsNone(model.field_name)
 
     def test_int_field_on_class_using_float(self):
 
