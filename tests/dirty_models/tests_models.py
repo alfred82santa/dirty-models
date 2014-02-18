@@ -1,6 +1,10 @@
 from unittest import TestCase
-from dirty_models.models import BaseModel
-from dirty_models.fields import BaseField
+from dirty_models.models import BaseModel, DynamicModel
+from dirty_models.fields import (BaseField, IntegerField, FloatField,
+                                 StringField, DateTimeField, ModelField,
+                                 ArrayField, BooleanField)
+
+from datetime import datetime
 
 
 INITIAL_DATA = {
@@ -177,3 +181,82 @@ class TestModels(TestCase):
         test_car = CarModel()
         test_car.wheels = 12
         self.assertEqual(test_car.other_wheel_name, 12)
+
+
+class TestDynamicModel(TestCase):
+
+    def setUp(self):
+        self.model = DynamicModel()
+
+    def tearDown(self):
+        self.model.clear()
+
+    def test_set_int_value(self):
+        self.model.test1 = 1
+        self.assertEqual(self.model.test1, 1)
+        self.assertIsInstance(self.model.__class__.__dict__['test1'], IntegerField)
+
+        newmodel = DynamicModel()
+        newmodel.test1 = "aaaa"
+        self.assertEqual(newmodel.test1, "aaaa")
+
+    def test_set_float_value(self):
+        self.model.test2 = 1.0
+        self.assertEqual(self.model.test2, 1.0)
+        self.assertIsInstance(self.model.__class__.__dict__['test2'], FloatField)
+
+    def test_set_bool_value(self):
+        self.model.test2 = True
+        self.assertTrue(self.model.test2)
+        self.assertIsInstance(self.model.__class__.__dict__['test2'], BooleanField)
+
+    def test_set_str_value(self):
+        self.model.test3 = "aass"
+        self.assertEqual(self.model.test3, "aass")
+        self.assertIsInstance(self.model.__class__.__dict__['test3'], StringField)
+
+    def test_set_datetime_value(self):
+        self.model.test4 = datetime(year=2014, month=11, day=1)
+        self.assertEqual(self.model.test4, datetime(year=2014, month=11, day=1))
+        self.assertIsInstance(self.model.__class__.__dict__['test4'], DateTimeField)
+
+    def test_load_from_dict_value(self):
+        self.model.import_data({"aa": "aaaaaa"})
+        self.assertEqual(self.model.export_data(), {"aa": "aaaaaa"})
+        self.assertIsInstance(self.model.__class__.__dict__['aa'], StringField)
+
+    def test_set_dict_value(self):
+        self.model.test1 = {"aa": "aaaaaa"}
+        self.assertEqual(self.model.export_data(), {"test1": {"aa": "aaaaaa"}})
+        self.assertIsInstance(self.model.__class__.__dict__['test1'], ModelField)
+        self.assertEqual(self.model.__class__.__dict__['test1'].model_class, DynamicModel)
+
+    def test_set_model_value(self):
+        class FakeModel(BaseModel):
+            test2 = IntegerField()
+        self.model.test1 = FakeModel({"test2": 23})
+        self.assertEqual(self.model.export_data(), {"test1": {"test2": 23}})
+        self.assertIsInstance(self.model.__class__.__dict__['test1'], ModelField)
+        self.assertEqual(self.model.__class__.__dict__['test1'].model_class, FakeModel)
+
+    def test_set_list_value(self):
+        self.model.test1 = ["aa", "aaaaaa"]
+        self.assertEqual(self.model.export_data(), {"test1": ["aa", "aaaaaa"]})
+        self.assertIsInstance(self.model.__class__.__dict__['test1'], ArrayField)
+
+    def test_set_invalid_type_field_fail(self):
+        with self.assertRaisesRegexp(TypeError, "Invalid parameter: test34. Type not supported."):
+            self.model.test34 = (2, 2)
+
+    def test_delete_field(self):
+        self.model.test1 = 1
+        self.assertEqual(self.model.test1, 1)
+        self.assertIsInstance(self.model.__class__.__dict__['test1'], IntegerField)
+
+        del self.model.test1
+        self.assertIsNone(self.model.test1)
+
+    def test_delete_protected_field(self):
+        self.model._test1 = 1
+        self.assertEqual(self.model._test1, 1)
+        del self.model._test1
