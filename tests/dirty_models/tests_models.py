@@ -1,7 +1,9 @@
 from unittest import TestCase
 from dirty_models.models import BaseModel, DynamicModel
-from dirty_models.fields import BaseField, IntegerField, FloatField, StringField, DateTimeField, ModelField, ArrayField, \
-    BooleanField
+from dirty_models.fields import (BaseField, IntegerField, FloatField,
+                                 StringField, DateTimeField, ModelField,
+                                 ArrayField, BooleanField)
+
 from datetime import datetime
 
 
