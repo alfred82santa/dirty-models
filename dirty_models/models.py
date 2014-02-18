@@ -211,12 +211,6 @@ class DynamicModel(BaseModel):
 
         super(DynamicModel, self).__setattr__(key, value)
 
-    def __delattr__(self, key):
-        if key[0] != '_':
-            self.delete_field_value(key)
-        else:
-            super(DynamicModel, self).__delattr__(key)
-
     def import_data(self, data):
         """
         Set the fields established in data to the instance
