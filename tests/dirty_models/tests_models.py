@@ -180,6 +180,7 @@ class TestModels(TestCase):
         test_car.wheels = 12
         self.assertEqual(test_car.other_wheel_name, 12)
 
+
 class TestDynamicModel(TestCase):
 
     def setUp(self):
@@ -257,4 +258,3 @@ class TestDynamicModel(TestCase):
         self.model._test1 = 1
         self.assertEqual(self.model._test1, 1)
         del self.model._test1
-

@@ -9,6 +9,7 @@ from dirty_models.fields import IntegerField, FloatField, BooleanField, StringFi
 from datetime import datetime
 from dirty_models.types import ListModel
 
+
 class DirtyModelMeta(type):
 
     """
@@ -223,7 +224,3 @@ class DynamicModel(BaseModel):
         if isinstance(data, dict):
             for key, value in data.items():
                 setattr(self, key, value)
-
-
-
-
