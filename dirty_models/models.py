@@ -8,7 +8,6 @@ from .fields import BaseField, ModelField, ArrayField
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
 from datetime import datetime
 from dirty_models.types import ListModel
-from itertools import chain
 
 
 class DirtyModelMeta(type):
@@ -105,16 +104,10 @@ class BaseModel(metaclass=DirtyModelMeta):
         Get the results with the modified_data
         """
         result = {}
-
-        for key, value in self._modified_data.items():
+        data = self._original_data.copy()
+        data.update(self._modified_data)
+        for key, value in data.items():
             if key not in self._deleted_fields:
-                try:
-                    result[key] = value.export_data()
-                except AttributeError:
-                    result[key] = value
-
-        for key, value in self._original_data.items():
-            if key not in self._deleted_fields and not result.get(key):
                 try:
                     result[key] = value.export_data()
                 except AttributeError:
@@ -152,8 +145,7 @@ class BaseModel(metaclass=DirtyModelMeta):
         """
         result = self._deleted_fields.copy()
 
-        for key, value in chain(self._modified_data.items(),
-                                self._original_data.items()):
+        for key, value in self._original_data.items():
             if key not in result:
                 try:
                     partial = value.export_deleted_fields()
