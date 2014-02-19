@@ -97,6 +97,7 @@ class TestModels(TestCase):
             testField1 = BaseField()
             testField2 = BaseField()
             testField3 = BaseField()
+            testFieldModel = ModelField()
 
         return TestExportModel()
 
@@ -139,6 +140,38 @@ class TestModels(TestCase):
                                              'testField2':
                                              'Field Value2 Modified',
                                              'testField3': None}})
+
+    def test_export_deleted_fields_1st_level(self):
+
+        model_field = self._get_test_model_instance()
+        model_field.import_data({
+            'testField1': 'Field Value1', 'testField2': 'Field Value2',
+            'testField3': 'Field Value3',
+            'testFieldModel': {'testField3': 'Field Value3'}})
+
+        model_field.flat_data()
+
+        del model_field.testField1
+        del model_field.testField2
+
+        self.assertEqual(model_field.export_deleted_fields(), ['testField1', 'testField2'])
+
+    def test_export_deleted_fields_2nd_level(self):
+
+        model_field = self._get_test_model_instance()
+        model_field.import_data({
+            'testField1': 'Field Value1', 'testField2': 'Field Value2',
+            'testField3': 'Field Value3',
+            'testFieldModel': {'testField3': 'Field Value3'}})
+
+        model_field.flat_data()
+
+        del model_field.testField1
+        del model_field.testField2
+        del model_field.testFieldModel.testField3
+
+        self.assertEqual(model_field.export_deleted_fields(), ['testField1', 'testField2',
+                                                               'testFieldModel.testField3'])
 
     def test_flat_data(self):
         model_field = self._get_test_model_instance()

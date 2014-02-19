@@ -8,6 +8,7 @@ from .fields import BaseField, ModelField, ArrayField
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
 from datetime import datetime
 from dirty_models.types import ListModel
+from itertools import chain
 
 
 class DirtyModelMeta(type):
@@ -29,6 +30,9 @@ class DirtyModelMeta(type):
         return result
 
     def process_base_field(cls, field, key, instance):
+        """
+        Preprocess class fields.
+        """
         if not field.name:
             field.name = key
         elif key != field.name:
@@ -141,6 +145,25 @@ class BaseModel(metaclass=DirtyModelMeta):
 
         return result
 
+    def export_deleted_fields(self):
+        """
+        Resturns a list with any deleted fields form original data.
+        In tree models, deleted fields on children will be appended.
+        """
+        result = self._deleted_fields.copy()
+
+        for key, value in chain(self._modified_data.items(),
+                                self._original_data.items()):
+            if key not in result:
+                try:
+                    partial = value.export_deleted_fields()
+                    for key2 in partial:
+                        result.append(key + '.' + key2)
+                except AttributeError:
+                    pass
+
+        return result
+
     def flat_data(self):
         """
         Pass all the data from modified_data to original_data
@@ -180,6 +203,11 @@ class BaseModel(metaclass=DirtyModelMeta):
 
 
 class DynamicModel(BaseModel):
+
+    """
+    DynamicModel allow to create model with no structure. Each instance has its own
+    derivated class from DynamicModels.
+    """
 
     _next_id = 0
 
