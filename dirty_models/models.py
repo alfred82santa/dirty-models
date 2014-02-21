@@ -235,7 +235,7 @@ class DynamicModel(BaseModel):
             return ModelField(name=key, model_class=DynamicModel)
         elif isinstance(value, BaseModel):
             return ModelField(name=key, model_class=value.__class__)
-        elif isinstance(value, (list, ListModel)):
+        elif isinstance(value, (list, set, ListModel)):
             if not len(value):
                 return None
             field_type = self._get_field_type(None, value[0])
