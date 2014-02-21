@@ -210,26 +210,38 @@ class DynamicModel(BaseModel):
 
     def __setattr__(self, key, value):
         if key[0] != '_' and key not in self.__class__.__dict__.keys():
-            if isinstance(value, bool):
-                setattr(self.__class__, key, BooleanField(name=key))
-            elif isinstance(value, int):
-                setattr(self.__class__, key, IntegerField(name=key))
-            elif isinstance(value, float):
-                setattr(self.__class__, key, FloatField(name=key))
-            elif isinstance(value, str):
-                setattr(self.__class__, key, StringField(name=key))
-            elif isinstance(value, datetime):
-                setattr(self.__class__, key, DateTimeField(name=key))
-            elif isinstance(value, (dict, DynamicModel)):
-                setattr(self.__class__, key, ModelField(name=key, model_class=DynamicModel))
-            elif isinstance(value, BaseModel):
-                setattr(self.__class__, key, ModelField(name=key, model_class=value.__class__))
-            elif isinstance(value, (list, ListModel)):
-                setattr(self.__class__, key, ArrayField(name=key))
-            else:
-                raise TypeError("Invalid parameter: %s. Type not supported." % (key,))
+            field_type = self._get_field_type(key, value)
+            if not field_type:
+                return
+            setattr(self.__class__, key, field_type)
 
         super(DynamicModel, self).__setattr__(key, value)
+
+    def _get_field_type(self, key, value):
+        """
+        Helper to create field object based on value type
+        """
+        if isinstance(value, bool):
+            return BooleanField(name=key)
+        elif isinstance(value, int):
+            return IntegerField(name=key)
+        elif isinstance(value, float):
+            return FloatField(name=key)
+        elif isinstance(value, str):
+            return StringField(name=key)
+        elif isinstance(value, datetime):
+            return DateTimeField(name=key)
+        elif isinstance(value, (dict, DynamicModel)):
+            return ModelField(name=key, model_class=DynamicModel)
+        elif isinstance(value, BaseModel):
+            return ModelField(name=key, model_class=value.__class__)
+        elif isinstance(value, (list, ListModel)):
+            if not len(value):
+                return None
+            field_type = self._get_field_type(None, value[0])
+            return ArrayField(name=key, field_type=field_type)
+        else:
+            raise TypeError("Invalid parameter: %s. Type not supported." % (key,))
 
     def import_data(self, data):
         """
