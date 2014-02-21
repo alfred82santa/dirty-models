@@ -210,7 +210,7 @@ class ListModel(BaseData):
             except AttributeError:
                 return value
 
-        self._original_data = [flat_field(value) for value in self._modified_data]
+        self._original_data = [flat_field(value) for value in self]
         self._modified_data = None
 
     def export_data(self):
