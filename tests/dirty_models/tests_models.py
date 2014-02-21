@@ -276,6 +276,13 @@ class TestDynamicModel(TestCase):
         self.model.test1 = ["aa", "aaaaaa"]
         self.assertEqual(self.model.export_data(), {"test1": ["aa", "aaaaaa"]})
         self.assertIsInstance(self.model.__class__.__dict__['test1'], ArrayField)
+        self.assertIsInstance(self.model.__class__.__dict__['test1'].field_type, StringField)
+
+    def test_set_empty_list_value(self):
+        self.model.test1 = []
+
+        with self.assertRaises(AttributeError):
+            self.model.test1
 
     def test_set_invalid_type_field_fail(self):
         with self.assertRaisesRegexp(TypeError, "Invalid parameter: test34. Type not supported."):
