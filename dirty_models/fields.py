@@ -4,6 +4,7 @@ fields.py
 Fields to be used with dirty_models
 """
 from datetime import datetime, date, time
+from dateutil.parser import parse as dateutil_parse
 from .types import ListModel
 
 
@@ -185,8 +186,9 @@ class TimeField(DateTimeBaseField):
         elif isinstance(value, int):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
-            return self.convert_value(
-                datetime.strptime(value, self.parse_format))
+            if not self.parse_format:
+                return dateutil_parse(value)
+            return self.convert_value(datetime.strptime(value, self.parse_format))
         elif isinstance(value, datetime):
             return value.timetz()
 
@@ -209,8 +211,9 @@ class DateField(DateTimeBaseField):
         elif isinstance(value, int):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
-            return self.convert_value(
-                datetime.strptime(value, self.parse_format))
+            if not self.parse_format:
+                return dateutil_parse(value)
+            return self.convert_value(datetime.strptime(value, self.parse_format))
         elif isinstance(value, datetime):
             return value.date()
 
@@ -233,6 +236,8 @@ class DateTimeField(DateTimeBaseField):
         elif isinstance(value, int):
             return datetime.fromtimestamp(value)
         elif isinstance(value, str):
+            if not self.parse_format:
+                return dateutil_parse(value)
             return datetime.strptime(value, self.parse_format)
         elif isinstance(value, date):
             return datetime(year=value.year, month=value.month,

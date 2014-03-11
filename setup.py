@@ -8,6 +8,7 @@ setup(
     author_email='alfred82santa@gmail.com',
     packages=['dirty_models'],
     include_package_data=True,
+    install_requires=['python-dateutil'],
     test_suite="nose.collector",
     tests_require="nose",
     zip_safe=True,
