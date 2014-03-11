@@ -210,20 +210,20 @@ class DependencyBaseModel(BaseModel, metaclass=DependencyDirtyModelMeta):
         """
         Sets a field to modified. If it is the field of a children, it calls its force_modified function
         """
-        own_field, descendent_field = get_dependencies_from_dependency_string(name)
-        if not descendent_field:
-            descendent_object = self.get_field_value(name)
-            if isinstance(descendent_object, DependencyBaseModel):
+        own_field, child_field = get_dependencies_from_dependency_string(name)
+        if not child_field:
+            child_object = self.get_field_value(name)
+            if isinstance(child_object, DependencyBaseModel):
                 # When is about ModelField, set_field_value is not invoked
-                object_dict = descendent_object._original_data.copy()
-                object_dict.update(descendent_object._modified_data)
-                descendent_object._modified_data = object_dict
+                object_dict = child_object._original_data.copy()
+                object_dict.update(child_object._modified_data)
+                child_object._modified_data = object_dict
             else:
-                if descendent_object:
-                    self._modify_field_value(name, descendent_object, forced_update=True)
+                if child_object:
+                    self._modify_field_value(name, child_object, forced_update=True)
             self.forced_fields.add(name)
         else:
-            self.get_field_value(own_field).force_modified(descendent_field)
+            self.get_field_value(own_field).force_modified(child_field)
 
     def get_indirect_dependencies_between_fields(self, field_origin, field_dest):
         """
