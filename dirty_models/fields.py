@@ -187,7 +187,8 @@ class TimeField(DateTimeBaseField):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
             if not self.parse_format:
-                return dateutil_parse(value)
+                value = dateutil_parse(value)
+                return value.time()
             return self.convert_value(datetime.strptime(value, self.parse_format))
         elif isinstance(value, datetime):
             return value.timetz()
@@ -212,7 +213,8 @@ class DateField(DateTimeBaseField):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
             if not self.parse_format:
-                return dateutil_parse(value)
+                value = dateutil_parse(value)
+                return value.date()
             return self.convert_value(datetime.strptime(value, self.parse_format))
         elif isinstance(value, datetime):
             return value.date()
