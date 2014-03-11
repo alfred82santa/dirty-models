@@ -489,6 +489,13 @@ class TestFields(TestCase):
         self.assertEqual(field.use_value("03:13:23"),
                          time(hour=3, minute=13, second=23))
 
+    def test_time_field_using_str_no_parse_format(self):
+        field = TimeField()
+        self.assertFalse(field.check_value("03:13:23"))
+        self.assertTrue(field.can_use_value("03:13:23"))
+        self.assertEqual(field.use_value("03:13:23"),
+                         time(hour=3, minute=13, second=23))
+
     def test_time_field_using_list(self):
         field = TimeField()
         self.assertFalse(field.check_value([3, 13, 23]))
@@ -536,6 +543,13 @@ class TestFields(TestCase):
 
     def test_date_field_using_str(self):
         field = DateField(parse_format="%d/%m/%Y")
+        self.assertFalse(field.check_value("23/03/2015"))
+        self.assertTrue(field.can_use_value("23/03/2015"))
+        self.assertEqual(field.use_value("23/03/2015"),
+                         date(year=2015, month=3, day=23))
+
+    def test_date_field_using_str_no_parse_format(self):
+        field = DateField()
         self.assertFalse(field.check_value("23/03/2015"))
         self.assertTrue(field.can_use_value("23/03/2015"))
         self.assertEqual(field.use_value("23/03/2015"),
@@ -591,6 +605,14 @@ class TestFields(TestCase):
         self.assertTrue(field.can_use_value("23/03/2015"))
         self.assertEqual(field.use_value("23/03/2015"),
                          datetime(year=2015, month=3, day=23))
+
+    def test_datetime_field_using_str_no_parse_format(self):
+        from dateutil.tz import tzutc
+        field = DateTimeField()
+        self.assertFalse(field.check_value('2012-09-11T13:02:41Z'))
+        self.assertTrue(field.can_use_value('2012-09-11T13:02:41Z'))
+        self.assertEqual(field.use_value('2012-09-11T13:02:41Z'),
+                         datetime(2012, 9, 11, 13, 2, 41, tzinfo=tzutc()))
 
     def test_datetime_field_using_list(self):
         field = DateTimeField()
