@@ -251,7 +251,6 @@ class TestModels(TestCase):
         self.assertEqual(model.fields(), ['testField1', 'testField3'])
 
 
-
 class TestDynamicModel(TestCase):
 
     def setUp(self):

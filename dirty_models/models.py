@@ -201,6 +201,7 @@ class BaseModel(metaclass=DirtyModelMeta):
 
         return result
 
+
 class DynamicModel(BaseModel):
 
     """
