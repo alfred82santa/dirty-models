@@ -193,6 +193,13 @@ class BaseModel(metaclass=DirtyModelMeta):
         self._original_data = {}
         self._deleted_fields = []
 
+    def fields(self):
+        result = [key for key in self._original_data.keys()
+                  if key not in self._deleted_fields]
+        result.extend([key for key in self._modified_data.keys()
+                       if key not in result and key not in self._deleted_fields])
+
+        return result
 
 class DynamicModel(BaseModel):
 
