@@ -4,7 +4,7 @@ setup(
     name='dirty-models',
     url='https://github.com/alfred82santa/dirty-models',
     author='alfred82santa',
-    version='0.1.1',
+    version='0.1.2',
     author_email='alfred82santa@gmail.com',
     packages=['dirty_models'],
     include_package_data=True,

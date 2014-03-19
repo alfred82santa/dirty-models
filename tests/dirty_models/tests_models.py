@@ -215,6 +215,41 @@ class TestModels(TestCase):
         test_car.wheels = 12
         self.assertEqual(test_car.other_wheel_name, 12)
 
+    def test_fields_empty(self):
+        model = self._get_test_model_instance()
+
+        self.assertEqual(model.fields(), [])
+
+    def test_fields_modified_data(self):
+        model = self._get_test_model_instance()
+        model.testField1 = 'a'
+        model.testField2 = 'b'
+        model.testField3 = 'c'
+
+        self.assertEqual(model.fields(), ['testField1', 'testField2', 'testField3'])
+
+    def test_fields_original_data(self):
+        model = self._get_test_model_instance()
+        model.testField1 = 'a'
+
+        model.flat_data()
+
+        model.testField3 = 'c'
+
+        self.assertEqual(model.fields(), ['testField1', 'testField3'])
+
+    def test_fields_deleted_data(self):
+        model = self._get_test_model_instance()
+        model.testField1 = 'a'
+        model.testField2 = 'b'
+        model.testField3 = 'c'
+
+        model.flat_data()
+
+        del model.testField2
+
+        self.assertEqual(model.fields(), ['testField1', 'testField3'])
+
 
 class TestDynamicModel(TestCase):
 
