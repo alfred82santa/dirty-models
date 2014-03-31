@@ -263,6 +263,9 @@ class ListModel(BaseData):
             self.extend(data)
 
     def is_modified(self):
+        """
+        Returns whether list is modified or not
+        """
         if self._modified_data is not None:
             return True
         for value in self._original_data:
@@ -273,6 +276,18 @@ class ListModel(BaseData):
                 pass
 
         return False
+
+    def clear_modified_data(self):
+        """
+        Clears only the modified data
+        """
+        self._modified_data = None
+
+        for value in self._original_data:
+            try:
+                value.clear_modified_data()
+            except AttributeError:
+                pass
 
     def _update_read_only(self):
         for value in itertools.chain(self._original_data if self._original_data else [],
