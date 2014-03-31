@@ -12,9 +12,10 @@ class BaseField:
 
     """Base field descriptor."""
 
-    def __init__(self, name=None, doc=None):
+    def __init__(self, name=None, read_only=False, doc=None):
         self._name = None
         self.name = name
+        self.read_only = read_only
         self.__doc__ = doc
 
     @property
@@ -261,8 +262,8 @@ class ModelField(BaseField):
     class than model who define field.
     """
 
-    def __init__(self, name=None, doc=None, model_class=None):
-        super(ModelField, self).__init__(name, doc)
+    def __init__(self, name=None, read_only=False, model_class=None, doc=None):
+        super(ModelField, self).__init__(name=name, read_only=read_only, doc=doc)
         self._model_class = None
 
         self.model_class = model_class
@@ -307,8 +308,8 @@ class ArrayField(BaseField):
     When using a model with no specified model_class the model inside field.
     """
 
-    def __init__(self, name=None, field_type=BaseField()):
-        super(ArrayField, self).__init__(name)
+    def __init__(self, name=None, field_type=BaseField(), read_only=False, doc=None):
+        super(ArrayField, self).__init__(name=name, read_only=read_only, doc=doc)
         self._field_type = None
         self.field_type = field_type
 

@@ -8,6 +8,8 @@ from .fields import BaseField, ModelField, ArrayField
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
 from datetime import datetime
 from dirty_models.types import ListModel
+from dirty_models.base import BaseData
+import itertools
 
 
 class DirtyModelMeta(type):
@@ -22,12 +24,17 @@ class DirtyModelMeta(type):
             cls, name, bases, classdict)
 
         fields = {key: field for key, field in result.__dict__.items()}
-
+        read_only_fields = []
         for key, field in fields.items():
             if isinstance(field, BaseField):
-                cls.process_base_field(cls, field, key, result)
+                cls.process_base_field(field, key, result)
+                if field.read_only:
+                    read_only_fields.append(field.name)
+
+        setattr(result, '_read_only_fields', read_only_fields)
         return result
 
+    @classmethod
     def process_base_field(cls, field, key, instance):
         """
         Preprocess class fields.
@@ -43,32 +50,44 @@ class DirtyModelMeta(type):
             field.field_type.model_class = instance
 
 
-class BaseModel(metaclass=DirtyModelMeta):
+class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
     """
-    Base model with dirty feature. It store original data and save
+    Base model with dirty feature. It stores original data and saves
     modifications in other side.
     """
 
     def __init__(self, data=None, **kwargs):
+        super(BaseModel, self).__init__()
         self._original_data = {}
         self._modified_data = {}
         self._deleted_fields = []
+
+        self.unlock()
         if isinstance(data, dict):
             self.import_data(data)
         self.import_data(kwargs)
+        self.lock()
 
     def set_field_value(self, name, value):
         """
         Set the value to the field modified_data
         """
-        if name in self._deleted_fields:
-            self._deleted_fields.remove(name)
-        if self._original_data.get(name) == value:
-            if self._modified_data.get(name):
-                self._modified_data.pop(name)
-        else:
-            self._modified_data[name] = value
+        if self._can_write_field(name):
+
+            if name in self._deleted_fields:
+                self._deleted_fields.remove(name)
+            if self._original_data.get(name) == value:
+                if self._modified_data.get(name):
+                    self._modified_data.pop(name)
+            else:
+                self._modified_data[name] = value
+                self._prepare_child(value)
+                if name in self._read_only_fields:
+                    try:
+                        value.set_read_only(True)
+                    except AttributeError:
+                        pass
 
     def get_field_value(self, name):
         """
@@ -85,19 +104,25 @@ class BaseModel(metaclass=DirtyModelMeta):
         """
         Mark this field to be deleted
         """
-        if self._original_data.get(name) or self._modified_data.get(name):
-            if self._modified_data.get(name):
+        if self._can_write_field(name):
+            if name in self._modified_data:
                 self._modified_data.pop(name)
-            self._deleted_fields.append(name)
+
+            if name in self._original_data:
+                self._deleted_fields.append(name)
 
     def import_data(self, data):
         """
         Set the fields established in data to the instance
         """
-        if isinstance(data, dict):
-            for key, value in data.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
+        if not self.get_read_only() or not self.is_locked():
+            if isinstance(data, BaseModel):
+                data = data.export_data()
+                print(data)
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if hasattr(self, key):
+                        setattr(self, key, value)
 
     def export_data(self):
         """
@@ -193,13 +218,47 @@ class BaseModel(metaclass=DirtyModelMeta):
         self._original_data = {}
         self._deleted_fields = []
 
-    def fields(self):
+    def get_fields(self):
         result = [key for key in self._original_data.keys()
                   if key not in self._deleted_fields]
         result.extend([key for key in self._modified_data.keys()
                        if key not in result and key not in self._deleted_fields])
 
         return result
+
+    def is_modified(self):
+        if len(self._modified_data) or len(self._deleted_fields):
+            return True
+
+        for value in self._original_data.values():
+            try:
+                if value.is_modified():
+                    return True
+            except AttributeError:
+                pass
+
+        return False
+
+    def copy(self):
+        return self.__class__(data=self.export_data())
+
+    def __iter__(self):
+        def iterfunc():
+            for field in self.get_fields():
+                yield (field, getattr(self, field))
+
+        return iterfunc()
+
+    def _can_write_field(self, name):
+        return (name not in self._read_only_fields and not self.get_read_only()) or \
+            not self.is_locked()
+
+    def _update_read_only(self):
+        for value in itertools.chain(self._original_data.values(), self._modified_data.values()):
+            try:
+                value.set_read_only(self.get_read_only())
+            except AttributeError:
+                pass
 
 
 class DynamicModel(BaseModel):
@@ -211,17 +270,19 @@ class DynamicModel(BaseModel):
 
     _next_id = 0
 
-    def __new__(cls, data=None, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {})
         cls._next_id = id(new_class)
         return super(DynamicModel, new_class).__new__(new_class)
 
     def __setattr__(self, key, value):
+        print(key[0], key[0] != '_')
         if key[0] != '_' and key not in self.__class__.__dict__.keys():
-            field_type = self._get_field_type(key, value)
-            if not field_type:
-                return
-            setattr(self.__class__, key, field_type)
+            if not self.get_read_only() or not self.is_locked():
+                field_type = self._get_field_type(key, value)
+                if not field_type:
+                    return
+                setattr(self.__class__, key, field_type)
 
         super(DynamicModel, self).__setattr__(key, value)
 
