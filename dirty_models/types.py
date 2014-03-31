@@ -1,6 +1,8 @@
 """
 Internal types for dirty models
 """
+from dirty_models.base import BaseData
+import itertools
 
 
 def modified_data_decorator(function):
@@ -8,14 +10,17 @@ def modified_data_decorator(function):
     Decorator to initialise the modified_data if necessary. To be used in list functions
     to modify the list
     """
-    def func(*args, **kwargs):
+
+    def func(self, *args, **kwargs):
         """Decorator"""
-        args[0].initialise_modified_data()
-        return function(*args, **kwargs)
+        if not self.get_read_only() or not self.is_locked():
+            self.initialise_modified_data()
+            return function(self, *args, **kwargs)
+        return lambda: None
     return func
 
 
-class ListModel():
+class ListModel(BaseData):
 
     """
     Dirty model for a list. It has the behavior to work as a list implementing its methods
@@ -27,6 +32,7 @@ class ListModel():
     _modified_data = None
 
     def __init__(self, seq=None, field_type=None):
+        super(ListModel, self).__init__()
         self.field_type = field_type
         if seq is not None:
             self.extend(seq)
@@ -37,7 +43,9 @@ class ListModel():
         """
         try:
             if self.field_type.check_value(value) or self.field_type.can_use_value(value):
-                return self.field_type.use_value(value)
+                data = self.field_type.use_value(value)
+                self._prepare_child(data)
+                return data
             else:
                 return None
         except AttributeError:
@@ -253,3 +261,23 @@ class ListModel():
         """
         if hasattr(data, '__iter__'):
             self.extend(data)
+
+    def is_modified(self):
+        if self._modified_data is not None:
+            return True
+        for value in self._original_data:
+            try:
+                if value.is_modified():
+                    return True
+            except AttributeError:
+                pass
+
+        return False
+
+    def _update_read_only(self):
+        for value in itertools.chain(self._original_data if self._original_data else [],
+                                     self._modified_data if self._modified_data else []):
+            try:
+                value.set_read_only(self.get_read_only())
+            except AttributeError:
+                pass

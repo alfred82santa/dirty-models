@@ -5,6 +5,7 @@ from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  ArrayField, BooleanField)
 
 from datetime import datetime
+from dirty_models.base import Unlocker
 
 
 INITIAL_DATA = {
@@ -90,6 +91,32 @@ class TestModels(TestCase):
         self.model.import_data(INITIAL_DATA)
         self.assertTrue(hasattr(self.model, 'testField1'))
         self.assertFalse(hasattr(self.model, 'testField2'))
+
+    def test_import_data_from_model(self):
+        class FakeModel(BaseModel):
+            testField1 = BaseField()
+            testField3 = BaseField()
+
+        data = {'testField1': 'Value1', 'testField3': 'No matters'}
+        model1 = FakeModel(data)
+
+        model2 = FakeModel()
+
+        model2.import_data(model1)
+
+        self.assertDictEqual(model1.export_data(), model2.export_data())
+
+    def test_copy_model(self):
+        class FakeModel(BaseModel):
+            testField1 = BaseField()
+            testField3 = BaseField()
+
+        data = {'testField1': 'Value1', 'testField3': 'No matters'}
+        model1 = FakeModel(data)
+
+        model2 = model1.copy()
+
+        self.assertDictEqual(model1.export_data(), model2.export_data())
 
     def _get_test_model_instance(self):
 
@@ -184,9 +211,11 @@ class TestModels(TestCase):
                                      'testField3': 'Value3',
                                      'testField4': model_field}
         self.model._deleted_fields = ['testField2', 'testField3']
+        self.assertTrue(self.model.is_modified())
         self.model.flat_data()
         self.assertEqual(self.model._deleted_fields, [])
         self.assertEqual(self.model._modified_data, {})
+        self.assertFalse(self.model.is_modified())
 
         self.assertEqual(set(self.model._original_data.keys()),
                          set(['testField1', 'testField4']))
@@ -218,7 +247,7 @@ class TestModels(TestCase):
     def test_fields_empty(self):
         model = self._get_test_model_instance()
 
-        self.assertEqual(model.fields(), [])
+        self.assertEqual(model.get_fields(), [])
 
     def test_fields_modified_data(self):
         model = self._get_test_model_instance()
@@ -226,7 +255,7 @@ class TestModels(TestCase):
         model.testField2 = 'b'
         model.testField3 = 'c'
 
-        self.assertEqual(model.fields(), ['testField1', 'testField2', 'testField3'])
+        self.assertEqual(sorted(model.get_fields()), ['testField1', 'testField2', 'testField3'])
 
     def test_fields_original_data(self):
         model = self._get_test_model_instance()
@@ -236,7 +265,7 @@ class TestModels(TestCase):
 
         model.testField3 = 'c'
 
-        self.assertEqual(model.fields(), ['testField1', 'testField3'])
+        self.assertEqual(sorted(model.get_fields()), ['testField1', 'testField3'])
 
     def test_fields_deleted_data(self):
         model = self._get_test_model_instance()
@@ -248,7 +277,162 @@ class TestModels(TestCase):
 
         del model.testField2
 
-        self.assertEqual(model.fields(), ['testField1', 'testField3'])
+        self.assertEqual(sorted(model.get_fields()), ['testField1', 'testField3'])
+
+    def test_iter_model(self):
+        class FakeModel(BaseModel):
+            testField1 = BaseField()
+            testField3 = BaseField()
+
+        data = {'testField1': 'Value1', 'testField3': 'No matters'}
+        model = FakeModel(data)
+
+        for t in model:
+            self.assertIsInstance(t, tuple)
+            self.assertEqual(len(t), 2)
+            self.assertIsInstance(t[0], str)
+            self.assertIn(t[0], data.keys(), "Field name " + t[0])
+            del data[t[0]]
+
+        self.assertEqual(data, {}, "Empty data")
+
+
+class ModelReadOnly(BaseModel):
+    testField1 = BaseField()
+    testField2 = BaseField(read_only=True)
+    testField3 = BaseField()
+    testFieldModel = ModelField(read_only=True)
+    testFieldList = ArrayField(read_only=True, field_type=IntegerField())
+    testFieldModelList = ArrayField(read_only=True, field_type=ModelField())
+
+
+class TestModelReadOnly(TestCase):
+
+    def test_no_writing(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelReadOnly(data)
+        model.flat_data()
+
+        model.testField2 = 99
+        self.assertEqual(model.testField2, 2, 'Read only simple field')
+        self.assertFalse(model.is_modified())
+        self.assertTrue(model.is_locked())
+
+        model.testFieldModel.testField1 = 99
+        self.assertEqual(model.testFieldModel.testField1, 61, 'Read only embedded field')
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testFieldList.append(99)
+        self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                         [5, 6, 3, 66, 42, 22], 'Read only list field')
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 99
+        print(model.testFieldModelList.get_read_only())
+        self.assertEqual(model.testFieldModelList[0].testField1, 61, 'Read only inside list field')
+        self.assertFalse(model.is_modified())
+
+    def test_unlock_writing(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelReadOnly(data)
+        model.flat_data()
+
+        model.unlock()
+
+        model.testField2 = 99
+        self.assertEqual(model.testField2, 99, 'Read only simple field')
+        self.assertTrue(model.is_modified())
+
+        model.testField2 = 2
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testField1 = 99
+        self.assertEqual(model.testFieldModel.testField1, 99, 'Read only embedded field')
+        self.assertTrue(model.is_modified())
+
+        model.testFieldModel.testField1 = 61
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 99
+        self.assertEqual(model.testFieldModelList[0].testField1, 99, 'Read only inside list field')
+        self.assertTrue(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 61
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testFieldList.append(99)
+        self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                         [5, 6, 3, 66, 42, 22, 99], 'Read only list field')
+        self.assertTrue(model.is_modified())
+
+        self.assertFalse(model.is_locked())
+
+    def test_unlocklocker(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelReadOnly(data)
+        model.flat_data()
+
+        with Unlocker(model):
+
+            model.testField2 = 99
+            self.assertEqual(model.testField2, 99, 'Read only simple field')
+            self.assertTrue(model.is_modified())
+
+            model.testField2 = 2
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModel.testField1 = 99
+            self.assertEqual(model.testFieldModel.testField1, 99, 'Read only embedded field')
+            self.assertTrue(model.is_modified())
+
+            model.testFieldModel.testField1 = 61
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModelList[0].testField1 = 99
+            self.assertEqual(model.testFieldModelList[0].testField1, 99, 'Read only inside list field')
+            self.assertTrue(model.is_modified())
+
+            model.testFieldModelList[0].testField1 = 61
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModel.testFieldList.append(99)
+            self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                             [5, 6, 3, 66, 42, 22, 99], 'Read only list field')
+            self.assertTrue(model.is_modified())
+
+            self.assertFalse(model.is_locked())
+
+        self.assertTrue(model.is_locked())
 
 
 class TestDynamicModel(TestCase):
