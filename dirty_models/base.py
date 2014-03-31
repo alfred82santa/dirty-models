@@ -8,32 +8,57 @@ import weakref
 
 class BaseData():
 
+    """
+    Base class for data inside dirty model
+    """
+
     def __init__(self, *args, **kwargs):
         self._locked = True
         self._read_only = False
         self._parent = None
 
     def get_read_only(self):
+        """
+        Returns whether model could be modified or not
+        """
         return self._read_only
 
     def set_read_only(self, value):
+        """
+        Sets whether model could be modified or not
+        """
         if self._read_only != value:
             self._read_only = value
             self._update_read_only()
 
     def get_parent(self):
+        """
+        Returns parent model
+        """
         return self._parent() if self._parent else None
 
     def set_parent(self, value):
+        """
+        Sets parent model
+        """
         self._parent = weakref.ref(value)
 
     def unlock(self):
+        """
+        Unlock model to be able to write even it's read only
+        """
         self._locked = False
 
     def lock(self):
+        """
+        Lock model to avoid modification on read only fields
+        """
         self._locked = True
 
     def is_locked(self):
+        """
+        Returns whether model is locked
+        """
         if not self._locked:
             return False
         elif self.get_parent():
@@ -55,6 +80,10 @@ class BaseData():
 
 
 class Unlocker():
+
+    """
+    Unlocker instances helps to lock and unlock models easily
+    """
 
     def __init__(self, item):
         self.item = item

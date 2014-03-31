@@ -257,6 +257,24 @@ class TestModels(TestCase):
 
         self.assertEqual(sorted(model.get_fields()), ['testField1', 'testField2', 'testField3'])
 
+    def test_reset_field_value(self):
+        model = self._get_test_model_instance()
+        model.testField1 = 'a'
+        model.testField2 = 'b'
+        model.testField3 = 'c'
+
+        model.flat_data()
+
+        self.assertEqual(model.testField3, 'c')
+        model.testField3 = 'cccc'
+        self.assertEqual(model.testField3, 'cccc')
+        model.reset_field_value('testField3')
+        self.assertEqual(model.testField3, 'c')
+        del model.testField3
+
+        model.reset_field_value('testField3')
+        self.assertEqual(model.testField3, 'c')
+
     def test_fields_original_data(self):
         model = self._get_test_model_instance()
         model.testField1 = 'a'

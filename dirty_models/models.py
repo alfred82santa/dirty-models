@@ -111,6 +111,22 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             if name in self._original_data:
                 self._deleted_fields.append(name)
 
+    def reset_field_value(self, name):
+        """
+        Resets value of a field
+        """
+        if self._can_write_field(name):
+            if name in self._modified_data:
+                del self._modified_data[name]
+
+            if name in self._deleted_fields:
+                self._deleted_fields.remove(name)
+
+            try:
+                self._original_data[name].clear_modified_data()
+            except (KeyError, AttributeError):
+                pass
+
     def import_data(self, data):
         """
         Set the fields established in data to the instance
@@ -210,6 +226,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         self._modified_data = {}
         self._deleted_fields = []
 
+        for value in self._original_data.values():
+            try:
+                value.clear_modified_data()
+            except AttributeError:
+                pass
+
     def clear(self):
         """
         Clears all the data in the object
@@ -219,6 +241,9 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         self._deleted_fields = []
 
     def get_fields(self):
+        """
+        Returns used fields of model
+        """
         result = [key for key in self._original_data.keys()
                   if key not in self._deleted_fields]
         result.extend([key for key in self._modified_data.keys()
@@ -227,6 +252,9 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return result
 
     def is_modified(self):
+        """
+        Returns whether model is modified or not
+        """
         if len(self._modified_data) or len(self._deleted_fields):
             return True
 
@@ -240,6 +268,9 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return False
 
     def copy(self):
+        """
+        Creates a copy of model
+        """
         return self.__class__(data=self.export_data())
 
     def __iter__(self):
