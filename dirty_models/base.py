@@ -4,7 +4,6 @@ Created on 28/03/2014
 @author: alfred
 '''
 import weakref
-from abc import abstractmethod
 
 
 class BaseData():
