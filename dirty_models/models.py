@@ -127,6 +127,18 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             except (KeyError, AttributeError):
                 pass
 
+    def is_modified_field(self, name):
+        """
+        Returns whether a field is modified or not
+        """
+        if name in self._modified_data or name in self._deleted_fields:
+            return True
+
+        try:
+            return self.get_field_value(name).is_modified()
+        except AttributeError:
+            return False
+
     def import_data(self, data):
         """
         Set the fields established in data to the instance

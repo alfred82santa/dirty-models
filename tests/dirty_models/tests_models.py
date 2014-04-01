@@ -117,6 +117,7 @@ class TestModels(TestCase):
         model2 = model1.copy()
 
         self.assertDictEqual(model1.export_data(), model2.export_data())
+        self.assertNotEqual(id(model1), id(model2))
 
     def _get_test_model_instance(self):
 
@@ -274,6 +275,21 @@ class TestModels(TestCase):
 
         model.reset_field_value('testField3')
         self.assertEqual(model.testField3, 'c')
+
+    def test_is_modified_field(self):
+        model = self._get_test_model_instance()
+        model.testField1 = 'a'
+        model.testField2 = 'b'
+        model.testField3 = 'c'
+
+        model.flat_data()
+
+        self.assertFalse(model.is_modified_field('testField1'))
+        self.assertFalse(model.is_modified_field('testField2'))
+        self.assertFalse(model.is_modified_field('testField3'))
+
+        model.testField3 = 'cccc'
+        self.assertTrue(model.is_modified_field('testField3'))
 
     def test_fields_original_data(self):
         model = self._get_test_model_instance()
