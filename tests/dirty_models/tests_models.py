@@ -1,3 +1,4 @@
+import pickle
 from unittest import TestCase
 from dirty_models.models import BaseModel, DynamicModel
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
@@ -553,3 +554,8 @@ class TestDynamicModel(TestCase):
         self.model._test1 = 1
         self.assertEqual(self.model._test1, 1)
         del self.model._test1
+
+    def test_pickle(self):
+        self.model.test1 = 1
+        pickled = pickle.dumps(self.model)
+        self.assertEqual(pickle.loads(pickled).export_data(), self.model.export_data())

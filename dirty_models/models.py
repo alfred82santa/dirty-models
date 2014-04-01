@@ -329,6 +329,12 @@ class DynamicModel(BaseModel):
 
         super(DynamicModel, self).__setattr__(key, value)
 
+    def __reduce__(self):
+        """
+        Reduce function to allow dumpable by pickle
+        """
+        return DynamicModel, (self.export_data(),)
+
     def _get_field_type(self, key, value):
         """
         Helper to create field object based on value type
