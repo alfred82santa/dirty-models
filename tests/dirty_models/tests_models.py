@@ -559,3 +559,14 @@ class TestDynamicModel(TestCase):
         self.model.test1 = 1
         pickled = pickle.dumps(self.model)
         self.assertEqual(pickle.loads(pickled).export_data(), self.model.export_data())
+
+    def test_copy_model(self):
+
+        self.model.field1 = 'field1'
+        self.model.field2 = 'field2'
+        model2 = self.model.copy()
+        self.model.field2 = 'field2modified'
+
+        self.assertEqual(self.model.field1, model2.field1)
+        self.assertNotEqual(self.model.field2, model2.field2)
+        self.assertNotEqual(id(self.model), id(model2))

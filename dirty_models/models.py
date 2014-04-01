@@ -335,6 +335,12 @@ class DynamicModel(BaseModel):
         """
         return DynamicModel, (self.export_data(),)
 
+    def copy(self):
+        """
+        Creates a copy of model
+        """
+        return DynamicModel(data=self.export_data())
+
     def _get_field_type(self, key, value):
         """
         Helper to create field object based on value type
