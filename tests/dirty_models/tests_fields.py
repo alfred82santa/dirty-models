@@ -155,12 +155,12 @@ class TestFields(TestCase):
 
     def test_string_id_field_on_class_using_number(self):
 
-            class TestModel(BaseModel):
-                field_name = StringIdField()
+        class TestModel(BaseModel):
+            field_name = StringIdField()
 
-            model = TestModel()
-            model.field_name = 1
-            self.assertIsNotNone(model.field_name)
+        model = TestModel()
+        model.field_name = 1
+        self.assertIsNotNone(model.field_name)
 
     def test_string_id_field_on_class_using_empty_string(self):
 
