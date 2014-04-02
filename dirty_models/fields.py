@@ -159,8 +159,8 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
-    def __init__(self, name=None, doc=None, parse_format=None):
-        super(DateTimeBaseField, self).__init__(name, doc)
+    def __init__(self, name=None, read_only=False, doc=None, parse_format=None):
+        super(DateTimeBaseField, self).__init__(name, read_only, doc)
         self._parse_format = None
         self.parse_format = parse_format
 
