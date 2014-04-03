@@ -57,7 +57,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     modifications in other side.
     """
 
-    def __init__(self, data=None, **kwargs):
+    def __init__(self, data=None, flat=False, **kwargs):
         super(BaseModel, self).__init__()
         self._original_data = {}
         self._modified_data = {}
@@ -67,7 +67,15 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         if isinstance(data, dict):
             self.import_data(data)
         self.import_data(kwargs)
+        if flat:
+            self.flat_data()
         self.lock()
+
+    def __reduce__(self):
+        """
+        Reduce function to allow dumpable by pickle
+        """
+        return self.__class__, (self.export_data(), True,)
 
     def set_field_value(self, name, value):
         """

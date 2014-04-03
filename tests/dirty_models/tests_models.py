@@ -15,6 +15,12 @@ INITIAL_DATA = {
 }
 
 
+class PicklableModel(BaseModel):
+
+    field_1 = ModelField()
+    field_2 = IntegerField()
+
+
 class TestModels(TestCase):
 
     def setUp(self):
@@ -330,6 +336,13 @@ class TestModels(TestCase):
             del data[t[0]]
 
         self.assertEqual(data, {}, "Empty data")
+
+    def test_pickle(self):
+        model = PicklableModel()
+        model.field_2 = 23
+        model.field_1 = {'field_2': 122}
+        pickled = pickle.dumps(model)
+        self.assertEqual(pickle.loads(pickled).export_data(), model.export_data())
 
 
 class ModelReadOnly(BaseModel):
