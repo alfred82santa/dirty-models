@@ -208,6 +208,60 @@ class TestModels(TestCase):
         self.assertEqual(model_field.export_deleted_fields(), ['testField1', 'testField2',
                                                                'testFieldModel.testField3'])
 
+    def test_export_deleted_with_array_fields(self):
+
+        class TestModel(BaseModel):
+
+            field_1 = IntegerField()
+            field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
+            field_3 = ArrayField(field_type=IntegerField())
+
+        model = TestModel()
+        model.import_data({'field_1': '23', 'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
+                           'field_3': [12, '23']})
+        model.flat_data()
+        del model.field_1
+        del model.field_2[0].field_2
+        del model.field_3[1]
+        self.assertEqual(model.export_deleted_fields(), ['field_1', 'field_2.0.field_2'])
+
+    def test_import_deleted_fields(self):
+
+        class TestModel(BaseModel):
+
+            field_1 = IntegerField()
+            field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
+            field_3 = ArrayField(field_type=IntegerField())
+
+        model = TestModel()
+        model.import_data({'field_1': '23', 'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
+                           'field_3': [12, '23']})
+
+        deleted_fields = ['field_1', 'field_2.0.field_2']
+        model.import_deleted_fields(deleted_fields)
+        self.assertEqual(model.export_data(), {'field_2': [{'field_1': {'field_2': 122}}], 'field_3': [12, 23]})
+
+    def test_export_original_data(self):
+
+        class TestModel(BaseModel):
+
+            field_1 = IntegerField()
+            field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
+            field_3 = ArrayField(field_type=IntegerField())
+
+        model = TestModel()
+        model.import_data({'field_1': '23', 'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
+                           'field_3': [12, '23']})
+        model.flat_data()
+
+        model.field_1 = 123
+        model.field_3.append(124)
+        del model.field_2[0].field_2
+        model.field_2.append({'field_2': 234134})
+        self.assertEqual(model.export_original_data(), {'field_1': 23,
+                                                        'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
+                                                        'field_3': [12, 23]})
+
     def test_flat_data(self):
         model_field = self._get_test_model_instance()
         model_field._original_data = {'testField1': 'Field Value1',
@@ -341,8 +395,15 @@ class TestModels(TestCase):
         model = PicklableModel()
         model.field_2 = 23
         model.field_1 = {'field_2': 122}
-        pickled = pickle.dumps(model)
-        self.assertEqual(pickle.loads(pickled).export_data(), model.export_data())
+        model.flat_data()
+        del model.field_2
+        model.field_1.field_2 = 133
+        model_unpickled = pickle.loads(pickle.dumps(model))
+        self.assertNotEqual(id(model), id(model_unpickled))
+        self.assertEqual(model_unpickled.export_data(), model.export_data())
+        self.assertEqual(model_unpickled.export_original_data(), model.export_original_data())
+        self.assertEqual(model_unpickled.export_modified_data(), model.export_modified_data())
+        self.assertEqual(model_unpickled.export_deleted_fields(), model.export_deleted_fields())
 
 
 class ModelReadOnly(BaseModel):

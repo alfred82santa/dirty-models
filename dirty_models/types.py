@@ -255,12 +255,62 @@ class ListModel(BaseData):
             return list(x for x in [export_modfield(value) for value in self._original_data] if x is not None)
         return []
 
+    def export_original_data(self):
+        """
+        Retrieves the original_data
+        """
+        def export_field(value):
+            """
+            Export item
+            """
+            try:
+                return value.export_original_data()
+            except AttributeError:
+                return value
+        return [export_field(val) for val in self._original_data]
+
     def import_data(self, data):
         """
         Uses data to add it to the list
         """
         if hasattr(data, '__iter__'):
             self.extend(data)
+
+    def import_deleted_fields(self, data):
+        """
+        Set data fields to deleted
+        """
+
+        def child_delete_from_str(data_str):
+            """
+            Inner function to set children fields to deleted
+            """
+            parts = data_str.split('.')
+            if parts[0].isnumeric:
+                self[int(parts[0])].import_deleted_fields('.'.join(parts[1:]))
+
+        if not self.get_read_only() or not self.is_locked():
+            if isinstance(data, str):
+                data = [data]
+            if isinstance(data, list):
+                for key in data:
+                    child_delete_from_str(key)
+
+    def export_deleted_fields(self):
+        """
+        Resturns a list with any deleted fields form original data.
+        In tree models, deleted fields on children will be appended.
+        """
+        result = []
+        for item in self:
+            try:
+                deleted_fields = item.export_deleted_fields()
+                index = str(self.index(item))
+                for key in deleted_fields:
+                    result.append(index + '.' + key)
+            except AttributeError:
+                pass
+        return result
 
     def is_modified(self):
         """
