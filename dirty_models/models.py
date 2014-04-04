@@ -50,6 +50,20 @@ class DirtyModelMeta(type):
             field.field_type.model_class = instance
 
 
+def recover_model_from_data(model_class, original_data, modified_data, deleted_data):
+    """
+    Function to reconstruct a model from DirtyModel basic information: original data, the modified and deleted
+    fields.
+    Necessary for pickle an object
+    """
+    model = model_class(original_data, True)
+    model.unlock()
+    model.import_data(modified_data)
+    model.import_deleted_fields(deleted_data)
+    model.lock()
+    return model
+
+
 class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
     """
@@ -75,7 +89,9 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Reduce function to allow dumpable by pickle
         """
-        return self.__class__, (self.export_data(), True,)
+
+        return recover_model_from_data, (self.__class__, self.export_original_data(),
+                                         self.export_modified_data(), self.export_deleted_fields(), )
 
     def set_field_value(self, name, value):
         """
@@ -154,11 +170,27 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         if not self.get_read_only() or not self.is_locked():
             if isinstance(data, BaseModel):
                 data = data.export_data()
-                print(data)
             if isinstance(data, dict):
                 for key, value in data.items():
                     if hasattr(self, key):
                         setattr(self, key, value)
+
+    def import_deleted_fields(self, data):
+        """
+        Set data fields to deleted
+        """
+        if not self.get_read_only() or not self.is_locked():
+            if isinstance(data, str):
+                data = [data]
+            if isinstance(data, list):
+                for key in data:
+                    if hasattr(self, key):
+                        delattr(self, key)
+                    else:
+                        keys = key.split('.')
+                        if len(keys) > 1:
+                            child = getattr(self, keys[0])
+                            child.import_deleted_fields('.'.join(keys[1:]))
 
     def export_data(self):
         """
@@ -198,6 +230,23 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                     pass
 
         return result
+
+    def export_original_data(self):
+        """
+        Get the original data
+        """
+
+        def get_original_value(value):
+            """
+            Obtain the original data for each value
+            """
+            try:
+                res = value.export_original_data()
+            except AttributeError:
+                res = value
+            return res
+
+        return {key: get_original_value(value) for key, value in self._original_data.items()}
 
     def export_deleted_fields(self):
         """
