@@ -285,9 +285,9 @@ class ListModel(BaseData):
             """
             Inner function to set children fields to deleted
             """
-            parts = data_str.split('.')
+            parts = data_str.split('.', 1)
             if parts[0].isnumeric:
-                self[int(parts[0])].import_deleted_fields('.'.join(parts[1:]))
+                self[int(parts[0])].import_deleted_fields(parts[1])
 
         if not self.get_read_only() or not self.is_locked():
             if isinstance(data, str):
