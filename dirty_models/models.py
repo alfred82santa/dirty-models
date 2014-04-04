@@ -187,10 +187,10 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                     if hasattr(self, key):
                         delattr(self, key)
                     else:
-                        keys = key.split('.')
-                        if len(keys) > 1:
+                        keys = key.split('.', 1)
+                        if len(keys) == 2:
                             child = getattr(self, keys[0])
-                            child.import_deleted_fields('.'.join(keys[1:]))
+                            child.import_deleted_fields(keys[1])
 
     def export_data(self):
         """
