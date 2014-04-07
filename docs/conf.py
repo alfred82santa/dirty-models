@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'dirty_models'
-copyright = '2014, m2m'
+copyright = '2014, alfred82, tmarques82, padajuan, xejarque, oarnau'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
