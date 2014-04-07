@@ -45,9 +45,11 @@ class DirtyModelMeta(type):
             setattr(instance, field.name, field)
         if isinstance(field, ModelField) and not field.model_class:
             field.model_class = instance
+            field.__doc__ = field.get_field_docstring()
         if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
                 and not field.field_type.model_class:
             field.field_type.model_class = instance
+            field.field_type.__doc__ = field.field_type.get_field_docstring()
 
 
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):

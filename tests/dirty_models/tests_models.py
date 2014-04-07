@@ -644,3 +644,14 @@ class TestDynamicModel(TestCase):
         self.assertEqual(self.model.field1, model2.field1)
         self.assertNotEqual(self.model.field2, model2.field2)
         self.assertNotEqual(id(self.model), id(model2))
+
+    def test_documentation_default(self):
+        class DeviceModel(BaseModel):
+            field_1 = IntegerField()
+            field_2 = IntegerField(read_only=True)
+            field_3 = ArrayField(field_type=ModelField(model_class=IntegerField))
+
+        self.assertEqual(DeviceModel.field_1.__doc__, 'IntegerField field')
+        self.assertEqual(DeviceModel.field_2.__doc__, 'IntegerField field [READ ONLY]')
+        self.assertEqual(DeviceModel.field_3.__doc__,
+                         'Array of ModelField field (:class:`dirty_models.fields.IntegerField`)')

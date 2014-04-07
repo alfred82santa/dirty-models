@@ -16,7 +16,13 @@ class BaseField:
         self._name = None
         self.name = name
         self.read_only = read_only
-        self.__doc__ = doc
+        self.__doc__ = doc or self.get_field_docstring()
+
+    def get_field_docstring(self):
+        dcstr = '{0} field'.format(self.__class__.__name__)
+        if self.read_only:
+            dcstr += ' [READ ONLY]'
+        return dcstr
 
     @property
     def name(self):
@@ -263,10 +269,16 @@ class ModelField(BaseField):
     """
 
     def __init__(self, name=None, read_only=False, model_class=None, doc=None):
-        super(ModelField, self).__init__(name=name, read_only=read_only, doc=doc)
         self._model_class = None
 
         self.model_class = model_class
+        super(ModelField, self).__init__(name=name, read_only=read_only, doc=doc)
+
+    def get_field_docstring(self):
+        dcstr = super(ModelField, self).get_field_docstring()
+        if self.model_class:
+            dcstr += ' (:class:`{0}`)'.format('.'.join([self.model_class.__module__, self.model_class.__name__]))
+        return dcstr
 
     @property
     def model_class(self):
@@ -309,9 +321,13 @@ class ArrayField(BaseField):
     """
 
     def __init__(self, name=None, field_type=BaseField(), read_only=False, doc=None):
-        super(ArrayField, self).__init__(name=name, read_only=read_only, doc=doc)
         self._field_type = None
         self.field_type = field_type
+        super(ArrayField, self).__init__(name=name, read_only=read_only, doc=doc)
+
+    def get_field_docstring(self):
+        if self.field_type:
+            return 'Array of {0}'.format(self.field_type.get_field_docstring())
 
     @property
     def field_type(self):
