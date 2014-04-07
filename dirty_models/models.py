@@ -7,7 +7,7 @@ Base model for dirty_models.
 from .fields import BaseField, ModelField, ArrayField
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
 from datetime import datetime
-from dirty_models.types import ListModel
+from dirty_models.model_types import ListModel
 from dirty_models.base import BaseData
 import itertools
 

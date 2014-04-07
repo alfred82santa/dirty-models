@@ -5,7 +5,7 @@ Fields to be used with dirty_models
 """
 from datetime import datetime, date, time
 from dateutil.parser import parse as dateutil_parse
-from .types import ListModel
+from .model_types import ListModel
 
 
 class BaseField:

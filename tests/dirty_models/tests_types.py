@@ -1,5 +1,5 @@
 from unittest import TestCase
-from dirty_models.types import ListModel
+from dirty_models.model_types import ListModel
 from dirty_models.fields import StringField
 from dirty_models.fields import IntegerField
 
