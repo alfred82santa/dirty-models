@@ -3,7 +3,7 @@ from dirty_models.fields import (IntegerField, StringField, BooleanField,
                                  FloatField, ModelField, TimeField, DateField,
                                  DateTimeField, ArrayField, StringIdField)
 from dirty_models.models import BaseModel
-from dirty_models.types import ListModel
+from dirty_models.model_types import ListModel
 
 from datetime import time, date, datetime, timezone
 
