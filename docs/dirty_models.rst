@@ -1,7 +1,7 @@
 dirty_models package
 ====================
 
-Main submodules to be used from dirty-models:
+Main submodules to be used from dirty-models.
 
 dirty_models.base module
 ------------------------
