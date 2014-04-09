@@ -17,8 +17,8 @@ class BaseField:
         self.name = name
         self.alias = alias
         self.read_only = read_only
-        self.getter = getter
-        self.setter = setter
+        self._getter = getter
+        self._setter = setter
         self.__doc__ = doc or self.get_field_docstring()
 
     def get_field_docstring(self):
@@ -68,8 +68,8 @@ class BaseField:
         obj.delete_field_value(self.name)
 
     def __get__(self, obj, cls=None):
-        if self.getter is not None:
-            return self.getter(self, obj, cls)
+        if self._getter:
+            return self._getter(self, obj, cls)
         if obj is None:
             return self
         if self._name is None:
@@ -77,8 +77,8 @@ class BaseField:
         return self.get_value(obj)
 
     def __set__(self, obj, value):
-        if self.setter:
-            self.setter(self, obj, value)
+        if self._setter:
+            self._setter(self, obj, value)
             return
         if self._name is None:
             raise AttributeError("Field name must be set")
@@ -173,9 +173,8 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
-    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, doc=None, parse_format=None):
-        super(DateTimeBaseField, self).__init__(name=name, alias=alias, getter=None, setter=None, read_only=read_only,
-                                                doc=doc)
+    def __init__(self, parse_format=None, **kwargs):
+        super(DateTimeBaseField, self).__init__(**kwargs)
         self._parse_format = None
         self.parse_format = parse_format
 
@@ -277,12 +276,14 @@ class ModelField(BaseField):
     class than model who define field.
     """
 
-    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, model_class=None, doc=None):
+    def __init__(self, model_class=None, **kwargs):
         self._model_class = None
-
         self.model_class = model_class
-        super(ModelField, self).__init__(name=name, alias=alias, getter=None, setter=None, read_only=read_only,
-                                         doc=doc)
+        self._model_setter = None
+        if 'setter' in kwargs:
+            self._model_setter = kwargs['setter']
+            del(kwargs['setter'])
+        super(ModelField, self).__init__(**kwargs)
 
     def get_field_docstring(self):
         dcstr = super(ModelField, self).get_field_docstring()
@@ -310,6 +311,9 @@ class ModelField(BaseField):
         return isinstance(value, dict)
 
     def __set__(self, obj, value):
+        if self._model_setter:
+            self._model_setter(self, obj, value)
+            return
         if self._name is None:
             raise AttributeError("Field name must be set")
 
@@ -330,11 +334,10 @@ class ArrayField(BaseField):
     When using a model with no specified model_class the model inside field.
     """
 
-    def __init__(self, name=None, alias=None, getter=None, setter=None, field_type=BaseField(), read_only=False,
-                 doc=None):
+    def __init__(self, field_type=BaseField(), **kwargs):
         self._field_type = None
         self.field_type = field_type
-        super(ArrayField, self).__init__(name=name, alias=alias, read_only=read_only, doc=doc)
+        super(ArrayField, self).__init__(**kwargs)
 
     def get_field_docstring(self):
         if self.field_type:

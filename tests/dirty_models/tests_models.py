@@ -450,6 +450,29 @@ class TestModels(TestCase):
 
         self.assertEqual(model_object.testField1, 'setter_function')
 
+    def test_object_model_field_creation_test_with_setter(self):
+
+        def setter_function(self, instance, value):
+            data = {'testBaseField1': 'setter_function'}
+            super(ModelField, self).__set__(instance, data)
+
+        class FakeBaseModel(BaseModel):
+            testBaseField1 = BaseField()
+
+        class FakeModel(BaseModel):
+            testField1 = ModelField(
+                model_class=FakeBaseModel,
+                setter=setter_function
+            )
+
+        data = {'testBaseField1': 'Value1'}
+        model_base_object = FakeBaseModel(data)
+
+        data = {'testField1': model_base_object}
+        model_object = FakeModel(data)
+
+        self.assertEqual(model_object.testField1.testBaseField1, 'setter_function')
+
 
 class ModelReadOnly(BaseModel):
     testField1 = BaseField()
