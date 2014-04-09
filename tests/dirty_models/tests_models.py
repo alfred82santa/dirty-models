@@ -405,6 +405,22 @@ class TestModels(TestCase):
         self.assertEqual(model_unpickled.export_modified_data(), model.export_modified_data())
         self.assertEqual(model_unpickled.export_deleted_fields(), model.export_deleted_fields())
 
+    def test_object_creation_test_with_alias(self):
+
+        class FakeModel(BaseModel):
+            testField1 = BaseField(
+                alias=[
+                    'alias_1_test_field_1',
+                    'alias_2_test_field_1'
+                ]
+            )
+
+        data = {'testField1': 'Value1'}
+        model_object = FakeModel(data)
+        self.assertEqual(model_object.testField1, 'Value1')
+        self.assertEqual(model_object.alias_1_test_field_1, 'Value1')
+        self.assertEqual(model_object.alias_2_test_field_1, 'Value1')
+
 
 class ModelReadOnly(BaseModel):
     testField1 = BaseField()
