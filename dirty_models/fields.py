@@ -12,11 +12,13 @@ class BaseField:
 
     """Base field descriptor."""
 
-    def __init__(self, name=None, alias=None, read_only=False, doc=None):
+    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, doc=None):
         self._name = None
         self.name = name
         self.alias = alias
         self.read_only = read_only
+        self.getter = getter
+        self.setter = setter
         self.__doc__ = doc or self.get_field_docstring()
 
     def get_field_docstring(self):
@@ -66,6 +68,8 @@ class BaseField:
         obj.delete_field_value(self.name)
 
     def __get__(self, obj, cls=None):
+        if self.getter is not None:
+            return self.getter(self, obj, cls)
         if obj is None:
             return self
         if self._name is None:
@@ -73,6 +77,9 @@ class BaseField:
         return self.get_value(obj)
 
     def __set__(self, obj, value):
+        if self.setter:
+            self.setter(self, obj, value)
+            return
         if self._name is None:
             raise AttributeError("Field name must be set")
 
