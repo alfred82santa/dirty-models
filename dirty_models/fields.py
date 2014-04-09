@@ -173,8 +173,9 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
-    def __init__(self, name=None, alias=None, read_only=False, doc=None, parse_format=None):
-        super(DateTimeBaseField, self).__init__(name=name, alias=alias, read_only=read_only, doc=doc)
+    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, doc=None, parse_format=None):
+        super(DateTimeBaseField, self).__init__(name=name, alias=alias, getter=None, setter=None, read_only=read_only,
+                                                doc=doc)
         self._parse_format = None
         self.parse_format = parse_format
 
@@ -276,11 +277,12 @@ class ModelField(BaseField):
     class than model who define field.
     """
 
-    def __init__(self, name=None, alias=None, read_only=False, model_class=None, doc=None):
+    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, model_class=None, doc=None):
         self._model_class = None
 
         self.model_class = model_class
-        super(ModelField, self).__init__(name=name, alias=alias, read_only=read_only, doc=doc)
+        super(ModelField, self).__init__(name=name, alias=alias, getter=None, setter=None, read_only=read_only,
+                                         doc=doc)
 
     def get_field_docstring(self):
         dcstr = super(ModelField, self).get_field_docstring()
@@ -328,7 +330,8 @@ class ArrayField(BaseField):
     When using a model with no specified model_class the model inside field.
     """
 
-    def __init__(self, name=None, alias=None, field_type=BaseField(), read_only=False, doc=None):
+    def __init__(self, name=None, alias=None, getter=None, setter=None, field_type=BaseField(), read_only=False,
+                 doc=None):
         self._field_type = None
         self.field_type = field_type
         super(ArrayField, self).__init__(name=name, alias=alias, read_only=read_only, doc=doc)
