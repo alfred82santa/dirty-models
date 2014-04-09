@@ -51,6 +51,10 @@ class DirtyModelMeta(type):
             field.field_type.model_class = instance
             field.field_type.__doc__ = field.field_type.get_field_docstring()
 
+        if field.alias:
+            for alias_name in field.alias:
+                setattr(instance, alias_name, field)
+
 
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):
     """
