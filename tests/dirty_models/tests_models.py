@@ -409,10 +409,10 @@ class TestModels(TestCase):
 
         class FakeModel(BaseModel):
             testField1 = BaseField(
-                alias={
+                alias=[
                     'alias_1_test_field_1',
                     'alias_2_test_field_1'
-                }
+                ]
             )
 
         data = {'testField1': 'Value1'}
