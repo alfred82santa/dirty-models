@@ -1,8 +1,9 @@
 """
 Internal types for dirty models
 """
-from dirty_models.base import BaseData
 import itertools
+from dirty_models.base import BaseData
+from functools import wraps
 
 
 def modified_data_decorator(function):
@@ -11,8 +12,9 @@ def modified_data_decorator(function):
     to modify the list
     """
 
+    @wraps(function)
     def func(self, *args, **kwargs):
-        """Decorator"""
+        """Decorator function"""
         if not self.get_read_only() or not self.is_locked():
             self.initialise_modified_data()
             return function(self, *args, **kwargs)
