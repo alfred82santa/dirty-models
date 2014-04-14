@@ -3,28 +3,28 @@ Dirty Models package
 
 Main submodules to be used from Dirty Models.
 
-models module
+Models module
 --------------------------
 
 .. automodule:: dirty_models.models
     :members:
     :show-inheritance:
     
-fields module
+Fields module
 --------------------------
 
 .. automodule:: dirty_models.fields
     :members:
     :show-inheritance:
     
-base module
+Base module
 ------------------------
 
 .. automodule:: dirty_models.base
     :members:
     :show-inheritance:
 
-model_types module
+Inner model types module
 -------------------------------
 
 .. automodule:: dirty_models.model_types
