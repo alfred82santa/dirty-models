@@ -146,7 +146,6 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         if not self.get_read_only() or not self.is_locked():
             if isinstance(data, BaseModel):
                 data = data.export_data()
-                print(data)
             if isinstance(data, dict):
                 for key, value in data.items():
                     if hasattr(self, key):
@@ -319,7 +318,6 @@ class DynamicModel(BaseModel):
         return super(DynamicModel, new_class).__new__(new_class)
 
     def __setattr__(self, key, value):
-        print(key[0], key[0] != '_')
         if key[0] != '_' and key not in self.__class__.__dict__.keys():
             if not self.get_read_only() or not self.is_locked():
                 field_type = self._get_field_type(key, value)

@@ -372,7 +372,7 @@ class TestModelReadOnly(TestCase):
         self.assertFalse(model.is_modified())
 
         model.testFieldModelList[0].testField1 = 99
-        print(model.testFieldModelList.get_read_only())
+
         self.assertEqual(model.testFieldModelList[0].testField1, 61, 'Read only inside list field')
         self.assertFalse(model.is_modified())
 
