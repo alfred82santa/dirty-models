@@ -47,6 +47,8 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField3, 'Value3')
         self.assertFalse(hasattr(model_object, 'testField4'))
 
+        self.assertRegex(str(model_object), "FakeModel\(\{'testField\d': 'Value\d', 'testField\d': 'Value\d'\}\)")
+
     def test_set_initial_value(self):
         self.model._original_data = {}
         self.model.set_field_value('testField1', 'whatever')

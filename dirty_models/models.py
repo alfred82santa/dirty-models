@@ -366,6 +366,9 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             except AttributeError:
                 pass
 
+    def __str__(self):
+        return self.__class__.__name__ + '({0})'.format(str(self.export_data()))
+
 
 class DynamicModel(BaseModel):
 

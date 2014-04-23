@@ -3,3 +3,4 @@ flake8
 coverage
 nose
 python-dateutil
+git+https://github.com/alfred82santa/dirty-models.git
