@@ -1,6 +1,7 @@
 [report]
 omit =
     */tests/*
+    */site-packages/*
     
 exclude_lines =
     pragma: no cover
