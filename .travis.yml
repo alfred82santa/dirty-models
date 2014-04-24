@@ -2,9 +2,14 @@ language: python
 python:
   - "3.3"
 # command to install dependencies
-install: "pip install -r requirements-test.txt"
+install: 
+  - pip install -r requirements-test.txt
+  - pip install coveralls
 # command to run tests
 script:
-    - flake8 dirty_models
-    - flake8 tests
-    - nosetests --with-coverage -d --cover-package=dirty_models
+  - flake8 dirty_models
+  - flake8 tests
+  - nosetests --with-coverage -d --cover-package=dirty_models
+
+after_success:
+  - coveralls --rcfile=.coveragerc
