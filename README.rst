@@ -1,5 +1,10 @@
-.. image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   :target: https://travis-ci.org/alfred82santa/dirty-models
-.. image:: https://coveralls.io/repos/alfred82santa/dirty-models/badge.png?branch=master :target: https://coveralls.io/r/alfred82santa/dirty-models?branch=master
+|travis-master| |coverall-master|
+
+.. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
+    :target: https://travis-ci.org/alfred82santa/dirty-models
+    
+.. |coverall-master| image:: https://coveralls.io/repos/alfred82santa/dirty-models/badge.png?branch=master 
+    :target: https://coveralls.io/r/alfred82santa/dirty-models?branch=master
 
 ============
 dirty-models
@@ -44,7 +49,8 @@ Issues
 Basic usage
 ***********
 
-.. code:: python
+.. code-block:: python
+
     from dirty_models.models import BaseModel
     from dirty_models.fields import StringField, IntegerField
     
@@ -69,6 +75,7 @@ Basic usage
     assert fb.alias1 is fb.alias_field
     assert fb.alias2 is fb.alias_field
     
-    .. note:: Look tests for more examples
+.. note:: 
+    Look at tests for more examples
     
 
