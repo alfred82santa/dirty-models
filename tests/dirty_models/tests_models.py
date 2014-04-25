@@ -264,6 +264,8 @@ class TestModels(TestCase):
                                                         'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
                                                         'field_3': [12, 23]})
 
+        self.assertIsNone(model.get_original_field_value('foo'))
+
     def test_flat_data(self):
         model_field = self._get_test_model_instance()
         model_field._original_data = {'testField1': 'Field Value1',
