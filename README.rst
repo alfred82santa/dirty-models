@@ -37,7 +37,9 @@ Features
 ************
 Installation
 ************
-    pip install dirty-models
+.. code-block: bash
+
+    $ pip install dirty-models
 
 ******
 Issues
