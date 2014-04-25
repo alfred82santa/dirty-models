@@ -97,7 +97,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
 
         return recover_model_from_data, (self.__class__, self.export_original_data(),
-                                         self.export_modified_data(), self.export_deleted_fields(), )
+                                         self.export_modified_data(), self.export_deleted_fields(),)
 
     def set_field_value(self, name, value):
         """
@@ -237,22 +237,26 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         return result
 
+    def get_original_field_value(self, name):
+        """
+        Returns original field value or None
+        """
+        try:
+            value = self._original_data[name]
+        except KeyError:
+            return None
+
+        try:
+            return value.export_original_data()
+        except AttributeError:
+            return value
+
     def export_original_data(self):
         """
         Get the original data
         """
 
-        def get_original_value(value):
-            """
-            Obtain the original data for each value
-            """
-            try:
-                res = value.export_original_data()
-            except AttributeError:
-                res = value
-            return res
-
-        return {key: get_original_value(value) for key, value in self._original_data.items()}
+        return {key: self.get_original_field_value(key) for key in self._original_data.keys()}
 
     def export_deleted_fields(self):
         """
@@ -398,7 +402,8 @@ class DynamicModel(BaseModel):
         """
         Reduce function to allow dumpable by pickle
         """
-        return DynamicModel, (self.export_data(),)
+        return recover_model_from_data, (DynamicModel, self.export_original_data(),
+                                         self.export_modified_data(), self.export_deleted_fields(),)
 
     def copy(self):
         """
