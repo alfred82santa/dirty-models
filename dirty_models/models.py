@@ -231,7 +231,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         for key, value in self._original_data.items():
             if key not in result.keys():
                 try:
-                    result[key] = value.export_modified_data()
+                    if value.is_modified():
+                        result[key] = value.export_modified_data()
                 except AttributeError:
                     pass
 

@@ -925,12 +925,9 @@ class TestFields(TestCase):
 
         array_model.array_field = [test_model_1, test_model_2]
 
-        expected_data = {
-            "array_field": [{"field_name_1": {}},
-                            {"field_name_1": {}}]
-        }
         array_model.flat_data()
-        self.assertEqual(expected_data, array_model.export_modified_data())
+
+        self.assertEqual({}, array_model.export_modified_data())
 
     def test_array_model_export_modified_data_integers(self):
 
