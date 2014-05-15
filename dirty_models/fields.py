@@ -370,6 +370,8 @@ class ArrayField(BaseField):
 
     def can_use_value(self, value):
         if isinstance(value, (set, list, ListModel)):
+            if len(value) == 0:
+                return True
             for item in value:
                 if self.field_type.can_use_value(item) or self.field_type.check_value(item):
                     return True

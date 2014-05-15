@@ -959,6 +959,16 @@ class TestFields(TestCase):
         array_model.import_data({"array_field": [1, 2, 3, 4]})
         self.assertEqual(4, len(array_model.array_field))
 
+    def test_array_model_empty(self):
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=IntegerField())
+
+        array_model = ArrayModel()
+        array_model.array_field = []
+        self.assertIsInstance(array_model.array_field, ListModel)
+        self.assertListEqual(array_model.array_field.export_data(), [])
+
     def test_array_model_with_model_field_no_model_class(self):
 
         class TestModel(BaseModel):
