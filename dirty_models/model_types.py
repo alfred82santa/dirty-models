@@ -239,7 +239,6 @@ class ListModel(BaseData):
         """
         Retrieves the modified data in a jsoned form
         """
-
         def export_modfield(value, is_modified_seq=True):
             """
             Export modified item
@@ -252,7 +251,7 @@ class ListModel(BaseData):
 
         if self._modified_data is not None:
             return [export_modfield(value) for value in self._modified_data]
-
+        print(self._original_data)
         if self._original_data is not None:
             return list(x for x in [export_modfield(value) for value in self._original_data] if x is not None)
         return []
