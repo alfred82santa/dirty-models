@@ -976,10 +976,32 @@ class TestFields(TestCase):
             field_name_2 = StringField()
 
         class ArrayModel(BaseModel):
-            array_field = ArrayField(field_type=ModelField())
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
 
         array_model = ArrayModel()
-        array_model_indented_1 = ArrayModel()
-        array_model_indented_2 = ArrayModel()
+        array_model_indented_1 = TestModel({'field_name_2': 'aaaa'})
+        array_model_indented_2 = TestModel({'field_name_2': 'bbbb'})
         array_model.array_field = [array_model_indented_1, array_model_indented_2, "not valid :)"]
         self.assertEqual(list(array_model.array_field), [array_model_indented_1, array_model_indented_2])
+
+    def test_array_model_export_modified_data_model_inside(self):
+
+        class TestModel(BaseModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=ModelField(model_class=TestModel))
+
+        array_model = ArrayModel()
+        array_model_indented_1 = TestModel({'field_name_2': 'aaaa'})
+        array_model_indented_2 = TestModel({'field_name_2': 'bbbb'})
+        array_model.array_field = [array_model_indented_1, array_model_indented_2]
+
+        array_model.flat_data()
+        array_model_indented_1.field_name_2 = 'cccc'
+
+        self.assertDictEqual(array_model.export_modified_data(), {'array_field': [{'field_name_2': 'cccc'}, {}]})
+
+
+
