@@ -1002,6 +1002,3 @@ class TestFields(TestCase):
         array_model_indented_1.field_name_2 = 'cccc'
 
         self.assertDictEqual(array_model.export_modified_data(), {'array_field': [{'field_name_2': 'cccc'}, {}]})
-
-
-
