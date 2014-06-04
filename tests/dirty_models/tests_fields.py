@@ -489,6 +489,10 @@ class TestFields(TestCase):
         self.assertEqual(field.use_value("03:13:23"),
                          time(hour=3, minute=13, second=23))
 
+    def test_time_field_using_bad_str(self):
+        field = TimeField(parse_format="%H:%M:%S")
+        self.assertIsNone(field.use_value("03:13:2334"))
+
     def test_time_field_using_str_no_parse_format(self):
         field = TimeField()
         self.assertFalse(field.check_value("03:13:23"))
@@ -555,6 +559,10 @@ class TestFields(TestCase):
         self.assertEqual(field.use_value("23/03/2015"),
                          date(year=2015, month=3, day=23))
 
+    def test_date_field_using_non_parseable_str(self):
+        field = DateField(parse_format="%Y-%M-%d")
+        self.assertIsNone(field.use_value("2013-9-45"))
+
     def test_date_field_using_list(self):
         field = DateField()
         self.assertFalse(field.check_value([2015, 3, 23]))
@@ -605,6 +613,10 @@ class TestFields(TestCase):
         self.assertTrue(field.can_use_value("23/03/2015"))
         self.assertEqual(field.use_value("23/03/2015"),
                          datetime(year=2015, month=3, day=23))
+
+    def test_datetime_field_using_bad_str(self):
+        field = DateTimeField(parse_format="%d/%m/%Y")
+        self.assertIsNone(field.use_value("23/44/2015"))
 
     def test_datetime_field_using_str_no_parse_format(self):
         from dateutil.tz import tzutc
