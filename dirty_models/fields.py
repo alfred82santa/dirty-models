@@ -201,10 +201,13 @@ class TimeField(DateTimeBaseField):
         elif isinstance(value, int):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
-            if not self.parse_format:
-                value = dateutil_parse(value)
-                return value.time()
-            return self.convert_value(datetime.strptime(value, self.parse_format))
+            try:
+                if not self.parse_format:
+                    value = dateutil_parse(value)
+                    return value.time()
+                return self.convert_value(datetime.strptime(value, self.parse_format))
+            except ValueError:
+                return None
         elif isinstance(value, datetime):
             return value.timetz()
 
@@ -227,10 +230,13 @@ class DateField(DateTimeBaseField):
         elif isinstance(value, int):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
-            if not self.parse_format:
-                value = dateutil_parse(value)
-                return value.date()
-            return self.convert_value(datetime.strptime(value, self.parse_format))
+            try:
+                if not self.parse_format:
+                    value = dateutil_parse(value)
+                    return value.date()
+                return self.convert_value(datetime.strptime(value, self.parse_format))
+            except ValueError:
+                return None
         elif isinstance(value, datetime):
             return value.date()
 
@@ -253,9 +259,12 @@ class DateTimeField(DateTimeBaseField):
         elif isinstance(value, int):
             return datetime.fromtimestamp(value)
         elif isinstance(value, str):
-            if not self.parse_format:
-                return dateutil_parse(value)
-            return datetime.strptime(value, self.parse_format)
+            try:
+                if not self.parse_format:
+                    return dateutil_parse(value)
+                return datetime.strptime(value, self.parse_format)
+            except ValueError:
+                return None
         elif isinstance(value, date):
             return datetime(year=value.year, month=value.month,
                             day=value.day)
