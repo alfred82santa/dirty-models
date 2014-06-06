@@ -435,6 +435,8 @@ class DynamicModel(BaseModel):
                 return None
             field_type = self._get_field_type(None, value[0])
             return ArrayField(name=key, field_type=field_type)
+        elif value is None:
+            return None
         else:
             raise TypeError("Invalid parameter: %s. Type not supported." % (key,))
 
