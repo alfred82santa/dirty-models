@@ -633,6 +633,10 @@ class TestDynamicModel(TestCase):
         newmodel.test1 = "aaaa"
         self.assertEqual(newmodel.test1, "aaaa")
 
+    def test_set_none_value(self):
+        self.model.test1 = None
+        self.assertIsNone(self.model.__class__.__dict__.get('test1'))
+
     def test_set_float_value(self):
         self.model.test2 = 1.0
         self.assertEqual(self.model.test2, 1.0)
