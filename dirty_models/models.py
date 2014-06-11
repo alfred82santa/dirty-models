@@ -177,7 +177,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         if not self.get_read_only() or not self.is_locked():
             if isinstance(data, BaseModel):
                 data = data.export_data()
-            if isinstance(data, dict):
+            if isinstance(data, (dict, Mapping)):
                 for key, value in data.items():
                     if hasattr(self, key):
                         setattr(self, key, value)
