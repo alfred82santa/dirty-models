@@ -10,6 +10,7 @@ from datetime import datetime
 from dirty_models.model_types import ListModel
 from dirty_models.base import BaseData
 import itertools
+from collections import Mapping
 
 
 class DirtyModelMeta(type):
@@ -84,7 +85,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         self._deleted_fields = []
 
         self.unlock()
-        if isinstance(data, dict):
+        if isinstance(data, (dict, Mapping)):
             self.import_data(data)
         self.import_data(kwargs)
         if flat:

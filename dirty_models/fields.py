@@ -6,6 +6,7 @@ Fields to be used with dirty_models
 from datetime import datetime, date, time
 from dateutil.parser import parse as dateutil_parse
 from .model_types import ListModel
+from collections import Mapping
 
 
 class BaseField:
@@ -317,7 +318,7 @@ class ModelField(BaseField):
         return isinstance(value, self._model_class)
 
     def can_use_value(self, value):
-        return isinstance(value, dict)
+        return isinstance(value, (dict, Mapping))
 
     def __set__(self, obj, value):
         if self._model_setter:
