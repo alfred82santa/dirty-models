@@ -477,6 +477,18 @@ class TestModels(TestCase):
 
         self.assertEqual(model_object.testField1.testBaseField1, 'setter_function')
 
+    def test_get_field_obj(self):
+
+        class FakeModel(BaseModel):
+            testField1 = BaseField()
+
+        data = {'testField1': 'Value1'}
+        model_object = FakeModel(data)
+
+        test_field_obj = model_object.get_field_obj('testField1')
+
+        self.assertIsInstance(test_field_obj, BaseField)
+
 
 class ModelReadOnly(BaseModel):
     testField1 = BaseField()
