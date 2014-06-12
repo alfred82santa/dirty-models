@@ -376,8 +376,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return self.__class__.__name__ + '({0})'.format(str(self.export_data()))
 
     @classmethod
-    def get_field_obj(self, name):
-        return getattr(self, name, None)
+    def get_field_obj(cls, name):
+        return getattr(cls, name, None)
 
 
 class DynamicModel(BaseModel):
