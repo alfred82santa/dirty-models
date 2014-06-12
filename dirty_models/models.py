@@ -104,17 +104,18 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Set the value to the field modified_data
         """
-        if self._can_write_field(name):
+        obj = self.__class__.get_field_obj(name)
 
-            if name in self._deleted_fields:
-                self._deleted_fields.remove(name)
-            if self._original_data.get(name) == value:
-                if self._modified_data.get(name):
-                    self._modified_data.pop(name)
+        if self._can_write_field(obj.name):
+            if obj.name in self._deleted_fields:
+                self._deleted_fields.remove(obj.name)
+            if self._original_data.get(obj.name) == value:
+                if self._modified_data.get(obj.name):
+                    self._modified_data.pop(obj.name)
             else:
-                self._modified_data[name] = value
+                self._modified_data[obj.name] = value
                 self._prepare_child(value)
-                if name in self._read_only_fields:
+                if obj.name in self._read_only_fields:
                     try:
                         value.set_read_only(True)
                     except AttributeError:
@@ -124,37 +125,40 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Get the field value from the modified data or the original one
         """
-        if name in self._deleted_fields:
+        obj = self.__class__.get_field_obj(name)
+        if obj.name in self._deleted_fields:
             return None
-        modified = self._modified_data.get(name)
+        modified = self._modified_data.get(obj.name)
         if modified is not None:
             return modified
-        return self._original_data.get(name)
+        return self._original_data.get(obj.name)
 
     def delete_field_value(self, name):
         """
         Mark this field to be deleted
         """
-        if self._can_write_field(name):
-            if name in self._modified_data:
-                self._modified_data.pop(name)
+        obj = self.__class__.get_field_obj(name)
+        if self._can_write_field(obj.name):
+            if obj.name in self._modified_data:
+                self._modified_data.pop(obj.name)
 
-            if name in self._original_data:
-                self._deleted_fields.append(name)
+            if obj.name in self._original_data:
+                self._deleted_fields.append(obj.name)
 
     def reset_field_value(self, name):
         """
         Resets value of a field
         """
-        if self._can_write_field(name):
-            if name in self._modified_data:
-                del self._modified_data[name]
+        obj = self.__class__.get_field_obj(name)
+        if self._can_write_field(obj.name):
+            if obj.name in self._modified_data:
+                del self._modified_data[obj.name]
 
-            if name in self._deleted_fields:
-                self._deleted_fields.remove(name)
+            if obj.name in self._deleted_fields:
+                self._deleted_fields.remove(obj.name)
 
             try:
-                self._original_data[name].clear_modified_data()
+                self._original_data[obj.name].clear_modified_data()
             except (KeyError, AttributeError):
                 pass
 
@@ -162,11 +166,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Returns whether a field is modified or not
         """
-        if name in self._modified_data or name in self._deleted_fields:
+        obj = self.__class__.get_field_obj(name)
+        if obj.name in self._modified_data or obj.name in self._deleted_fields:
             return True
 
         try:
-            return self.get_field_value(name).is_modified()
+            return self.get_field_value(obj.name).is_modified()
         except AttributeError:
             return False
 

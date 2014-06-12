@@ -69,10 +69,10 @@ class BaseField:
         obj.delete_field_value(self.name)
 
     def __get__(self, obj, cls=None):
-        if self._getter:
-            return self._getter(self, obj, cls)
         if obj is None:
             return self
+        if self._getter:
+            return self._getter(self, obj, cls)
         if self._name is None:
             raise AttributeError("Field name must be set")
         return self.get_value(obj)

@@ -134,6 +134,7 @@ class TestModels(TestCase):
             testField1 = BaseField()
             testField2 = BaseField()
             testField3 = BaseField()
+            test_field4 = BaseField(name="testField4")
             testFieldModel = ModelField()
 
         return TestExportModel()
@@ -342,19 +343,24 @@ class TestModels(TestCase):
         self.assertEqual(model.testField3, 'c')
 
     def test_is_modified_field(self):
+
         model = self._get_test_model_instance()
         model.testField1 = 'a'
         model.testField2 = 'b'
         model.testField3 = 'c'
+        model.test_field4 = 'd'
 
         model.flat_data()
 
         self.assertFalse(model.is_modified_field('testField1'))
         self.assertFalse(model.is_modified_field('testField2'))
         self.assertFalse(model.is_modified_field('testField3'))
+        self.assertFalse(model.is_modified_field('test_field4'))
 
         model.testField3 = 'cccc'
+        model.test_field4 = 'dddd'
         self.assertTrue(model.is_modified_field('testField3'))
+        self.assertTrue(model.is_modified_field('test_field4'))
 
     def test_fields_original_data(self):
         model = self._get_test_model_instance()
