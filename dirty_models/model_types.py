@@ -299,7 +299,7 @@ class ListModel(BaseData):
 
     def export_deleted_fields(self):
         """
-        Resturns a list with any deleted fields form original data.
+        Returns a list with any deleted fields form original data.
         In tree models, deleted fields on children will be appended.
         """
         result = []
@@ -348,24 +348,44 @@ class ListModel(BaseData):
             except AttributeError:
                 pass
 
-    def delete_field_value(self, index):
+    def delete_attr_by_path(self, field):
         """
-        Function for deleting an element from the list
+        Function for deleting a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
         """
-        self.pop(index)
+        index_list, own_field = self._perform_function_by_path(field, 'delete_attr_by_path')
+        if index_list:
+            for index in index_list:
+                if own_field:
+                    self[index].delete_field_value(own_field)
+                else:
+                    self.pop(index)
 
-    def reset_field_value(self, index):
+    def reset_attr_by_path(self, field):
         """
-        Function for restoring the old value of an element in the list
+        Function for restoring a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
         """
-        if self._modified_data:
-            self._modified_data[index] = self._original_data[index]
-            if self._modified_data == self._original_data:
-                self._modified_data.clear()
+        index_list, own_field = self._perform_function_by_path(field, 'reset_attr_by_path')
+        if index_list:
+            if own_field:
+                for index in index_list:
+                    self[index].reset_field_value(own_field)
+            elif self._modified_data:
+                for index in index_list:
+                    try:
+                        original_data = self._original_data[index]
+                    except (IndexError, TypeError):
+                        original_data = None
+                    if original_data:
+                        self._modified_data[index] = original_data
+                    else:
+                        self.pop(index)
 
     def _perform_function_by_path(self, field, function):
         """
-        Function to perform a function to the field specified.
+        Function to perform a function to the field specified. Returns a list of index where the function has to be
+        applied
         :param field: Field structure as following:
          *.subfield_2  would apply the function to the every subfield_2 of the elements
          1.subfield_2  would apply the function to the subfield_2 of the element 1
@@ -378,22 +398,32 @@ class ListModel(BaseData):
         except ValueError:
             next_field = ''
 
-        if (field == '*'):
+        if field == '*':
             if next_field:
+                index_list = []
                 for item in self:
                     try:
-                        item._perform_function_by_path(next_field, function)
+                        field = item._perform_function_by_path(next_field, function)
+                        index_list.insert(0, self.index(item))
                     except AttributeError:
-                        return
+                        field = None
+                if index_list:
+                    return index_list, field
             else:
-                self.clear()
+                if len(self):
+                    index_list = list(reversed(range(len(self))))
+                    if index_list:
+                        return index_list, None
         elif field.isnumeric():
             try:
                 index = int(field)
                 item = self[index]
             except IndexError:
-                return
+                return None, None
             try:
-                item._perform_function_by_path(next_field, function)
+                field = item._perform_function_by_path(next_field, function)
+                if field:
+                    return [index], field
             except AttributeError:
-                getattr(self, function)(index)
+                return [index], None
+        return None, None
