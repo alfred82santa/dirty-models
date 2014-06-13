@@ -384,7 +384,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     def get_field_obj(cls, name):
         return getattr(cls, name, None)
 
-    def perform_function_by_path(self, field, function):
+    def _perform_function_by_path(self, field, function):
         """
         Function to perform a function to the field specified.
         :param field: Field structure as following:
@@ -400,7 +400,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         obj = self.get_field_value(field)
         if isinstance(obj, (ListModel, BaseModel)):
             if next_field:
-                obj.perform_function_by_path(next_field, function)
+                obj._perform_function_by_path(next_field, function)
         else:
             if not next_field:
                 getattr(self, function)(field)
@@ -410,14 +410,14 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         Function for deleting a field specifying the path in the whole model as described
         in :func:`dirty:models.models.BaseModel.perform_function_by_path`
         """
-        self.perform_function_by_path(field, 'delete_field_value')
+        self._perform_function_by_path(field, 'delete_field_value')
 
     def reset_attr_by_path(self, field):
         """
         Function for restoring a field specifying the path in the whole model as described
         in :func:`dirty:models.models.BaseModel.perform_function_by_path`
         """
-        self.perform_function_by_path(field, 'reset_field_value')
+        self._perform_function_by_path(field, 'reset_field_value')
 
 
 class DynamicModel(BaseModel):

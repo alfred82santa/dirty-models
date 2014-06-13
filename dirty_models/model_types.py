@@ -363,7 +363,7 @@ class ListModel(BaseData):
             if self._modified_data == self._original_data:
                 self._modified_data.clear()
 
-    def perform_function_by_path(self, field, function):
+    def _perform_function_by_path(self, field, function):
         """
         Function to perform a function to the field specified.
         :param field: Field structure as following:
@@ -382,7 +382,7 @@ class ListModel(BaseData):
             if next_field:
                 for item in self:
                     try:
-                        item.perform_function_by_path(next_field, function)
+                        item._perform_function_by_path(next_field, function)
                     except AttributeError:
                         return
             else:
@@ -394,6 +394,6 @@ class ListModel(BaseData):
             except IndexError:
                 return
             try:
-                item.perform_function_by_path(next_field, function)
+                item._perform_function_by_path(next_field, function)
             except AttributeError:
                 getattr(self, function)(index)
