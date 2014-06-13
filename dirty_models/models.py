@@ -384,6 +384,41 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     def get_field_obj(cls, name):
         return getattr(cls, name, None)
 
+    def perform_function_by_path(self, field, function):
+        """
+        Function to perform a function to the field specified.
+        :param field: Field structure as following:
+         field_1.*.subfield_2  would apply a the function to the every subfield_2 of the elements in field_1
+         field_1.1.subfield_2  would apply a the function to the subfield_2 of the element 1 in field_1
+        :field function: string containing the function in the class to be applied to the field
+        """
+        try:
+            field, next_field = field.split('.', 1)
+        except ValueError:
+            next_field = ''
+
+        obj = self.get_field_value(field)
+        if isinstance(obj, (ListModel, BaseModel)):
+            if next_field:
+                obj.perform_function_by_path(next_field, function)
+        else:
+            if not next_field:
+                getattr(self, function)(field)
+
+    def delete_attr_by_path(self, field):
+        """
+        Function for deleting a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        """
+        self.perform_function_by_path(field, 'delete_field_value')
+
+    def reset_attr_by_path(self, field):
+        """
+        Function for restoring a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        """
+        self.perform_function_by_path(field, 'reset_field_value')
+
 
 class DynamicModel(BaseModel):
 

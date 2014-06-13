@@ -347,3 +347,53 @@ class ListModel(BaseData):
                 value.set_read_only(self.get_read_only())
             except AttributeError:
                 pass
+
+    def delete_field_value(self, index):
+        """
+        Function for deleting an element from the list
+        """
+        self.pop(index)
+
+    def reset_field_value(self, index):
+        """
+        Function for restoring the old value of an element in the list
+        """
+        if self._modified_data:
+            self._modified_data[index] = self._original_data[index]
+            if self._modified_data == self._original_data:
+                self._modified_data.clear()
+
+    def perform_function_by_path(self, field, function):
+        """
+        Function to perform a function to the field specified.
+        :param field: Field structure as following:
+         *.subfield_2  would apply the function to the every subfield_2 of the elements
+         1.subfield_2  would apply the function to the subfield_2 of the element 1
+         * would apply the function to every element
+         1 would apply the function to element 1
+        :field function: string containing the function in the class to be applied to the field
+        """
+        try:
+            field, next_field = field.split('.', 1)
+        except ValueError:
+            next_field = ''
+
+        if (field == '*'):
+            if next_field:
+                for item in self:
+                    try:
+                        item.perform_function_by_path(next_field, function)
+                    except AttributeError:
+                        return
+            else:
+                self.clear()
+        elif field.isnumeric():
+            try:
+                index = int(field)
+                item = self[index]
+            except IndexError:
+                return
+            try:
+                item.perform_function_by_path(next_field, function)
+            except AttributeError:
+                getattr(self, function)(index)
