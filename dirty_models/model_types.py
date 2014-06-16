@@ -371,16 +371,12 @@ class ListModel(BaseData):
             if own_field:
                 for index in index_list:
                     self[index].reset_field_value(own_field)
-            elif self._modified_data:
+            else:
                 for index in index_list:
                     try:
-                        original_data = self._original_data[index]
-                    except (IndexError, TypeError):
-                        original_data = None
-                    if original_data:
-                        self._modified_data[index] = original_data
-                    else:
-                        self.pop(index)
+                        self[index].clear_modified_data()
+                    except (AttributeError, IndexError):
+                        return
 
     def _perform_function_by_path(self, field, function):
         """
@@ -406,14 +402,12 @@ class ListModel(BaseData):
                         field = item._perform_function_by_path(next_field, function)
                         index_list.insert(0, self.index(item))
                     except AttributeError:
-                        field = None
+                        return None, None
                 if index_list:
                     return index_list, field
             else:
-                if len(self):
-                    index_list = list(reversed(range(len(self))))
-                    if index_list:
-                        return index_list, None
+                index_list = list(reversed(range(len(self))))
+                return index_list, None
         elif field.isnumeric():
             try:
                 index = int(field)
@@ -426,4 +420,3 @@ class ListModel(BaseData):
                     return [index], field
             except AttributeError:
                 return [index], None
-        return None, None

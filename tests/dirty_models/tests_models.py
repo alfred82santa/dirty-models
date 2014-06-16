@@ -549,6 +549,7 @@ class TestModels(TestCase):
         self.assertIsNone(model_object.testField1.testBaseField2)
         self.assertRaises(IndexError, model_object.testField1.testBaseField3.__getitem__, 2)
         self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
+        self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
 
     def test_delete_attr_by_path_whole_list(self):
         class EvenMoreFakeBaseModel(BaseModel):
@@ -578,7 +579,7 @@ class TestModels(TestCase):
         model_object.delete_attr_by_path('testField1.testBaseField3.*')
         model_object.delete_attr_by_path('testField1.testBaseField4.0.bruceWayneField')
         model_object.delete_attr_by_path('testField1.testBaseField4.3.bruceWayneField')
-        self.assertEqual(list(model_object.testField1.testBaseField3), [])
+        self.assertIsNone(model_object.testField1.testBaseField3[2])
         self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
 
     def test_reset_attr_by_path_with_lists(self):
@@ -613,36 +614,8 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1.testBaseField4[0].bruceWayneField, 22)
         model_object.reset_attr_by_path('testField1.testBaseField4.*.bruceWayneField')
         model_object.reset_attr_by_path('testField1.testBaseField3.2')
-        self.assertEqual(model_object.testField1.testBaseField3[2], 14)
+        self.assertEqual(model_object.testField1.testBaseField3[2], 25)
         self.assertEqual(model_object.testField1.testBaseField4[0].bruceWayneField, 45)
-
-    def test_reset_attr_by_path_with_lists_non_flattened(self):
-        class EvenMoreFakeBaseModel(BaseModel):
-            bruceWayneField = IntegerField()
-
-        class FakeBaseModel(BaseModel):
-            testBaseField1 = BaseField()
-            testBaseField2 = IntegerField()
-            testBaseField3 = ArrayField(field_type=IntegerField())
-            testBaseField4 = ArrayField(field_type=ModelField(model_class=EvenMoreFakeBaseModel))
-
-        class FakeModel(BaseModel):
-            testField1 = ModelField(model_class=FakeBaseModel)
-            testField2 = IntegerField()
-
-        data = {'bruceWayneField': 45}
-        model_1 = EvenMoreFakeBaseModel(data)
-
-        data = {'testBaseField1': 'Value1', 'testBaseField2': 19, 'testBaseField3': [11, 12, 14, 'paco'],
-                'testBaseField4': [model_1]}
-        model_2 = FakeBaseModel(data)
-
-        data = {'testField1': model_2, 'testField2': 11}
-        model_object = FakeModel(data)
-
-        self.assertEqual(model_object.testField1.testBaseField3[2], 14)
-        model_object.reset_attr_by_path('testField1.testBaseField3.2')
-        self.assertRaises(IndexError, model_object.testField1.testBaseField3.__getitem__, 2)
 
     def test_reset_attr_by_path(self):
 
