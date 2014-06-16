@@ -353,11 +353,11 @@ class ListModel(BaseData):
         Function for deleting a field specifying the path in the whole model as described
         in :func:`dirty:models.models.BaseModel.perform_function_by_path`
         """
-        index_list, own_field = self._perform_function_by_path(field, 'delete_attr_by_path')
+        index_list, next_field = self._get_indexes_by_path(field)
         if index_list:
             for index in index_list:
-                if own_field:
-                    self[index].delete_field_value(own_field)
+                if next_field:
+                    self[index].delete_attr_by_path(next_field)
                 else:
                     self.pop(index)
 
@@ -366,11 +366,11 @@ class ListModel(BaseData):
         Function for restoring a field specifying the path in the whole model as described
         in :func:`dirty:models.models.BaseModel.perform_function_by_path`
         """
-        index_list, own_field = self._perform_function_by_path(field, 'reset_attr_by_path')
+        index_list, next_field = self._get_indexes_by_path(field)
         if index_list:
-            if own_field:
+            if next_field:
                 for index in index_list:
-                    self[index].reset_field_value(own_field)
+                    self[index].reset_attr_by_path(next_field)
             else:
                 for index in index_list:
                     try:
@@ -378,7 +378,7 @@ class ListModel(BaseData):
                     except (AttributeError, IndexError):
                         return
 
-    def _perform_function_by_path(self, field, function):
+    def _get_indexes_by_path(self, field):
         """
         Function to perform a function to the field specified. Returns a list of index where the function has to be
         applied
@@ -399,15 +399,14 @@ class ListModel(BaseData):
                 index_list = []
                 for item in self:
                     try:
-                        field = item._perform_function_by_path(next_field, function)
                         index_list.insert(0, self.index(item))
                     except AttributeError:
                         return None, None
                 if index_list:
-                    return index_list, field
+                    return index_list, next_field
             else:
                 index_list = list(reversed(range(len(self))))
-                return index_list, None
+                return index_list, next_field
         elif field.isnumeric():
             try:
                 index = int(field)
@@ -415,8 +414,6 @@ class ListModel(BaseData):
             except IndexError:
                 return None, None
             try:
-                field = item._perform_function_by_path(next_field, function)
-                if field:
-                    return [index], field
+                return [index], next_field
             except AttributeError:
                 return [index], None
