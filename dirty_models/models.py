@@ -384,6 +384,55 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     def get_field_obj(cls, name):
         return getattr(cls, name, None)
 
+    def _get_fields_by_path(self, field):
+        """
+        Function to perform a function to the field specified. If the function has to be performed by the same object
+        the field name is retrieved
+        :param field: Field structure as following:
+         field_1.*.subfield_2  would apply a the function to the every subfield_2 of the elements in field_1
+         field_1.1.subfield_2  would apply a the function to the subfield_2 of the element 1 in field_1
+        :field function: string containing the function in the class to be applied to the field
+        """
+        try:
+            field, next_field = field.split('.', 1)
+        except ValueError:
+            next_field = ''
+
+        if field == '*':
+            return self.get_fields(), next_field
+        else:
+            return [field], next_field
+
+    def delete_attr_by_path(self, field):
+        """
+        Function for deleting a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        """
+        fields, next_field = self._get_fields_by_path(field)
+        for field in fields:
+            if next_field:
+                try:
+                    self.get_field_value(field).delete_attr_by_path(next_field)
+                except AttributeError:
+                    pass
+            else:
+                self.delete_field_value(field)
+
+    def reset_attr_by_path(self, field):
+        """
+        Function for restoring a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        """
+        fields, next_field = self._get_fields_by_path(field)
+        for field in fields:
+            if next_field:
+                try:
+                    self.get_field_value(field).reset_attr_by_path(next_field)
+                except AttributeError:
+                    pass
+            else:
+                self.reset_field_value(field)
+
 
 class DynamicModel(BaseModel):
 

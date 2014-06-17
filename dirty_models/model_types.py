@@ -299,7 +299,7 @@ class ListModel(BaseData):
 
     def export_deleted_fields(self):
         """
-        Resturns a list with any deleted fields form original data.
+        Returns a list with any deleted fields form original data.
         In tree models, deleted fields on children will be appended.
         """
         result = []
@@ -347,3 +347,61 @@ class ListModel(BaseData):
                 value.set_read_only(self.get_read_only())
             except AttributeError:
                 pass
+
+    def delete_attr_by_path(self, field):
+        """
+        Function for deleting a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        """
+        index_list, next_field = self._get_indexes_by_path(field)
+        if index_list:
+            for index in index_list:
+                if next_field:
+                    self[index].delete_attr_by_path(next_field)
+                else:
+                    self.pop(index)
+
+    def reset_attr_by_path(self, field):
+        """
+        Function for restoring a field specifying the path in the whole model as described
+        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        """
+        index_list, next_field = self._get_indexes_by_path(field)
+        if index_list:
+            if next_field:
+                for index in index_list:
+                    self[index].reset_attr_by_path(next_field)
+            else:
+                for index in index_list:
+                    try:
+                        self[index].clear_modified_data()
+                    except (AttributeError, IndexError):
+                        return
+
+    def _get_indexes_by_path(self, field):
+        """
+        Function to perform a function to the field specified. Returns a list of index where the function has to be
+        applied
+        :param field: Field structure as following:
+         *.subfield_2  would apply the function to the every subfield_2 of the elements
+         1.subfield_2  would apply the function to the subfield_2 of the element 1
+         * would apply the function to every element
+         1 would apply the function to element 1
+        :field function: string containing the function in the class to be applied to the field
+        """
+        try:
+            field, next_field = field.split('.', 1)
+        except ValueError:
+            next_field = ''
+
+        if field == '*':
+            index_list = []
+            for item in self:
+                index_list.insert(0, self.index(item))
+            if index_list:
+                return index_list, next_field
+        elif field.isnumeric():
+            index = int(field)
+            if index >= len(self):
+                return None, None
+            return [index], next_field
