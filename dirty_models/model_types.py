@@ -395,25 +395,13 @@ class ListModel(BaseData):
             next_field = ''
 
         if field == '*':
-            if next_field:
-                index_list = []
-                for item in self:
-                    try:
-                        index_list.insert(0, self.index(item))
-                    except AttributeError:
-                        return None, None
-                if index_list:
-                    return index_list, next_field
-            else:
-                index_list = list(reversed(range(len(self))))
+            index_list = []
+            for item in self:
+                index_list.insert(0, self.index(item))
+            if index_list:
                 return index_list, next_field
         elif field.isnumeric():
-            try:
-                index = int(field)
-                item = self[index]
-            except IndexError:
+            index = int(field)
+            if index >= len(self):
                 return None, None
-            try:
-                return [index], next_field
-            except AttributeError:
-                return [index], None
+            return [index], next_field

@@ -640,6 +640,36 @@ class TestModels(TestCase):
         model_object.reset_attr_by_path('testField1.testBaseField2')
         self.assertEqual(model_object.testField1.testBaseField2, 19)
 
+    def test_reset_attr_by_path_with_flag(self):
+
+        class FakeBaseModel(BaseModel):
+            testBaseField1 = BaseField()
+            testBaseField2 = IntegerField()
+
+        class FakeModel(BaseModel):
+            testField1 = ModelField(model_class=FakeBaseModel)
+            testField2 = IntegerField()
+
+        data = {'testBaseField1': 'Value1', 'testBaseField2': 19}
+        model_base_object = FakeBaseModel(data)
+
+        data = {'testField1': model_base_object, 'testField2': 11}
+        model_object = FakeModel(data)
+        model_object.flat_data()
+
+        model_object.testField1.testBaseField2 = 22
+        model_object.testField1.testBaseField1 = 'Value2'
+        model_object.testField2 = 22
+
+        self.assertEqual(model_object.testField2, 22)
+        self.assertEqual(model_object.testField1.testBaseField1, 'Value2')
+        self.assertEqual(model_object.testField1.testBaseField2, 22)
+        model_object.reset_attr_by_path('testField1.*')
+        model_object.reset_attr_by_path('testField2.*')
+        self.assertEqual(model_object.testField2, 22)
+        self.assertEqual(model_object.testField1.testBaseField2, 19)
+        self.assertEqual(model_object.testField1.testBaseField1, 'Value1')
+
 
 class ModelReadOnly(BaseModel):
     testField1 = BaseField()
