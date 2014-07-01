@@ -551,6 +551,27 @@ class TestModels(TestCase):
         self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
         self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
 
+    def test_delete_attr_by_path_with_list_model_empty_list(self):
+
+        class FakeBaseModel(BaseModel):
+            testBaseField1 = BaseField()
+            testBaseField2 = IntegerField()
+            testBaseField3 = ArrayField(field_type=IntegerField())
+
+        class FakeModel(BaseModel):
+            testField1 = ModelField(model_class=FakeBaseModel)
+            testField2 = IntegerField()
+
+        data = {'testBaseField1': 'Value1', 'testBaseField2': 19, 'testBaseField3': []}
+        model_2 = FakeBaseModel(data)
+
+        data = {'testField1': model_2, 'testField2': 11}
+        model_object = FakeModel(data)
+
+        self.assertIsNotNone(model_object.testField1.testBaseField3)
+        model_object.delete_attr_by_path('testField1.testBaseField3.*')
+        self.assertIsNotNone(model_object.testField1.testBaseField3)
+
     def test_delete_attr_by_path_whole_list(self):
         class EvenMoreFakeBaseModel(BaseModel):
             bruceWayneField = IntegerField()

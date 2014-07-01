@@ -400,6 +400,7 @@ class ListModel(BaseData):
                 index_list.insert(0, self.index(item))
             if index_list:
                 return index_list, next_field
+            return [], None
         elif field.isnumeric():
             index = int(field)
             if index >= len(self):
