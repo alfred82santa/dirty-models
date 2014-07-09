@@ -31,6 +31,7 @@ Features
 - Automatic cast value.
 - Easy import from/export to dict.
 - Basic field type implemented.
+- HashMap model. It could be used instead of DynamicModel.
 - Pickable models.
 - No database dependent.
 
@@ -45,7 +46,7 @@ Installation
 Issues
 ******
 - Getter and setter feature needs refactor to be able to use as decorators.
-- DynamicModel is too strange. I don't trust in it.
+- DynamicModel is too strange. I don't trust in it. Try to use HashMapModel.
 
 ***********
 Basic usage
