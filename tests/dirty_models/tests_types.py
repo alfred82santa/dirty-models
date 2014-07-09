@@ -89,6 +89,17 @@ class TestTypes(TestCase):
         for x in test_list:
             self.assertEquals(x, str(initial_list[test_list.index(x)]))
 
+    def test_clear_all_list(self):
+        test_list = ListModel([2, 3, "4", 6])
+
+        test_list.flat_data()
+        test_list.append(1)
+        self.assertEqual(test_list._modified_data, [2, 3, "4", 6, 1])
+        self.assertEqual(test_list._original_data, [2, 3, "4", 6])
+        test_list.clear_all()
+        self.assertEqual(test_list._modified_data, None)
+        self.assertEqual(test_list._original_data, None)
+
     def test_clear_list(self):
         test_list = ListModel([2, 3, "4", 6])
 
@@ -97,8 +108,28 @@ class TestTypes(TestCase):
         self.assertEqual(test_list._modified_data, [2, 3, "4", 6, 1])
         self.assertEqual(test_list._original_data, [2, 3, "4", 6])
         test_list.clear()
-        self.assertEqual(test_list._modified_data, None)
-        self.assertEqual(test_list._original_data, None)
+        self.assertEqual(test_list._modified_data, [])
+        self.assertEqual(test_list._original_data, [2, 3, "4", 6])
+
+    def test_export_data_after_clear_all(self):
+        test_list = ListModel([2, 3, "4", 6])
+
+        test_list.flat_data()
+        test_list.append(1)
+        self.assertEqual(test_list._modified_data, [2, 3, "4", 6, 1])
+        self.assertEqual(test_list._original_data, [2, 3, "4", 6])
+        test_list.clear_all()
+        self.assertEqual(test_list.export_data(), [])
+
+    def test_export_modified_data_after_clear_all(self):
+        test_list = ListModel([2, 3, "4", 6])
+
+        test_list.flat_data()
+        test_list.append(1)
+        self.assertEqual(test_list._modified_data, [2, 3, "4", 6, 1])
+        self.assertEqual(test_list._original_data, [2, 3, "4", 6])
+        test_list.clear_all()
+        self.assertEqual(test_list.export_modified_data(), [])
 
     def test_pop_element(self):
         test_list = ListModel([2, 3, "4", 6], field_type=StringField())

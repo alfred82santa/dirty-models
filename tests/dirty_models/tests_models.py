@@ -1,6 +1,6 @@
 import pickle
 from unittest import TestCase
-from dirty_models.models import BaseModel, DynamicModel
+from dirty_models.models import BaseModel, DynamicModel, HashMapModel
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
                                  ArrayField, BooleanField)
@@ -31,7 +31,7 @@ class TestModels(TestCase):
         self.model._original_data = INITIAL_DATA
 
     def tearDown(self):
-        self.model.clear()
+        self.model.clear_all()
 
     def test_object_creation_test(self):
 
@@ -278,7 +278,7 @@ class TestModels(TestCase):
                                      'testField3': 'Value3',
                                      'testField4': model_field}
         self.model._deleted_fields = ['testField2', 'testField3']
-        self.assertTrue(self.model.is_modified())
+        self.assertTrue(model_field.is_modified())
         self.model.flat_data()
         self.assertEqual(self.model._deleted_fields, [])
         self.assertEqual(self.model._modified_data, {})
@@ -292,6 +292,43 @@ class TestModels(TestCase):
             self.model._original_data['testField4']._original_data,
             {'testField1': 'Field Value1',
              'testField2': 'Field Value2 Modified'})
+
+    def test_clear(self):
+        model_field = self._get_test_model_instance()
+        model_field._original_data = {'testField1': 'Field Value1',
+                                      'testField2': 'Field Value2'}
+        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
+
+        model_field._modified_data = {'testField1': 'Value1Modified',
+                                      'testField2': 'Value2Modified',
+                                      'testField3': 'Value3',
+                                      'testField4': model_field}
+        model_field._deleted_fields = ['testField2', 'testField3']
+        self.assertTrue(model_field.is_modified())
+        model_field.clear()
+        self.assertTrue(model_field.is_modified())
+        self.assertEqual(sorted(model_field._deleted_fields), sorted(['testField1', 'testField2']))
+        self.assertEqual(model_field._modified_data, {})
+        self.assertEqual(model_field._original_data, {'testField1': 'Field Value1',
+                                                      'testField2': 'Field Value2'})
+
+    def test_clear_all(self):
+        model_field = self._get_test_model_instance()
+        model_field._original_data = {'testField1': 'Field Value1',
+                                      'testField2': 'Field Value2'}
+        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
+
+        model_field._modified_data = {'testField1': 'Value1Modified',
+                                      'testField2': 'Value2Modified',
+                                      'testField3': 'Value3',
+                                      'testField4': model_field}
+        model_field._deleted_fields = ['testField2', 'testField3']
+        self.assertTrue(model_field.is_modified())
+        model_field.clear_all()
+        self.assertFalse(model_field.is_modified())
+        self.assertEqual(model_field._deleted_fields, [])
+        self.assertEqual(model_field._modified_data, {})
+        self.assertEqual(model_field._original_data, {})
 
     def test_dirty_model_meta_field(self):
 
@@ -829,6 +866,17 @@ class TestModelReadOnly(TestCase):
 
         self.assertTrue(model.is_locked())
 
+    def test_documentation_default(self):
+        class TestModel(BaseModel):
+            field_1 = IntegerField()
+            field_2 = IntegerField(read_only=True)
+            field_3 = ArrayField(field_type=ModelField(model_class=IntegerField))
+
+        self.assertEqual(TestModel.field_1.__doc__, 'IntegerField field')
+        self.assertEqual(TestModel.field_2.__doc__, 'IntegerField field [READ ONLY]')
+        self.assertEqual(TestModel.field_3.__doc__,
+                         'Array of ModelField field (:class:`dirty_models.fields.IntegerField`)')
+
 
 class TestDynamicModel(TestCase):
 
@@ -836,7 +884,7 @@ class TestDynamicModel(TestCase):
         self.model = DynamicModel()
 
     def tearDown(self):
-        self.model.clear()
+        self.model.clear_all()
 
     def test_set_int_value(self):
         self.model.test1 = 1
@@ -935,13 +983,136 @@ class TestDynamicModel(TestCase):
         self.assertNotEqual(self.model.field2, model2.field2)
         self.assertNotEqual(id(self.model), id(model2))
 
-    def test_documentation_default(self):
-        class DeviceModel(BaseModel):
-            field_1 = IntegerField()
-            field_2 = IntegerField(read_only=True)
-            field_3 = ArrayField(field_type=ModelField(model_class=IntegerField))
+    def test_is_modified_value(self):
+        self.model.test3 = "aass"
+        self.assertEqual(self.model.test3, "aass")
+        self.assertTrue(self.model.is_modified())
+        self.assertIsInstance(self.model.__class__.__dict__['test3'], StringField)
+        field_type = self.model.__class__.__dict__['test3']
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.test3 = "dddd"
+        self.assertEqual(self.model.test3, "dddd")
+        self.assertEqual(self.model.__class__.__dict__['test3'], field_type)
+        self.assertTrue(self.model.is_modified())
+        self.assertTrue(self.model.is_modified_field('test3'))
 
-        self.assertEqual(DeviceModel.field_1.__doc__, 'IntegerField field')
-        self.assertEqual(DeviceModel.field_2.__doc__, 'IntegerField field [READ ONLY]')
-        self.assertEqual(DeviceModel.field_3.__doc__,
-                         'Array of ModelField field (:class:`dirty_models.fields.IntegerField`)')
+
+class PickableHashMapModel(HashMapModel):
+    testField1 = StringField()
+
+
+class TestHashMapModel(TestCase):
+
+    def setUp(self):
+        self.model = PickableHashMapModel(field_type=IntegerField())
+
+    def test_fixed_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.assertEqual(self.model.testField1, 'aaaa')
+
+    def test_dyn_fields(self):
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+        self.assertEqual(self.model.testField2, 1)
+        self.assertEqual(self.model.testField3, 1)
+        self.assertEqual(self.model.testField4, 21)
+        self.assertEqual(self.model.testField5, 212)
+
+    def test_multi_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+        self.assertEqual(self.model.testField1, 'aaaa')
+        self.assertEqual(self.model.testField2, 1)
+        self.assertEqual(self.model.testField3, 1)
+        self.assertEqual(self.model.testField4, 21)
+        self.assertEqual(self.model.testField5, 212)
+
+    def test_modified_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+
+        self.assertTrue(self.model.is_modified())
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = 21
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = 241
+        self.assertTrue(self.model.is_modified())
+        self.assertTrue(self.model.is_modified_field('testField4'))
+        self.assertEqual(self.model.testField1, 'aaaa')
+        self.assertEqual(self.model.testField2, 1)
+        self.assertEqual(self.model.testField3, 1)
+        self.assertEqual(self.model.testField4, 241)
+        self.assertEqual(self.model.testField5, 212)
+
+    def test_delete_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+
+        self.assertTrue(self.model.is_modified())
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = 21
+        self.assertFalse(self.model.is_modified())
+        del self.model.testField1
+        del self.model.testField4
+        self.assertTrue(self.model.is_modified())
+        self.assertTrue(self.model.is_modified_field('testField4'))
+        self.assertIsNone(self.model.testField1)
+        self.assertEqual(self.model.testField2, 1)
+        self.assertEqual(self.model.testField3, 1)
+        self.assertIsNone(self.model.testField4)
+        self.assertEqual(self.model.testField5, 212)
+
+    def test_wrong_value(self):
+        self.model.testField2 = 'aaaaa'
+        self.assertIsNone(self.model.testField1)
+
+    def test_pickle(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+        self.model.flat_data()
+
+        del self.model.testField2
+        self.model.testField4 = 241
+
+        model_unpickled = pickle.loads(pickle.dumps(self.model))
+        self.assertNotEqual(id(self.model), id(model_unpickled))
+        self.assertEqual(model_unpickled.export_data(), self.model.export_data())
+        self.assertEqual(model_unpickled.export_original_data(), self.model.export_original_data())
+        self.assertEqual(model_unpickled.export_modified_data(), self.model.export_modified_data())
+        self.assertEqual(model_unpickled.export_deleted_fields(), self.model.export_deleted_fields())
+        self.assertEqual(type(model_unpickled.get_field_type()), type(self.model.get_field_type()))
+        self.assertEqual(model_unpickled.get_field_type().export_definition(),
+                         self.model.get_field_type().export_definition())
+
+    def test_copy_model(self):
+
+        self.model.field1 = '1'
+        self.model.field2 = '3'
+        model2 = self.model.copy()
+        self.model.field2 = '5'
+
+        self.assertEqual(self.model.field1, model2.field1)
+        self.assertNotEqual(self.model.field2, model2.field2)
+        self.assertNotEqual(id(self.model), id(model2))
+
+    def test_no_type_def(self):
+        model = PickableHashMapModel()
+        model.field1 = 'sdsd'
+        self.assertEqual(model.field1, 'sdsd')

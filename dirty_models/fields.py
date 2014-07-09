@@ -28,6 +28,12 @@ class BaseField:
             dcstr += ' [READ ONLY]'
         return dcstr
 
+    def export_definition(self):
+        return {'name': self.name,
+                'alias': self.alias,
+                'read_only': self.read_only,
+                'doc': self.__doc__}
+
     @property
     def name(self):
         """Name getter: Field name or field alias that it will be set."""
@@ -179,6 +185,11 @@ class DateTimeBaseField(BaseField):
         self._parse_format = None
         self.parse_format = parse_format
 
+    def export_definition(self):
+        result = super(DateTimeBaseField, self).export_definition()
+        result['parse_format'] = self.parse_format
+        return result
+
     @property
     def parse_format(self):
         """Model_class getter: model class used on field"""
@@ -295,6 +306,11 @@ class ModelField(BaseField):
             del(kwargs['setter'])
         super(ModelField, self).__init__(**kwargs)
 
+    def export_definition(self):
+        result = super(ModelField, self).export_definition()
+        result['model_class'] = self.model_class
+        return result
+
     def get_field_docstring(self):
         dcstr = super(ModelField, self).get_field_docstring()
         if self.model_class:
@@ -331,12 +347,38 @@ class ModelField(BaseField):
         if original is None:
             super(ModelField, self).__set__(obj, value)
         elif self.check_value(value):
+            original.clear()
             original.import_data(value.export_data())
         elif self.can_use_value(value):
             original.import_data(value)
 
 
-class ArrayField(BaseField):
+class InnerFieldTypeMixin:
+
+    def __init__(self, field_type=None, **kwargs):
+        self._field_type = None
+        if isinstance(field_type, tuple):
+            field_type = field_type[0](**field_type[1])
+        self.field_type = field_type if field_type else BaseField()
+        super(InnerFieldTypeMixin, self).__init__(**kwargs)
+
+    def export_definition(self):
+        result = super(InnerFieldTypeMixin, self).export_definition()
+        result['field_type'] = (self.field_type.__class__, self.field_type.export_definition())
+        return result
+
+    @property
+    def field_type(self):
+        """field_type getter: field type used on array or hashmap"""
+        return self._field_type
+
+    @field_type.setter
+    def field_type(self, value):
+        """Model_class setter: field type used on array or hashmap"""
+        self._field_type = value
+
+
+class ArrayField(InnerFieldTypeMixin, BaseField):
 
     """
     It allows to create a ListModel (iterable in dirty_models.types) of different elements according
@@ -344,24 +386,9 @@ class ArrayField(BaseField):
     When using a model with no specified model_class the model inside field.
     """
 
-    def __init__(self, field_type=BaseField(), **kwargs):
-        self._field_type = None
-        self.field_type = field_type
-        super(ArrayField, self).__init__(**kwargs)
-
     def get_field_docstring(self):
         if self.field_type:
             return 'Array of {0}'.format(self.field_type.get_field_docstring())
-
-    @property
-    def field_type(self):
-        """field_type getter: field type used on array"""
-        return self._field_type
-
-    @field_type.setter
-    def field_type(self, value):
-        """Model_class setter: field type used on array"""
-        self._field_type = value
 
     def convert_value(self, value):
         def convert_element(element):
@@ -374,7 +401,7 @@ class ArrayField(BaseField):
         return ListModel([convert_element(element) for element in value], field_type=self.field_type)
 
     def check_value(self, value):
-        if not isinstance(value, ListModel) or not isinstance(value.field_type, type(self.field_type)):
+        if not isinstance(value, ListModel) or not isinstance(value.get_field_type(), type(self.field_type)):
             return False
         return True
 
@@ -388,3 +415,16 @@ class ArrayField(BaseField):
             return False
         else:
             return False
+
+
+class HashMapField(InnerFieldTypeMixin, ModelField):
+
+    def __init__(self, model_class=None, **kwargs):
+        if model_class is None:
+            from dirty_models.models import HashMapModel
+            model_class = HashMapModel
+        super(HashMapField, self).__init__(model_class=model_class,
+                                           **kwargs)
+
+    def convert_value(self, value):
+        return self._model_class(data=value, field_type=self.field_type)

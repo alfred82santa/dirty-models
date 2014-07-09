@@ -8,7 +8,7 @@ from .fields import BaseField, ModelField, ArrayField
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
 from datetime import datetime
 from dirty_models.model_types import ListModel
-from dirty_models.base import BaseData
+from dirty_models.base import BaseData, InnerFieldTypeMixin
 import itertools
 from collections import Mapping
 
@@ -20,41 +20,38 @@ class DirtyModelMeta(type):
     automatic model_class for ModelField fields.
     """
 
-    def __new__(cls, name, bases, classdict):
-        result = super(DirtyModelMeta, cls).__new__(
-            cls, name, bases, classdict)
+    def __init__(self, name, bases, classdict):
+        super(DirtyModelMeta, self).__init__(name, bases, classdict)
 
-        fields = {key: field for key, field in result.__dict__.items()}
+        fields = {key: field for key, field in self.__dict__.items()}
         read_only_fields = []
         for key, field in fields.items():
             if isinstance(field, BaseField):
-                cls.process_base_field(field, key, result)
+                self.process_base_field(field, key)
                 if field.read_only:
                     read_only_fields.append(field.name)
 
-        setattr(result, '_read_only_fields', read_only_fields)
-        return result
+        self._read_only_fields = read_only_fields
 
-    @classmethod
-    def process_base_field(cls, field, key, instance):
+    def process_base_field(self, field, key):
         """
         Preprocess class fields.
         """
         if not field.name:
             field.name = key
         elif key != field.name:
-            setattr(instance, field.name, field)
+            setattr(self, field.name, field)
         if isinstance(field, ModelField) and not field.model_class:
-            field.model_class = instance
+            field.model_class = self
             field.__doc__ = field.get_field_docstring()
         if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
                 and not field.field_type.model_class:
-            field.field_type.model_class = instance
+            field.field_type.model_class = self
             field.field_type.__doc__ = field.field_type.get_field_docstring()
 
         if field.alias:
             for alias_name in field.alias:
-                setattr(instance, alias_name, field)
+                setattr(self, alias_name, field)
 
 
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):
@@ -77,9 +74,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     Base model with dirty feature. It stores original data and saves
     modifications in other side.
     """
+    _original_data = None
+    _modified_data = None
+    _deleted_fields = None
 
-    def __init__(self, data=None, flat=False, **kwargs):
-        super(BaseModel, self).__init__()
+    def __init__(self, data=None, flat=False, *args, **kwargs):
+        super(BaseModel, self).__init__(*args, **kwargs)
         self._original_data = {}
         self._modified_data = {}
         self._deleted_fields = []
@@ -100,22 +100,29 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return recover_model_from_data, (self.__class__, self.export_original_data(),
                                          self.export_modified_data(), self.export_deleted_fields(),)
 
+    def _get_real_name(self, name):
+        obj = self.__class__.get_field_obj(name)
+        try:
+            return obj.name
+        except AttributeError:
+            return None
+
     def set_field_value(self, name, value):
         """
         Set the value to the field modified_data
         """
-        obj = self.__class__.get_field_obj(name)
+        name = self._get_real_name(name)
 
-        if self._can_write_field(obj.name):
-            if obj.name in self._deleted_fields:
-                self._deleted_fields.remove(obj.name)
-            if self._original_data.get(obj.name) == value:
-                if self._modified_data.get(obj.name):
-                    self._modified_data.pop(obj.name)
+        if name and self._can_write_field(name):
+            if name in self._deleted_fields:
+                self._deleted_fields.remove(name)
+            if self._original_data.get(name) == value:
+                if self._modified_data.get(name):
+                    self._modified_data.pop(name)
             else:
-                self._modified_data[obj.name] = value
+                self._modified_data[name] = value
                 self._prepare_child(value)
-                if obj.name in self._read_only_fields:
+                if name in self._read_only_fields:
                     try:
                         value.set_read_only(True)
                     except AttributeError:
@@ -125,40 +132,43 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Get the field value from the modified data or the original one
         """
-        obj = self.__class__.get_field_obj(name)
-        if obj.name in self._deleted_fields:
+        name = self._get_real_name(name)
+
+        if not name or name in self._deleted_fields:
             return None
-        modified = self._modified_data.get(obj.name)
+        modified = self._modified_data.get(name)
         if modified is not None:
             return modified
-        return self._original_data.get(obj.name)
+        return self._original_data.get(name)
 
     def delete_field_value(self, name):
         """
         Mark this field to be deleted
         """
-        obj = self.__class__.get_field_obj(name)
-        if self._can_write_field(obj.name):
-            if obj.name in self._modified_data:
-                self._modified_data.pop(obj.name)
+        name = self._get_real_name(name)
 
-            if obj.name in self._original_data:
-                self._deleted_fields.append(obj.name)
+        if name and self._can_write_field(name):
+            if name in self._modified_data:
+                self._modified_data.pop(name)
+
+            if name in self._original_data:
+                self._deleted_fields.append(name)
 
     def reset_field_value(self, name):
         """
         Resets value of a field
         """
-        obj = self.__class__.get_field_obj(name)
-        if self._can_write_field(obj.name):
-            if obj.name in self._modified_data:
-                del self._modified_data[obj.name]
+        name = self._get_real_name(name)
 
-            if obj.name in self._deleted_fields:
-                self._deleted_fields.remove(obj.name)
+        if name and self._can_write_field(name):
+            if name in self._modified_data:
+                del self._modified_data[name]
+
+            if name in self._deleted_fields:
+                self._deleted_fields.remove(name)
 
             try:
-                self._original_data[obj.name].clear_modified_data()
+                self._original_data[name].clear_modified_data()
             except (KeyError, AttributeError):
                 pass
 
@@ -166,12 +176,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Returns whether a field is modified or not
         """
-        obj = self.__class__.get_field_obj(name)
-        if obj.name in self._modified_data or obj.name in self._deleted_fields:
+        name = self._get_real_name(name)
+
+        if name in self._modified_data or name in self._deleted_fields:
             return True
 
         try:
-            return self.get_field_value(obj.name).is_modified()
+            return self.get_field_value(name).is_modified()
         except AttributeError:
             return False
 
@@ -248,6 +259,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Returns original field value or None
         """
+        name = self._get_real_name(name)
+
         try:
             value = self._original_data[name]
         except KeyError:
@@ -319,6 +332,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 pass
 
     def clear(self):
+        """
+        Clears all the data in the object, keeping original data
+        """
+        self._modified_data = {}
+        self._deleted_fields = [field for field in self._original_data.keys()]
+
+    def clear_all(self):
         """
         Clears all the data in the object
         """
@@ -448,15 +468,15 @@ class DynamicModel(BaseModel):
         cls._next_id = id(new_class)
         return super(DynamicModel, new_class).__new__(new_class)
 
-    def __setattr__(self, key, value):
-        if key[0] != '_' and key not in self.__class__.__dict__.keys():
+    def __setattr__(self, name, value):
+        if not hasattr(self, name):
             if not self.get_read_only() or not self.is_locked():
-                field_type = self._get_field_type(key, value)
+                field_type = self._get_field_type(name, value)
                 if not field_type:
                     return
-                setattr(self.__class__, key, field_type)
+                setattr(self.__class__, name, field_type)
 
-        super(DynamicModel, self).__setattr__(key, value)
+        super(DynamicModel, self).__setattr__(name, value)
 
     def __reduce__(self):
         """
@@ -506,3 +526,92 @@ class DynamicModel(BaseModel):
         if isinstance(data, dict):
             for key, value in data.items():
                 setattr(self, key, value)
+
+
+def recover_hashmap_model_from_data(model_class, original_data, modified_data, deleted_data, field_type):
+    """
+    Function to reconstruct a model from DirtyModel basic information: original data, the modified and deleted
+    fields.
+    Necessary for pickle an object
+    """
+    model = model_class(original_data, True, field_type=field_type[0](**field_type[1]))
+    model.unlock()
+    model.import_data(modified_data)
+    model.import_deleted_fields(deleted_data)
+    model.lock()
+    return model
+
+
+class HashMapModel(InnerFieldTypeMixin, BaseModel):
+
+    """
+    Hash map model with dirty feature. It stores original data and saves
+    modifications in other side.
+    """
+
+    def __reduce__(self):
+        """
+        Reduce function to allow dumpable by pickle
+        """
+        return recover_hashmap_model_from_data, (self.__class__, self.export_original_data(),
+                                                 self.export_modified_data(), self.export_deleted_fields(),
+                                                 (self.get_field_type().__class__,
+                                                  self.get_field_type().export_definition()))
+
+    def _get_real_name(self, name):
+        new_name = super(HashMapModel, self)._get_real_name(name)
+        if not new_name:
+            return name
+        return new_name
+
+    def copy(self):
+        """
+        Creates a copy of model
+        """
+        return self.__class__(field_type=self.get_field_type(), data=self.export_data())
+
+    def get_validated_object(self, value):
+        """
+        Returns the value validated by the field_type
+        """
+        try:
+            if self.get_field_type().check_value(value) or self.get_field_type().can_use_value(value):
+                data = self.get_field_type().use_value(value)
+                self._prepare_child(data)
+                return data
+            else:
+                return None
+        except AttributeError:
+            return value
+
+    def __setattr__(self, name, value):
+        if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+            validated_value = self.get_validated_object(value)
+            if name not in self._original_data or self._original_data[name] != validated_value:
+                self.set_field_value(name, validated_value)
+            return
+
+        super(HashMapModel, self).__setattr__(name, value)
+
+    def __hasattr__(self, name):
+        try:
+            getattr(super(HashMapModel, self), name)
+        except AttributeError:
+            try:
+                self.__dict__[name]
+            except KeyError:
+                try:
+                    self.__class__.__dict__[name]
+                except KeyError:
+                    return False
+
+        return True
+
+    def __getattr__(self, name):
+        return self.get_field_value(name)
+
+    def __delattr__(self, name):
+        if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+            self.delete_field_value(name)
+            return
+        super(HashMapModel, self).__delattr__(name)

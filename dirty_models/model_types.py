@@ -2,7 +2,7 @@
 Internal types for dirty models
 """
 import itertools
-from dirty_models.base import BaseData
+from dirty_models.base import BaseData, InnerFieldTypeMixin
 from functools import wraps
 
 
@@ -22,7 +22,7 @@ def modified_data_decorator(function):
     return func
 
 
-class ListModel(BaseData):
+class ListModel(InnerFieldTypeMixin, BaseData):
 
     """
     Dirty model for a list. It has the behavior to work as a list implementing its methods
@@ -33,9 +33,8 @@ class ListModel(BaseData):
     _original_data = None
     _modified_data = None
 
-    def __init__(self, seq=None, field_type=None):
-        super(ListModel, self).__init__()
-        self.field_type = field_type
+    def __init__(self, seq=None, *args, **kwargs):
+        super(ListModel, self).__init__(*args, **kwargs)
         if seq is not None:
             self.extend(seq)
 
@@ -44,8 +43,8 @@ class ListModel(BaseData):
         Returns the value validated by the field_type
         """
         try:
-            if self.field_type.check_value(value) or self.field_type.can_use_value(value):
-                data = self.field_type.use_value(value)
+            if self.get_field_type().check_value(value) or self.get_field_type().can_use_value(value):
+                data = self.get_field_type().use_value(value)
                 self._prepare_child(data)
                 return data
             else:
@@ -132,6 +131,12 @@ class ListModel(BaseData):
         raise ValueError()
 
     def clear(self):
+        """
+        Resets our list, keeping original data
+        """
+        self._modified_data = []
+
+    def clear_all(self):
         """
         Resets our list
         """

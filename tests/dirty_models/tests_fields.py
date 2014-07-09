@@ -1,8 +1,8 @@
 from unittest import TestCase
 from dirty_models.fields import (IntegerField, StringField, BooleanField,
                                  FloatField, ModelField, TimeField, DateField,
-                                 DateTimeField, ArrayField, StringIdField)
-from dirty_models.models import BaseModel
+                                 DateTimeField, ArrayField, StringIdField, HashMapField)
+from dirty_models.models import BaseModel, HashMapModel
 from dirty_models.model_types import ListModel
 
 from datetime import time, date, datetime, timezone
@@ -14,6 +14,13 @@ class TestFields(TestCase):
         field = IntegerField()
         self.assertTrue(field.check_value(3))
         self.assertEqual(field.use_value(3), 3)
+
+    def test_int_field_desc(self):
+        field = IntegerField()
+        self.assertEqual(field.export_definition(), {'alias': None,
+                                                     'doc': 'IntegerField field',
+                                                     'name': None,
+                                                     'read_only': False})
 
     def test_int_field_using_float(self):
         field = IntegerField()
@@ -476,6 +483,14 @@ class TestFields(TestCase):
                                   second=33, tzinfo=timezone.utc).astimezone()
                                                                  .time())
 
+    def test_time_field_desc(self):
+        field = TimeField()
+        self.assertEqual(field.export_definition(), {'alias': None,
+                                                     'doc': 'TimeField field',
+                                                     'parse_format': None,
+                                                     'name': None,
+                                                     'read_only': False})
+
     def test_time_field_using_float(self):
         field = TimeField()
         self.assertFalse(field.check_value(3.0))
@@ -488,6 +503,14 @@ class TestFields(TestCase):
         self.assertTrue(field.can_use_value("03:13:23"))
         self.assertEqual(field.use_value("03:13:23"),
                          time(hour=3, minute=13, second=23))
+
+    def test_time_field_desc_w_format(self):
+        field = TimeField(parse_format="%H:%M:%S")
+        self.assertEqual(field.export_definition(), {'alias': None,
+                                                     'doc': 'TimeField field',
+                                                     'parse_format': "%H:%M:%S",
+                                                     'name': None,
+                                                     'read_only': False})
 
     def test_time_field_using_bad_str(self):
         field = TimeField(parse_format="%H:%M:%S")
@@ -658,6 +681,16 @@ class TestFields(TestCase):
                          datetime(year=2015, month=3, day=23,
                                   hour=0, minute=15, second=33,
                                   tzinfo=timezone.utc))
+
+    def test_model_field_desc(self):
+        class TestModel(BaseModel):
+            field_name = StringIdField()
+        field = ModelField(model_class=TestModel)
+        self.assertEqual(field.export_definition(), {'alias': None,
+                         'doc': 'ModelField field (:class:`tests.dirty_models.tests_fields.TestModel`)',
+                                                     'model_class': TestModel,
+                                                     'name': None,
+                                                     'read_only': False})
 
     def test_array_field(self):
 
@@ -1014,3 +1047,64 @@ class TestFields(TestCase):
         array_model_indented_1.field_name_2 = 'cccc'
 
         self.assertDictEqual(array_model.export_modified_data(), {'array_field': [{'field_name_2': 'cccc'}, {}]})
+
+    def test_array_field_desc(self):
+        field = ArrayField(field_type=IntegerField(read_only=True))
+        self.assertEqual(field.export_definition(), {
+            'alias': None,
+            'doc': 'Array of IntegerField field [READ ONLY]',
+            'field_type': (IntegerField, {'alias': None,
+                                          'doc': 'IntegerField field [READ ONLY]',
+                                          'name': None,
+                                          'read_only': True}),
+            'name': None,
+            'read_only': False})
+
+    def test_array_field_from_desc(self):
+        field = ArrayField(field_type=(IntegerField, {'alias': None,
+                                                      'doc': 'IntegerField field [READ ONLY]',
+                                                      'name': None,
+                                                      'read_only': True}))
+        self.assertEqual(field.export_definition(), {
+                         'alias': None,
+                         'doc': 'Array of IntegerField field [READ ONLY]',
+                         'field_type': (IntegerField, {'alias': None,
+                                                       'doc': 'IntegerField field [READ ONLY]',
+                                                       'name': None,
+                                                       'read_only': True}),
+                         'name': None,
+                         'read_only': False})
+
+    def test_hashmap_field(self):
+
+        class FakeHashMapModel(HashMapModel):
+            field_name_1 = ModelField()
+            field_name_2 = StringField()
+
+        class TestModel(BaseModel):
+            hashmap_field = HashMapField(field_type=IntegerField(), model_class=FakeHashMapModel)
+
+        hash_model = TestModel()
+        hash_model.hashmap_field = {'field_name_1': {'field_name_2': 'aaaa'},
+                                    'field_name_2': 'cccc',
+                                    'field_hash_1': '34'}
+
+        self.assertIsInstance(hash_model.hashmap_field, FakeHashMapModel)
+        self.assertEqual(hash_model.hashmap_field.field_name_1.field_name_2, 'aaaa')
+        self.assertEqual(hash_model.hashmap_field.field_name_2, 'cccc')
+        self.assertEqual(hash_model.hashmap_field.field_hash_1, 34)
+
+    def test_hashmap_field_dyn(self):
+
+        class TestModel(BaseModel):
+            hashmap_field = HashMapField(field_type=IntegerField())
+
+        hash_model = TestModel()
+        hash_model.hashmap_field = {'field_name_1': 3,
+                                    'field_name_2': 4,
+                                    'field_hash_1': '34'}
+
+        self.assertIsInstance(hash_model.hashmap_field, HashMapModel)
+        self.assertEqual(hash_model.hashmap_field.field_name_1, 3)
+        self.assertEqual(hash_model.hashmap_field.field_name_2, 4)
+        self.assertEqual(hash_model.hashmap_field.field_hash_1, 34)
