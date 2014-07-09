@@ -11,6 +11,9 @@ class BaseData():
     """
     Base class for data inside dirty model
     """
+    _locked = None
+    _read_only = None
+    _parent = None
 
     def __init__(self, *args, **kwargs):
         self._locked = True
@@ -77,6 +80,18 @@ class BaseData():
                 value.set_read_only(True)
             except AttributeError:
                 pass
+
+
+class InnerFieldTypeMixin:
+
+    _field_type = None
+
+    def __init__(self, *args, **kwargs):
+        self._field_type = kwargs.get('field_type', self._field_type)
+        super(InnerFieldTypeMixin, self).__init__(*args, **kwargs)
+
+    def get_field_type(self):
+        return self._field_type
 
 
 class Unlocker():
