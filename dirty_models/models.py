@@ -183,7 +183,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         try:
             return self.get_field_value(name).is_modified()
-        except AttributeError:
+        except:
             return False
 
     def import_data(self, data):
@@ -477,6 +477,9 @@ class DynamicModel(BaseModel):
                 setattr(self.__class__, name, field_type)
 
         super(DynamicModel, self).__setattr__(name, value)
+
+    def __getattr__(self, name):
+        return self.get_field_value(name)
 
     def __reduce__(self):
         """
