@@ -183,7 +183,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         try:
             return self.get_field_value(name).is_modified()
-        except AttributeError:
+        except:
             return False
 
     def import_data(self, data):
@@ -469,7 +469,7 @@ class DynamicModel(BaseModel):
         return super(DynamicModel, new_class).__new__(new_class)
 
     def __setattr__(self, name, value):
-        if not hasattr(self, name):
+        if not self.__hasattr__(name):
             if not self.get_read_only() or not self.is_locked():
                 field_type = self._get_field_type(name, value)
                 if not field_type:
@@ -477,6 +477,22 @@ class DynamicModel(BaseModel):
                 setattr(self.__class__, name, field_type)
 
         super(DynamicModel, self).__setattr__(name, value)
+
+    def __getattr__(self, name):
+        return self.get_field_value(name)
+
+    def __hasattr__(self, name):
+        try:
+            getattr(super(DynamicModel, self), name)
+        except AttributeError:
+            try:
+                self.__dict__[name]
+            except KeyError:
+                try:
+                    self.__class__.__dict__[name]
+                except KeyError:
+                    return False
+        return True
 
     def __reduce__(self):
         """
