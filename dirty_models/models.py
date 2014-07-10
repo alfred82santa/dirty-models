@@ -539,7 +539,7 @@ class DynamicModel(BaseModel):
         """
         Set the fields established in data to the instance
         """
-        if isinstance(data, dict):
+        if isinstance(data, (dict, Mapping)):
             for key, value in data.items():
                 setattr(self, key, value)
 
