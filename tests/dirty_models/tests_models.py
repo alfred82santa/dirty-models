@@ -947,8 +947,7 @@ class TestDynamicModel(TestCase):
     def test_set_empty_list_value(self):
         self.model.test1 = []
 
-        with self.assertRaises(AttributeError):
-            self.model.test1
+        self.assertIsNone(self.model.test1)
 
     def test_set_invalid_type_field_fail(self):
         with self.assertRaisesRegexp(TypeError, "Invalid parameter: test34. Type not supported."):
