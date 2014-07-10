@@ -256,7 +256,6 @@ class ListModel(InnerFieldTypeMixin, BaseData):
 
         if self._modified_data is not None:
             return [export_modfield(value) for value in self._modified_data]
-        print(self._original_data)
         if self._original_data is not None:
             return list(x for x in [export_modfield(value) for value in self._original_data] if x is not None)
         return []
