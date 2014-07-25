@@ -682,6 +682,48 @@ class TestFields(TestCase):
                                   hour=0, minute=15, second=33,
                                   tzinfo=timezone.utc))
 
+    def test_datetime_field_using_is8061(self):
+        date = '2012-09-11T13:02:41Z'
+        field = DateTimeField('iso8061')
+        self.assertFalse(field.check_value(date))
+        self.assertTrue(field.can_use_value(date))
+        self.assertEqual(field.use_value(date), date)
+
+    def test_datetime_field_using_is8061_bad_str(self):
+        date = '2012-09-50T13:02:41Z'
+        field = DateTimeField('iso8061')
+        self.assertFalse(field.check_value(date))
+        self.assertTrue(field.can_use_value(date))
+        self.assertIsNone(field.use_value(date))
+
+    def test_time_field_using_is8061(self):
+        date = '2012-09-11T13:02:41Z'
+        field = TimeField('iso8061')
+        self.assertFalse(field.check_value(date))
+        self.assertTrue(field.can_use_value(date))
+        self.assertEqual(field.use_value(date), date)
+
+    def test_time_field_using_is8061_bad_str(self):
+        date = '2012-09-50T13:02:41Z'
+        field = TimeField('iso8061')
+        self.assertFalse(field.check_value(date))
+        self.assertTrue(field.can_use_value(date))
+        self.assertIsNone(field.use_value(date))
+
+    def test_date_field_using_is8061(self):
+        date = '2012-09-11T13:02:41Z'
+        field = DateField('iso8061')
+        self.assertFalse(field.check_value(date))
+        self.assertTrue(field.can_use_value(date))
+        self.assertEqual(field.use_value(date), date)
+
+    def test_date_field_using_is8061_bad_str(self):
+        date = '2012-09-50T13:02:41Z'
+        field = DateField('iso8061')
+        self.assertFalse(field.check_value(date))
+        self.assertTrue(field.can_use_value(date))
+        self.assertIsNone(field.use_value(date))
+
     def test_model_field_desc(self):
         class TestModel(BaseModel):
             field_name = StringIdField()

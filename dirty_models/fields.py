@@ -7,6 +7,7 @@ from datetime import datetime, date, time
 from dateutil.parser import parse as dateutil_parse
 from .model_types import ListModel
 from collections import Mapping
+import iso8601
 
 
 class BaseField:
@@ -180,10 +181,22 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
+    date_parsers = {}
+
+
     def __init__(self, parse_format=None, **kwargs):
         super(DateTimeBaseField, self).__init__(**kwargs)
         self._parse_format = None
         self.parse_format = parse_format
+        self.date_parsers.update(
+            {
+                'iso8061': {
+                    'format': '%Y-%m-%dT%H:%M:%SZ',
+                    'parser' : self.iso8061_parser
+                }
+            }
+        )
+
 
     def export_definition(self):
         result = super(DateTimeBaseField, self).export_definition()
@@ -200,6 +213,17 @@ class DateTimeBaseField(BaseField):
         """Parse_format setter: datetime format used on field"""
         self._parse_format = value
 
+    def get_parsed_data(self, value):
+        try:
+            date_parser = self.date_parsers.get(self.parse_format, {})
+            if date_parser:
+                return datetime.strftime(date_parser['parser'](value),date_parser['format'])
+        except:
+            return None
+
+    def iso8061_parser(self, value):
+        return iso8601.parse_date(value)
+
 
 class TimeField(DateTimeBaseField):
 
@@ -214,10 +238,16 @@ class TimeField(DateTimeBaseField):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
             try:
+                format = self.parse_format
                 if not self.parse_format:
                     value = dateutil_parse(value)
                     return value.time()
-                return self.convert_value(datetime.strptime(value, self.parse_format))
+                else:
+                    parsed = self.get_parsed_data(value)
+                    if parsed:
+                        return parsed
+
+                return self.convert_value(datetime.strptime(value, format))
             except ValueError:
                 return None
         elif isinstance(value, datetime):
@@ -243,10 +273,15 @@ class DateField(DateTimeBaseField):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
             try:
+                format = self.parse_format
                 if not self.parse_format:
                     value = dateutil_parse(value)
                     return value.date()
-                return self.convert_value(datetime.strptime(value, self.parse_format))
+                else:
+                    parsed = self.get_parsed_data(value)
+                    if parsed:
+                        return parsed
+                return self.convert_value(datetime.strptime(value, format))
             except ValueError:
                 return None
         elif isinstance(value, datetime):
@@ -272,9 +307,14 @@ class DateTimeField(DateTimeBaseField):
             return datetime.fromtimestamp(value)
         elif isinstance(value, str):
             try:
+                format = self.parse_format
                 if not self.parse_format:
                     return dateutil_parse(value)
-                return datetime.strptime(value, self.parse_format)
+                else:
+                    parsed =  self.get_parsed_data(value)
+                    if parsed:
+                        return parsed
+                return datetime.strptime(value, format)
             except ValueError:
                 return None
         elif isinstance(value, date):
