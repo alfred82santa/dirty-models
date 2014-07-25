@@ -3,3 +3,4 @@ flake8
 coverage
 nose
 python-dateutil
+iso8601
