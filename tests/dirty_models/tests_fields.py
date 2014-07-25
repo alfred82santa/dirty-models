@@ -683,124 +683,169 @@ class TestFields(TestCase):
                                   hour=0, minute=15, second=33,
                                   tzinfo=timezone.utc))
 
-    def test_datetime_field_using_is8061(self):
+    def test_datetime_field_using_is8061_parser_and_formatter(self):
         field = DateTimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
-        date = '2012-09-11T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertEqual(field.use_value(date), date)
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertEqual(field.use_value(data), datetime(year=2012, month=9, day=11,
+                                                         hour=13, minute=2, second=41))
+
+    def test_datetime_field_using_is8061_without_formatter(self):
+        field = DateTimeField('iso8061')
+        field.date_parsers = {
+            'iso8061': {
+                'parser': iso8601.parse_date
+            }
+        }
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertIsNone(field.use_value(data))
+
+    def test_datetime_field_using_is8061_without_parser(self):
+        field = DateTimeField('iso8061')
+        field.date_parsers = {
+            'iso8061': {
+                'formatter': '%Y-%m-%dT%H:%M:%SZ'
+            }
+        }
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertIsNone(field.use_value(data))
+
+    def test_datetime_field_using_is8061_parser_and_def_formatter(self):
+
+        def parser_format(value):
+            return datetime.strptime(datetime.strftime(value, '%Y-%m-%dT%H:%M:%SZ'), '%Y-%m-%dT%H:%M:%SZ')
+        field = DateTimeField('iso8061')
+        field.date_parsers = {
+            'iso8061': {
+                'formatter': parser_format,
+                'parser': iso8601.parse_date
+            }
+        }
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertEqual(field.use_value(data), datetime(year=2012, month=9, day=11,
+                                                         hour=13, minute=2, second=41))
 
     def test_datetime_field_using_is8061_bad_str(self):
         field = DateTimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-50T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertIsNone(field.use_value(date))
+        data = '2012-09-50T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertIsNone(field.use_value(data))
 
     def test_time_field_using_is8061(self):
         field = TimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-11T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertEqual(field.use_value(date), date)
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertEqual(field.use_value(data), time(hour=13, minute=2, second=41))
 
     def test_time_field_using_is8061_bad_str(self):
         field = TimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-50T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertIsNone(field.use_value(date))
+        data = '2012-09-50T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertIsNone(field.use_value(data))
 
     def test_date_field_using_is8061(self):
         field = DateField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-11T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertEqual(field.use_value(date), date)
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertEqual(field.use_value(data), date(year=2012, month=9, day=11))
 
     def test_date_field_using_is8061_bad_str(self):
         field = DateField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-50T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertIsNone(field.use_value(date))
+        data = '2012-09-50T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertIsNone(field.use_value(data))
 
     def test_datetime_field_using_is8061_def_format(self):
 
         def get_format(value):
-            return '%Y-%m-%dT%H:%M:%SZ'
+            format = '%Y-%m-%dT%H:%M:%SZ'
+            return datetime.strptime(datetime.strftime(value, format), format)
 
         field = DateTimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': get_format,
+                'formatter': get_format,
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-11T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertEqual(field.use_value(date), date)
+        data = '2012-09-11T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertEqual(field.use_value(data), datetime(year=2012, month=9, day=11,
+                                                         hour=13, minute=2, second=41))
 
     def test_date_field_using_is8061_def_format_bad_str(self):
 
         def get_format(value):
-            return '%Y-%m-%dT%H:%M:%SZ'
+            format = '%Y-%m-%dT%H:%M:%SZ'
+            return datetime.strptime(datetime.strftime(value, format), format)
 
         field = DateTimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'format': get_format,
+                'formatter': get_format,
                 'parser': iso8601.parse_date
             }
         }
 
-        date = '2012-09-50T13:02:41Z'
-        self.assertFalse(field.check_value(date))
-        self.assertTrue(field.can_use_value(date))
-        self.assertIsNone(field.use_value(date))
+        data = '2012-09-50T13:02:41Z'
+        self.assertFalse(field.check_value(data))
+        self.assertTrue(field.can_use_value(data))
+        self.assertIsNone(field.use_value(data))
 
     def test_model_field_desc(self):
         class TestModel(BaseModel):

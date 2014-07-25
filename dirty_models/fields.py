@@ -202,14 +202,19 @@ class DateTimeBaseField(BaseField):
         """Parse_format setter: datetime format used on field"""
         self._parse_format = value
 
-    def get_parsed_data(self, value):
+    def get_parsed_value(self, value):
         try:
-            date_parser = self.date_parsers.get(self.parse_format, {})
-            if date_parser:
-                format = date_parser['format']
-                if callable(format):
-                    format = format(value)
-                return datetime.strftime(date_parser['parser'](value), format)
+            return self.date_parsers[self.parse_format]['parser'](value)
+        except:
+            return value
+
+    def get_formatter_value(self, value):
+        try:
+            formatter = self.date_parsers.get(self.parse_format, {}).get('formatter')
+            if callable(formatter):
+                return formatter(value)
+
+            return datetime.strptime(datetime.strftime(value, formatter), formatter)
         except:
             return None
 
@@ -231,12 +236,10 @@ class TimeField(DateTimeBaseField):
                 if not self.parse_format:
                     value = dateutil_parse(value)
                     return value.time()
-                else:
-                    parsed = self.get_parsed_data(value)
-                    if parsed:
-                        return parsed
+                parsed_value = self.get_parsed_value(value)
 
-                return self.convert_value(datetime.strptime(value, format))
+                return self.convert_value(self.get_formatter_value(parsed_value)) \
+                    or self.convert_value(datetime.strptime(parsed_value, format))
             except ValueError:
                 return None
         elif isinstance(value, datetime):
@@ -266,12 +269,11 @@ class DateField(DateTimeBaseField):
                 if not self.parse_format:
                     value = dateutil_parse(value)
                     return value.date()
-                else:
-                    parsed = self.get_parsed_data(value)
-                    if parsed:
-                        return parsed
-                return self.convert_value(datetime.strptime(value, format))
-            except ValueError:
+                parsed_value = self.get_parsed_value(value)
+
+                return self.convert_value(self.get_formatter_value(parsed_value)) \
+                    or self.convert_value(datetime.strptime(parsed_value, format))
+            except(TypeError, ValueError):
                 return None
         elif isinstance(value, datetime):
             return value.date()
@@ -299,12 +301,11 @@ class DateTimeField(DateTimeBaseField):
                 format = self.parse_format
                 if not self.parse_format:
                     return dateutil_parse(value)
-                else:
-                    parsed = self.get_parsed_data(value)
-                    if parsed:
-                        return parsed
-                return datetime.strptime(value, format)
-            except ValueError:
+
+                parsed_value = self.get_parsed_value(value)
+
+                return self.get_formatter_value(parsed_value) or datetime.strptime(parsed_value, format)
+            except(TypeError, ValueError):
                 return None
         elif isinstance(value, date):
             return datetime(year=value.year, month=value.month,
