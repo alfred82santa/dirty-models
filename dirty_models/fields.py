@@ -187,11 +187,10 @@ class DateTimeBaseField(BaseField):
         self.parse_format = parse_format
         self.date_parsers = {
             'iso8061': {
-                    'format': '%Y-%m-%dT%H:%M:%SZ',
-                    'parser': iso8601.parse_date
-                }
+                'format': '%Y-%m-%dT%H:%M:%SZ',
+                'parser': iso8601.parse_date
             }
-
+        }
 
     def export_definition(self):
         result = super(DateTimeBaseField, self).export_definition()
@@ -215,6 +214,7 @@ class DateTimeBaseField(BaseField):
                 return datetime.strftime(date_parser['parser'](value), date_parser['format'])
         except:
             return None
+
 
 class TimeField(DateTimeBaseField):
 
