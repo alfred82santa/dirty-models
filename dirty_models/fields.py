@@ -7,7 +7,6 @@ from datetime import datetime, date, time
 from dateutil.parser import parse as dateutil_parse
 from .model_types import ListModel
 from collections import Mapping
-import iso8601
 
 
 class BaseField:
@@ -181,16 +180,14 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
-    def __init__(self, parse_format=None, **kwargs):
+    def __init__(self, parse_format=None, date_parsers=None, **kwargs):
         super(DateTimeBaseField, self).__init__(**kwargs)
         self._parse_format = None
         self.parse_format = parse_format
-        self.date_parsers = {
-            'iso8061': {
-                'format': '%Y-%m-%dT%H:%M:%SZ',
-                'parser': iso8601.parse_date
-            }
-        }
+        self.date_parsers = {}
+
+        if date_parsers:
+            self.date_parsers.update(date_parsers)
 
     def export_definition(self):
         result = super(DateTimeBaseField, self).export_definition()
@@ -211,7 +208,10 @@ class DateTimeBaseField(BaseField):
         try:
             date_parser = self.date_parsers.get(self.parse_format, {})
             if date_parser:
-                return datetime.strftime(date_parser['parser'](value), date_parser['format'])
+                format = date_parser['format']
+                if callable(format):
+                    format = format(value)
+                return datetime.strftime(date_parser['parser'](value), format)
         except:
             return None
 
