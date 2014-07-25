@@ -180,14 +180,12 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
-    def __init__(self, parse_format=None, date_parsers=None, **kwargs):
+    date_parsers = {}
+
+    def __init__(self, parse_format=None, **kwargs):
         super(DateTimeBaseField, self).__init__(**kwargs)
         self._parse_format = None
         self.parse_format = parse_format
-        self.date_parsers = {}
-
-        if date_parsers:
-            self.date_parsers.update(date_parsers)
 
     def export_definition(self):
         result = super(DateTimeBaseField, self).export_definition()
