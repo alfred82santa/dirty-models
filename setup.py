@@ -14,7 +14,7 @@ setup(
         'Programming Language :: Python :: 3.4'],
     packages=['dirty_models'],
     include_package_data=True,
-    install_requires=['python-dateutil'],
+    install_requires=['python-dateutil', 'iso8061'],
     description="Dirty models for python 3",
     long_description=open(os.path.join(os.path.dirname(__file__), 'README.rst')).read(),
     test_suite="nose.collector",

@@ -181,20 +181,17 @@ class DateTimeBaseField(BaseField):
 
     """Base field for time or/and date fields."""
 
-    date_parsers = {}
-
     def __init__(self, parse_format=None, **kwargs):
         super(DateTimeBaseField, self).__init__(**kwargs)
         self._parse_format = None
         self.parse_format = parse_format
-        self.date_parsers.update(
-            {
-                'iso8061': {
+        self.date_parsers = {
+            'iso8061': {
                     'format': '%Y-%m-%dT%H:%M:%SZ',
-                    'parser': self.iso8061_parser
+                    'parser': iso8601.parse_date
                 }
             }
-        )
+
 
     def export_definition(self):
         result = super(DateTimeBaseField, self).export_definition()
@@ -218,10 +215,6 @@ class DateTimeBaseField(BaseField):
                 return datetime.strftime(date_parser['parser'](value), date_parser['format'])
         except:
             return None
-
-    def iso8061_parser(self, value):
-        return iso8601.parse_date(value)
-
 
 class TimeField(DateTimeBaseField):
 
