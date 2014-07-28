@@ -209,7 +209,7 @@ class DateTimeBaseField(BaseField):
                 return parser(value)
             return datetime.strptime(value, parser)
         except:
-            return None
+            return datetime.strptime(value, self.parse_format)
 
     def get_formatted_value(self, value):
         try:
@@ -240,8 +240,7 @@ class TimeField(DateTimeBaseField):
                     value = dateutil_parse(value)
                     return value.time()
 
-                return self.convert_value(self.get_parsed_value(value)) \
-                    or self.convert_value(datetime.strptime(value, format))
+                return self.convert_value(self.get_parsed_value(value))
             except ValueError:
                 return None
         elif isinstance(value, datetime):
@@ -272,8 +271,7 @@ class DateField(DateTimeBaseField):
                     value = dateutil_parse(value)
                     return value.date()
 
-                return self.convert_value(self.get_parsed_value(value)) \
-                    or self.convert_value(datetime.strptime(value, format))
+                return self.convert_value(self.get_parsed_value(value))
             except(TypeError, ValueError):
                 return None
         elif isinstance(value, datetime):
@@ -303,7 +301,7 @@ class DateTimeField(DateTimeBaseField):
                 if not self.parse_format:
                     return dateutil_parse(value)
 
-                return self.get_parsed_value(value) or datetime.strptime(value, format)
+                return self.get_parsed_value(value)
             except(TypeError, ValueError):
                 return None
         elif isinstance(value, date):
