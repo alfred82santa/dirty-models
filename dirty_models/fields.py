@@ -235,7 +235,6 @@ class TimeField(DateTimeBaseField):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
             try:
-                format = self.parse_format
                 if not self.parse_format:
                     value = dateutil_parse(value)
                     return value.time()
@@ -266,7 +265,6 @@ class DateField(DateTimeBaseField):
             return self.convert_value(datetime.fromtimestamp(value))
         elif isinstance(value, str):
             try:
-                format = self.parse_format
                 if not self.parse_format:
                     value = dateutil_parse(value)
                     return value.date()
@@ -297,7 +295,6 @@ class DateTimeField(DateTimeBaseField):
             return datetime.fromtimestamp(value)
         elif isinstance(value, str):
             try:
-                format = self.parse_format
                 if not self.parse_format:
                     return dateutil_parse(value)
 
