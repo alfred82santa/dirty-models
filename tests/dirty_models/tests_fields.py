@@ -695,13 +695,14 @@ class TestFields(TestCase):
         self.assertFalse(field.check_value(data))
         self.assertTrue(field.can_use_value(data))
         self.assertEqual(field.use_value(data), datetime(year=2012, month=9, day=11,
-                                                         hour=13, minute=2, second=41))
+                                                         hour=13, minute=2, second=41,
+                                                         tzinfo=timezone.utc))
 
     def test_datetime_field_using_is8061_without_formatter(self):
         field = DateTimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'parser': iso8601.parse_date
+                'parser': 'bruce_wayne'
             }
         }
         data = '2012-09-11T13:02:41Z'
@@ -736,7 +737,8 @@ class TestFields(TestCase):
         self.assertFalse(field.check_value(data))
         self.assertTrue(field.can_use_value(data))
         self.assertEqual(field.use_value(data), datetime(year=2012, month=9, day=11,
-                                                         hour=13, minute=2, second=41))
+                                                         hour=13, minute=2, second=41,
+                                                         tzinfo=timezone.utc))
 
     def test_datetime_field_using_is8061_bad_str(self):
         field = DateTimeField('iso8061')
@@ -764,7 +766,8 @@ class TestFields(TestCase):
         data = '2012-09-11T13:02:41Z'
         self.assertFalse(field.check_value(data))
         self.assertTrue(field.can_use_value(data))
-        self.assertEqual(field.use_value(data), time(hour=13, minute=2, second=41))
+        self.assertEqual(field.use_value(data), time(hour=13, minute=2, second=41,
+                                                     tzinfo=timezone.utc))
 
     def test_time_field_using_is8061_bad_str(self):
         field = TimeField('iso8061')
@@ -812,7 +815,7 @@ class TestFields(TestCase):
 
         def get_format(value):
             format = '%Y-%m-%dT%H:%M:%SZ'
-            return datetime.strptime(datetime.strftime(value, format), format)
+            return datetime.strftime(value, format)
 
         field = DateTimeField('iso8061')
         field.date_parsers = {
@@ -822,30 +825,34 @@ class TestFields(TestCase):
             }
         }
 
-        data = '2012-09-11T13:02:41Z'
-        self.assertFalse(field.check_value(data))
-        self.assertTrue(field.can_use_value(data))
-        self.assertEqual(field.use_value(data), datetime(year=2012, month=9, day=11,
-                                                         hour=13, minute=2, second=41))
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41,
+                        tzinfo=timezone.utc)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11T13:02:41Z')
 
-    def test_date_field_using_is8061_def_format_bad_str(self):
+    def test_date_field_using_is8061_bad_format_str(self):
 
-        def get_format(value):
-            format = '%Y-%m-%dT%H:%M:%SZ'
-            return datetime.strptime(datetime.strftime(value, format), format)
+        field = DateTimeField()
+
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41,
+                        tzinfo=timezone.utc)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11 13:02:41+00:00')
+
+    def test_date_field_using_is8061_format_str(self):
 
         field = DateTimeField('iso8061')
         field.date_parsers = {
             'iso8061': {
-                'formatter': get_format,
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
                 'parser': iso8601.parse_date
             }
         }
 
-        data = '2012-09-50T13:02:41Z'
-        self.assertFalse(field.check_value(data))
-        self.assertTrue(field.can_use_value(data))
-        self.assertIsNone(field.use_value(data))
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41,
+                        tzinfo=timezone.utc)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11T13:02:41Z')
 
     def test_model_field_desc(self):
         class TestModel(BaseModel):
