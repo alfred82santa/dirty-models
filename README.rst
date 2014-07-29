@@ -33,6 +33,7 @@ Features
 - Basic field type implemented.
 - HashMap model. It could be used instead of DynamicModel.
 - Pickable models.
+- Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
 
 ************
