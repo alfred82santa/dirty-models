@@ -5,7 +5,7 @@ setup(
     name='dirty-models',
     url='https://github.com/alfred82santa/dirty-models',
     author='alfred82santa',
-    version='0.3.5',
+    version='0.3.6',
     author_email='alfred82santa@gmail.com',
     classifiers=[
         'Intended Audience :: Developers',
