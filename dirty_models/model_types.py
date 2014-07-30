@@ -217,7 +217,9 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             except AttributeError:
                 return value
 
-        self._original_data = [flat_field(value) for value in self._modified_data]
+        modified_data = self._modified_data if self._modified_data is not None else self._original_data
+        if modified_data is not None:
+            self._original_data = [flat_field(value) for value in modified_data]
         self._modified_data = None
 
     def export_data(self):
