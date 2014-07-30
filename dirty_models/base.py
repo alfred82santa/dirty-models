@@ -87,7 +87,8 @@ class InnerFieldTypeMixin:
     _field_type = None
 
     def __init__(self, *args, **kwargs):
-        self._field_type = kwargs.get('field_type', self._field_type)
+        if 'field_type' in kwargs:
+            self._field_type = kwargs.pop('field_type')
         super(InnerFieldTypeMixin, self).__init__(*args, **kwargs)
 
     def get_field_type(self):
