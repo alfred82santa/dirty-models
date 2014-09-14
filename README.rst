@@ -1,10 +1,14 @@
-|travis-master| |coverall-master|
+|travis-master| |coverall-master| |doc-master|
 
 .. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
     :target: https://travis-ci.org/alfred82santa/dirty-models
     
 .. |coverall-master| image:: https://coveralls.io/repos/alfred82santa/dirty-models/badge.png?branch=master 
     :target: https://coveralls.io/r/alfred82santa/dirty-models?branch=master
+    
+.. |doc-master| image:: https://readthedocs.org/projects/dirty-models/badge/?version=latest
+    :target: https://readthedocs.org/projects/dirty-models/?badge=latest
+    :alt: Documentation Status
 
 ============
 dirty-models
