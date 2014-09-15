@@ -452,3 +452,7 @@ class HashMapField(InnerFieldTypeMixin, ModelField):
 
     def convert_value(self, value):
         return self._model_class(data=value, field_type=self.field_type)
+
+
+class BlobField(BaseField):
+    pass
