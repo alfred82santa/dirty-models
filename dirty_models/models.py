@@ -151,7 +151,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             if name in self._modified_data:
                 self._modified_data.pop(name)
 
-            if name in self._original_data:
+            if name in self._original_data and name not in self._deleted_fields:
                 self._deleted_fields.append(name)
 
     def reset_field_value(self, name):
@@ -454,7 +454,70 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 self.reset_field_value(field)
 
 
-class DynamicModel(BaseModel):
+class BaseDynamicModel(BaseModel):
+
+    """
+
+    """
+    _dynamic_model = None
+
+    def __getattr__(self, name):
+        try:
+            return getattr(super(BaseDynamicModel, self), name)
+        except AttributeError:
+            return self.get_field_value(name)
+
+    def __reduce__(self):
+        """
+        Reduce function to allow dumpable by pickle
+        """
+        return recover_model_from_data, (self.__class__, self.export_original_data(),
+                                         self.export_modified_data(), self.export_deleted_fields(),)
+
+    def copy(self):
+        """
+        Creates a copy of model
+        """
+        return self.__class__(data=self.export_data())
+
+    def _get_field_type(self, key, value):
+        """
+        Helper to create field object based on value type
+        """
+        if isinstance(value, bool):
+            return BooleanField(name=key)
+        elif isinstance(value, int):
+            return IntegerField(name=key)
+        elif isinstance(value, float):
+            return FloatField(name=key)
+        elif isinstance(value, str):
+            return StringField(name=key)
+        elif isinstance(value, datetime):
+            return DateTimeField(name=key)
+        elif isinstance(value, (dict, BaseDynamicModel)):
+            return ModelField(name=key, model_class=self._dynamic_model or self.__class__)
+        elif isinstance(value, BaseModel):
+            return ModelField(name=key, model_class=value.__class__)
+        elif isinstance(value, (list, set, ListModel)):
+            if not len(value):
+                return None
+            field_type = self._get_field_type(None, value[0])
+            return ArrayField(name=key, field_type=field_type)
+        elif value is None:
+            return None
+        else:
+            raise TypeError("Invalid parameter: %s. Type not supported." % (key,))
+
+    def import_data(self, data):
+        """
+        Set the fields established in data to the instance
+        """
+        if isinstance(data, (dict, Mapping)):
+            for key, value in data.items():
+                setattr(self, key, value)
+
+
+class DynamicModel(BaseDynamicModel):
 
     """
     DynamicModel allow to create model with no structure. Each instance has its own
@@ -464,7 +527,7 @@ class DynamicModel(BaseModel):
     _next_id = 0
 
     def __new__(cls, *args, **kwargs):
-        new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {})
+        new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {'_dynamic_model': DynamicModel})
         cls._next_id = id(new_class)
         return super(DynamicModel, new_class).__new__(new_class)
 
@@ -477,9 +540,6 @@ class DynamicModel(BaseModel):
                 setattr(self.__class__, name, field_type)
 
         super(DynamicModel, self).__setattr__(name, value)
-
-    def __getattr__(self, name):
-        return self.get_field_value(name)
 
     def __hasattr__(self, name):
         try:
@@ -500,48 +560,6 @@ class DynamicModel(BaseModel):
         """
         return recover_model_from_data, (DynamicModel, self.export_original_data(),
                                          self.export_modified_data(), self.export_deleted_fields(),)
-
-    def copy(self):
-        """
-        Creates a copy of model
-        """
-        return DynamicModel(data=self.export_data())
-
-    def _get_field_type(self, key, value):
-        """
-        Helper to create field object based on value type
-        """
-        if isinstance(value, bool):
-            return BooleanField(name=key)
-        elif isinstance(value, int):
-            return IntegerField(name=key)
-        elif isinstance(value, float):
-            return FloatField(name=key)
-        elif isinstance(value, str):
-            return StringField(name=key)
-        elif isinstance(value, datetime):
-            return DateTimeField(name=key)
-        elif isinstance(value, (dict, DynamicModel)):
-            return ModelField(name=key, model_class=DynamicModel)
-        elif isinstance(value, BaseModel):
-            return ModelField(name=key, model_class=value.__class__)
-        elif isinstance(value, (list, set, ListModel)):
-            if not len(value):
-                return None
-            field_type = self._get_field_type(None, value[0])
-            return ArrayField(name=key, field_type=field_type)
-        elif value is None:
-            return None
-        else:
-            raise TypeError("Invalid parameter: %s. Type not supported." % (key,))
-
-    def import_data(self, data):
-        """
-        Set the fields established in data to the instance
-        """
-        if isinstance(data, (dict, Mapping)):
-            for key, value in data.items():
-                setattr(self, key, value)
 
 
 def recover_hashmap_model_from_data(model_class, original_data, modified_data, deleted_data, field_type):
@@ -602,8 +620,13 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
 
     def __setattr__(self, name, value):
         if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+            if value is None:
+                delattr(self, name)
+                return
             validated_value = self.get_validated_object(value)
-            if name not in self._original_data or self._original_data[name] != validated_value:
+
+            if validated_value is not None and \
+                    (name not in self._original_data or self._original_data[name] != validated_value):
                 self.set_field_value(name, validated_value)
             return
 
@@ -624,10 +647,86 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
         return True
 
     def __getattr__(self, name):
-        return self.get_field_value(name)
+        try:
+            return getattr(super(HashMapModel, self), name)
+        except AttributeError:
+            return self.get_field_value(name)
 
     def __delattr__(self, name):
         if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
             self.delete_field_value(name)
             return
         super(HashMapModel, self).__delattr__(name)
+
+
+class FastDynamicModel(BaseDynamicModel):
+
+    """
+    FastDynamicModel allow to create model with no structure.
+    """
+
+    _field_types = None
+
+    def __init__(self, *args, **kwargs):
+        self._field_types = {}
+        self._dynamic_model = FastDynamicModel
+        super(FastDynamicModel, self).__init__(*args, **kwargs)
+
+    def _get_real_name(self, name):
+        new_name = super(FastDynamicModel, self)._get_real_name(name)
+        if not new_name:
+            return name
+        return new_name
+
+    def get_validated_object(self, field_type, value):
+        """
+        Returns the value validated by the field_type
+        """
+        if field_type.check_value(value) or field_type.can_use_value(value):
+            data = field_type.use_value(value)
+            self._prepare_child(data)
+            return data
+        else:
+            return None
+
+    def __setattr__(self, name, value):
+        if self._field_types is not None and not self.__hasattr__(name) \
+                and (not self.get_read_only() or not self.is_locked()):
+            if value is None:
+                delattr(self, name)
+                return
+            try:
+                field_type = self._field_types[name]
+            except KeyError:
+                field_type = self._get_field_type(name, value)
+                if not field_type:
+                    return
+                self._field_types[name] = field_type
+
+            validated_value = self.get_validated_object(field_type, value)
+            if validated_value is not None and \
+                    (name not in self._original_data or self._original_data[name] != validated_value):
+                self.set_field_value(name, validated_value)
+            return
+
+        super(FastDynamicModel, self).__setattr__(name, value)
+
+    def __hasattr__(self, name):
+        try:
+            getattr(super(FastDynamicModel, self), name)
+        except AttributeError:
+            try:
+                self.__dict__[name]
+            except KeyError:
+                try:
+                    self.__class__.__dict__[name]
+                except KeyError:
+                    return False
+
+        return True
+
+    def __delattr__(self, name):
+        if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+            self.delete_field_value(name)
+            return
+        super(FastDynamicModel, self).__delattr__(name)

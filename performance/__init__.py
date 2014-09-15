@@ -16,17 +16,17 @@ class Runner:
             test = data['test_class'](**data['params'])
             test.prepare()
             result_test = []
-            print ('{0} start'.format(label))
+            print('{0} start'.format(label))
             for i in range(data.get('repeats', 1)):
-                print ('{0}: iteration no. {1} start'.format(label, i))
+                print('{0}: iteration no. {1} start'.format(label, i))
                 time_start = datetime.now()
                 test.run()
                 time_stop = datetime.now()
                 elapsed = time_stop - time_start
-                print ('{0}: iteration no. {1} => {2}'.format(label, i, str(elapsed)))
+                print('{0}: iteration no. {1} => {2}'.format(label, i, str(elapsed)))
                 result_test.append(elapsed)
             total = reduce(lambda acc, x: acc + x, result_test, timedelta())
-            print ('{0} => {1}'.format(label, str(total)))
+            print('{0} => {1}'.format(label, str(total)))
             result[label] = {'results': result_test, 'total': total}
 
         return result

@@ -1,6 +1,6 @@
 import pickle
 from unittest import TestCase
-from dirty_models.models import BaseModel, DynamicModel, HashMapModel
+from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
                                  ArrayField, BooleanField)
@@ -882,14 +882,21 @@ class TestDynamicModel(TestCase):
 
     def setUp(self):
         self.model = DynamicModel()
+        self.dict_model = DynamicModel
 
     def tearDown(self):
         self.model.clear_all()
 
+    def _get_field_type(self, name):
+        try:
+            return self.model.__class__.__dict__[name]
+        except KeyError:
+            return None
+
     def test_set_int_value(self):
         self.model.test1 = 1
         self.assertEqual(self.model.test1, 1)
-        self.assertIsInstance(self.model.__class__.__dict__['test1'], IntegerField)
+        self.assertIsInstance(self._get_field_type('test1'), IntegerField)
 
         newmodel = DynamicModel()
         newmodel.test1 = "aaaa"
@@ -897,52 +904,52 @@ class TestDynamicModel(TestCase):
 
     def test_set_none_value(self):
         self.model.test1 = None
-        self.assertIsNone(self.model.__class__.__dict__.get('test1'))
+        self.assertIsNone(self._get_field_type('test1'))
 
     def test_set_float_value(self):
         self.model.test2 = 1.0
         self.assertEqual(self.model.test2, 1.0)
-        self.assertIsInstance(self.model.__class__.__dict__['test2'], FloatField)
+        self.assertIsInstance(self._get_field_type('test2'), FloatField)
 
     def test_set_bool_value(self):
         self.model.test2 = True
         self.assertTrue(self.model.test2)
-        self.assertIsInstance(self.model.__class__.__dict__['test2'], BooleanField)
+        self.assertIsInstance(self._get_field_type('test2'), BooleanField)
 
     def test_set_str_value(self):
         self.model.test3 = "aass"
         self.assertEqual(self.model.test3, "aass")
-        self.assertIsInstance(self.model.__class__.__dict__['test3'], StringField)
+        self.assertIsInstance(self._get_field_type('test3'), StringField)
 
     def test_set_datetime_value(self):
         self.model.test4 = datetime(year=2014, month=11, day=1)
         self.assertEqual(self.model.test4, datetime(year=2014, month=11, day=1))
-        self.assertIsInstance(self.model.__class__.__dict__['test4'], DateTimeField)
+        self.assertIsInstance(self._get_field_type('test4'), DateTimeField)
 
     def test_load_from_dict_value(self):
         self.model.import_data({"aa": "aaaaaa"})
         self.assertEqual(self.model.export_data(), {"aa": "aaaaaa"})
-        self.assertIsInstance(self.model.__class__.__dict__['aa'], StringField)
+        self.assertIsInstance(self._get_field_type('aa'), StringField)
 
     def test_set_dict_value(self):
         self.model.test1 = {"aa": "aaaaaa"}
         self.assertEqual(self.model.export_data(), {"test1": {"aa": "aaaaaa"}})
-        self.assertIsInstance(self.model.__class__.__dict__['test1'], ModelField)
-        self.assertEqual(self.model.__class__.__dict__['test1'].model_class, DynamicModel)
+        self.assertIsInstance(self._get_field_type('test1'), ModelField)
+        self.assertEqual(self._get_field_type('test1').model_class, self.dict_model)
 
     def test_set_model_value(self):
         class FakeModel(BaseModel):
             test2 = IntegerField()
         self.model.test1 = FakeModel({"test2": 23})
         self.assertEqual(self.model.export_data(), {"test1": {"test2": 23}})
-        self.assertIsInstance(self.model.__class__.__dict__['test1'], ModelField)
-        self.assertEqual(self.model.__class__.__dict__['test1'].model_class, FakeModel)
+        self.assertIsInstance(self._get_field_type('test1'), ModelField)
+        self.assertEqual(self._get_field_type('test1').model_class, FakeModel)
 
     def test_set_list_value(self):
         self.model.test1 = ["aa", "aaaaaa"]
         self.assertEqual(self.model.export_data(), {"test1": ["aa", "aaaaaa"]})
-        self.assertIsInstance(self.model.__class__.__dict__['test1'], ArrayField)
-        self.assertIsInstance(self.model.__class__.__dict__['test1'].field_type, StringField)
+        self.assertIsInstance(self._get_field_type('test1'), ArrayField)
+        self.assertIsInstance(self._get_field_type('test1').field_type, StringField)
 
     def test_set_empty_list_value(self):
         self.model.test1 = []
@@ -956,7 +963,7 @@ class TestDynamicModel(TestCase):
     def test_delete_field(self):
         self.model.test1 = 1
         self.assertEqual(self.model.test1, 1)
-        self.assertIsInstance(self.model.__class__.__dict__['test1'], IntegerField)
+        self.assertIsInstance(self._get_field_type('test1'), IntegerField)
 
         del self.model.test1
         self.assertIsNone(self.model.test1)
@@ -986,15 +993,119 @@ class TestDynamicModel(TestCase):
         self.model.test3 = "aass"
         self.assertEqual(self.model.test3, "aass")
         self.assertTrue(self.model.is_modified())
-        self.assertIsInstance(self.model.__class__.__dict__['test3'], StringField)
-        field_type = self.model.__class__.__dict__['test3']
+        self.assertIsInstance(self._get_field_type('test3'), StringField)
+        field_type = self._get_field_type('test3')
         self.model.flat_data()
         self.assertFalse(self.model.is_modified())
         self.model.test3 = "dddd"
         self.assertEqual(self.model.test3, "dddd")
-        self.assertEqual(self.model.__class__.__dict__['test3'], field_type)
+        self.assertEqual(self._get_field_type('test3'), field_type)
         self.assertTrue(self.model.is_modified())
         self.assertTrue(self.model.is_modified_field('test3'))
+
+
+class TestFastDynamicModel(TestDynamicModel):
+
+    def setUp(self):
+        self.model = FastDynamicModel()
+        self.dict_model = FastDynamicModel
+
+    def _get_field_type(self, name):
+        try:
+            return self.model._field_types[name]
+        except KeyError:
+            return None
+
+
+class FastDynamicModelExtraFields(FastDynamicModel):
+    testField1 = StringField()
+
+
+class TestFastDynamicModelExtraFields(TestDynamicModel):
+
+    def setUp(self):
+        self.model = FastDynamicModelExtraFields()
+        self.dict_model = FastDynamicModel
+
+    def _get_field_type(self, name):
+        try:
+            return self.model._field_types[name]
+        except KeyError:
+            return None
+
+    def test_dyn_fields(self):
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+        self.assertEqual(self.model.testField2, '1')
+        self.assertEqual(self.model.testField3, 1)
+        self.assertEqual(self.model.testField4, 21)
+        self.assertEqual(self.model.testField5, '212')
+
+    def test_multi_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+        self.assertEqual(self.model.testField1, 'aaaa')
+        self.assertEqual(self.model.testField2, '1')
+        self.assertEqual(self.model.testField3, 1)
+        self.assertEqual(self.model.testField4, 21)
+        self.assertEqual(self.model.testField5, '212')
+
+    def test_modified_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+
+        self.assertTrue(self.model.is_modified())
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = 21
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = '241'
+        self.assertTrue(self.model.is_modified())
+        self.assertTrue(self.model.is_modified_field('testField4'))
+        self.assertEqual(self.model.testField1, 'aaaa')
+        self.assertEqual(self.model.testField2, '1')
+        self.assertEqual(self.model.testField3, 1)
+        self.assertEqual(self.model.testField4, 241)
+        self.assertEqual(self.model.testField5, '212')
+
+    def test_fail_type(self):
+        self.model.testField2 = '1'
+        self.assertTrue(self.model.is_modified())
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.testField2 = {}
+        self.assertFalse(self.model.is_modified())
+        self.assertEqual(self.model.testField2, '1')
+
+    def test_delete_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+
+        self.assertTrue(self.model.is_modified())
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = 21
+        self.assertFalse(self.model.is_modified())
+        del self.model.testField1
+        del self.model.testField4
+        self.assertTrue(self.model.is_modified())
+        self.assertTrue(self.model.is_modified_field('testField4'))
+        self.assertIsNone(self.model.testField1)
+        self.assertEqual(self.model.testField2, '1')
+        self.assertEqual(self.model.testField3, 1)
+        self.assertIsNone(self.model.testField4)
+        self.assertEqual(self.model.testField5, '212')
 
 
 class PickableHashMapModel(HashMapModel):
