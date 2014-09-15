@@ -11,6 +11,9 @@ class BaseData():
     """
     Base class for data inside dirty model
     """
+
+    __slots__ = []
+
     _locked = None
     _read_only = None
     _parent = None
