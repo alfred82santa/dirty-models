@@ -1,4 +1,4 @@
-|travis-master| |coverall-master| |doc-master|
+|travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions| |project-status|
 
 .. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
     :target: https://travis-ci.org/alfred82santa/dirty-models
@@ -9,6 +9,24 @@
 .. |doc-master| image:: https://readthedocs.org/projects/dirty-models/badge/?version=latest
     :target: https://readthedocs.org/projects/dirty-models/?badge=latest
     :alt: Documentation Status
+    
+.. |pypi-downloads| image:: https://pypip.in/download/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Downloads
+    
+.. |pypi-lastrelease| image:: https://pypip.in/version/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Latest Version
+    
+.. |python-versions| image:: https://pypip.in/py_versions/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Supported Python versions
+    
+.. |project-status| image:: https://pypip.in/status/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Development Status
+
+
 
 ============
 dirty-models
