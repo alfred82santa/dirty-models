@@ -494,7 +494,7 @@ class BaseDynamicModel(BaseModel):
             return StringField(name=key)
         elif isinstance(value, datetime):
             return DateTimeField(name=key)
-        elif isinstance(value, (dict, BaseDynamicModel)):
+        elif isinstance(value, (dict, BaseDynamicModel, Mapping)):
             return ModelField(name=key, model_class=self._dynamic_model or self.__class__)
         elif isinstance(value, BaseModel):
             return ModelField(name=key, model_class=value.__class__)
