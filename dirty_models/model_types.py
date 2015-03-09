@@ -412,3 +412,9 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             if index >= len(self):
                 return None, None
             return [index], next_field
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return str([item for item in self])

@@ -398,7 +398,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 pass
 
     def __str__(self):
-        return self.__class__.__name__ + '({0})'.format(str(self.export_data()))
+        return '{0}({1})'.format(self.__class__.__name__,
+                                 ",".join(["'{0}': {1}".format(field, repr(self.get_field_value(field)))
+                                           for field in sorted(self.get_fields())]))
+
+    def __repr__(self):
+        return str(self)
 
     @classmethod
     def get_field_obj(cls, name):

@@ -47,7 +47,7 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField3, 'Value3')
         self.assertFalse(hasattr(model_object, 'testField4'))
 
-        self.assertRegex(str(model_object), "FakeModel\(\{'testField\d': 'Value\d', 'testField\d': 'Value\d'\}\)")
+        self.assertEqual(str(model_object), "FakeModel('testField1': 'Value1','testField3': 'Value3')")
 
     def test_set_initial_value(self):
         self.model._original_data = {}
@@ -727,6 +727,20 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField2, 22)
         self.assertEqual(model_object.testField1.testBaseField2, 19)
         self.assertEqual(model_object.testField1.testBaseField1, 'Value1')
+
+    def test_to_str(self):
+
+        class TestModel(BaseModel):
+            field_1 = IntegerField()
+            field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
+            field_3 = ArrayField(field_type=IntegerField())
+
+        model = TestModel()
+        model.import_data({'field_1': '23', 'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
+                           'field_3': [12, '23']})
+
+        self.assertEqual(str(model), "TestModel('field_1': 23,'field_2': [PicklableModel('field_1': PicklableModel("
+                                     "'field_2': 122),'field_2': 12)],'field_3': [12, 23])")
 
 
 class ModelReadOnly(BaseModel):
