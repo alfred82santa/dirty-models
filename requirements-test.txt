@@ -1,4 +1,4 @@
-pep8
+pep8 < 1.6.0
 flake8
 coverage
 nose
