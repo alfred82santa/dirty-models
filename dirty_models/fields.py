@@ -410,6 +410,10 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
     When using a model with no specified model_class the model inside field.
     """
 
+    def __init__(self, autolist=False, **kwargs):
+        self._autolist = autolist
+        super(ArrayField, self).__init__(**kwargs)
+
     def get_field_docstring(self):
         if self.field_type:
             return 'Array of {0}'.format(self.field_type.get_field_docstring())
@@ -422,7 +426,11 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
             if not self.field_type.check_value(element) and self._field_type.can_use_value(element):
                 return self.field_type.convert_value(element)
             return element
-        return ListModel([convert_element(element) for element in value], field_type=self.field_type)
+
+        if isinstance(value, (set, list, tuple, ListModel)):
+            return ListModel([convert_element(element) for element in value], field_type=self.field_type)
+        elif self.autolist:
+            return ListModel([convert_element(value)], field_type=self.field_type)
 
     def check_value(self, value):
         if not isinstance(value, ListModel) or not isinstance(value.get_field_type(), type(self.field_type)):
@@ -430,15 +438,33 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
         return True
 
     def can_use_value(self, value):
-        if isinstance(value, (set, list, ListModel)):
+        if isinstance(value, (set, list, tuple, ListModel)):
             if len(value) == 0:
                 return True
             for item in value:
                 if self.field_type.can_use_value(item) or self.field_type.check_value(item):
                     return True
             return False
+        elif self.autolist and (self.field_type.check_value(value) or self.field_type.can_use_value(value)):
+            return True
         else:
             return False
+
+    @property
+    def autolist(self):
+        """
+        autolist getter: autolist flag allows to convert a simple item on a list with
+        one item.
+        """
+        return self._autolist
+
+    @autolist.setter
+    def autolist(self, value):
+        """
+        autolist setter: autolist flag allows to convert a simple item on a list with
+        one item.
+        """
+        self._autolist = value
 
 
 class HashMapField(InnerFieldTypeMixin, ModelField):
