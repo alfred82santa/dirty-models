@@ -12,6 +12,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'License :: OSI Approved :: BSD License',
         'Development Status :: 4 - Beta'],
     packages=['dirty_models'],
     include_package_data=True,

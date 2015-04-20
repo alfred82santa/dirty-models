@@ -1,4 +1,5 @@
-|travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions| |project-status|
+|travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions|
+|project-status| |project-license| |project-format| |project-implementation|
 
 .. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
     :target: https://travis-ci.org/alfred82santa/dirty-models
@@ -26,6 +27,17 @@
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Development Status
 
+.. |project-license| image:: https://pypip.in/license/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: License
+
+.. |project-format| image:: https://pypip.in/format/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Download format
+
+.. |project-implementation| image:: https://pypip.in/implementation/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Supported Python implementations
 
 
 ============
@@ -36,6 +48,7 @@ Dirty models for python 3
 *************
 Documentation
 *************
+
 http://dirty-models.readthedocs.org
 
 ********
@@ -121,8 +134,10 @@ Basic usage
     assert fb.alias1 is fb.alias_field
     assert fb.alias2 is fb.alias_field
     
-.. note:: 
-    Look at tests for more examples
+Note:
+-----
+
+Look at tests for more examples
     
 
 *****************
