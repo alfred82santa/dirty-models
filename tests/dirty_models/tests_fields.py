@@ -858,11 +858,12 @@ class TestFields(TestCase):
         class TestModel(BaseModel):
             field_name = StringIdField()
         field = ModelField(model_class=TestModel)
-        self.assertEqual(field.export_definition(), {'alias': None,
-                         'doc': 'ModelField field (:class:`tests.dirty_models.tests_fields.TestModel`)',
-                                                     'model_class': TestModel,
-                                                     'name': None,
-                                                     'read_only': False})
+        self.assertEqual(field.export_definition(),
+                         {'alias': None,
+                          'doc': 'ModelField field (:class:`tests.dirty_models.tests_fields.TestModel`)',
+                          'model_class': TestModel,
+                          'name': None,
+                          'read_only': False})
 
     def test_array_field(self):
 
@@ -1280,3 +1281,31 @@ class TestFields(TestCase):
         self.assertEqual(hash_model.hashmap_field.field_name_1, 3)
         self.assertEqual(hash_model.hashmap_field.field_name_2, 4)
         self.assertEqual(hash_model.hashmap_field.field_hash_1, 34)
+
+
+class TestArrayOfStringField(TestCase):
+
+    def setUp(self):
+        super(TestArrayOfStringField, self).setUp()
+
+        class ArrayModel(BaseModel):
+            array_field = ArrayField(field_type=StringField(), autolist=True)
+
+        self.model = ArrayModel()
+
+    def test_array_field(self):
+        self.model.array_field = ['foo', 'bar']
+        self.assertEqual(self.model.export_data(), {'array_field': ['foo', 'bar']})
+
+    def test_array_field_tuple(self):
+        self.model.array_field = 'foo',
+        self.assertEqual(self.model.export_data(), {'array_field': ['foo']})
+
+    def test_array_field_autolist(self):
+        self.model.array_field = 'foo'
+        self.assertEqual(self.model.export_data(), {'array_field': ['foo']})
+
+    def test_array_field_no_autolist(self):
+        self.model.__class__.__dict__['array_field'].autolist = False
+        self.model.array_field = 'foo'
+        self.assertEqual(self.model.export_data(), {})

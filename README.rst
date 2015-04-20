@@ -1,4 +1,5 @@
-|travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions| |project-status|
+|travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions|
+|project-status| |project-license| |project-format| |project-implementation|
 
 .. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
     :target: https://travis-ci.org/alfred82santa/dirty-models
@@ -26,6 +27,17 @@
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Development Status
 
+.. |project-license| image:: https://pypip.in/license/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: License
+
+.. |project-format| image:: https://pypip.in/format/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Download format
+
+.. |project-implementation| image:: https://pypip.in/implementation/dirty-models/badge.svg
+    :target: https://pypi.python.org/pypi/dirty-models/
+    :alt: Supported Python implementations
 
 
 ============
@@ -36,6 +48,7 @@ Dirty models for python 3
 *************
 Documentation
 *************
+
 http://dirty-models.readthedocs.org
 
 ********
@@ -54,10 +67,29 @@ Features
 - Easy import from/export to dict.
 - Basic field type implemented.
 - HashMap model. It could be used instead of DynamicModel.
-- FastDynamicModel. It could be used instead of DynamicModel. Same behavior better performance.
+- FastDynamicModel. It could be used instead of DynamicModel. Same behavior, better performance.
 - Pickable models.
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
+
+*********
+Changelog
+*********
+
+Version 0.5.0
+-------------
+
+- Added autolist parameter to ArrayField. It allows to assign a single item to a list field,
+so it will be converted to a list with this value.
+
+    ..  code-block:: python
+
+        class ExampleModel(BaseModel):
+            array_field = ArrayField(field_type=StringField(), autolist=True)
+
+        model = ExampleModel()
+        model.array_field = 'foo'
+        assert model.array_field[0] is 'foo'
 
 ************
 Installation
@@ -70,7 +102,7 @@ Installation
 Issues
 ******
 - Getter and setter feature needs refactor to be able to use as decorators.
-- DynamicModel is too strange. I don't trust in it. Try to use HashMapModel.
+- DynamicModel is too strange. I don't trust in it. Try to use HashMapModel or FastDynamicModel.
 
 ***********
 Basic usage
@@ -102,8 +134,10 @@ Basic usage
     assert fb.alias1 is fb.alias_field
     assert fb.alias2 is fb.alias_field
     
-.. note:: 
-    Look at tests for more examples
+Note:
+-----
+
+Look at tests for more examples
     
 
 *****************
@@ -149,6 +183,12 @@ Performance Tests
    BlobField: iteration no. 4 start
    BlobField: iteration no. 4 => 0:00:00.000023
    BlobField => 0:00:00.000181
-   {'DynamicModel': {'results': [datetime.timedelta(0, 2, 528166), datetime.timedelta(0, 3, 415274), datetime.timedelta(0, 3, 115128), datetime.timedelta(0, 4, 91488), datetime.timedelta(0, 5, 275302)], 'total': datetime.timedelta(0, 18, 425358)}, 'FastDynamicModel': {'results': [datetime.timedelta(0, 1, 351796), datetime.timedelta(0, 1, 265681), datetime.timedelta(0, 1, 270142), datetime.timedelta(0, 1, 273443), datetime.timedelta(0, 1, 280512)], 'total': datetime.timedelta(0, 6, 441574)}, 'BlobField': {'results': [datetime.timedelta(0, 0, 82), datetime.timedelta(0, 0, 27), datetime.timedelta(0, 0, 25), datetime.timedelta(0, 0, 24), datetime.timedelta(0, 0, 23)], 'total': datetime.timedelta(0, 0, 181)}}
+   {'DynamicModel': {'results': [datetime.timedelta(0, 2, 528166), datetime.timedelta(0, 3, 415274),
+   datetime.timedelta(0, 3, 115128), datetime.timedelta(0, 4, 91488), datetime.timedelta(0, 5, 275302)],
+   'total': datetime.timedelta(0, 18, 425358)}, 'FastDynamicModel': {'results': [datetime.timedelta(0, 1, 351796),
+   datetime.timedelta(0, 1, 265681), datetime.timedelta(0, 1, 270142), datetime.timedelta(0, 1, 273443),
+   datetime.timedelta(0, 1, 280512)], 'total': datetime.timedelta(0, 6, 441574)}, 'BlobField':
+   {'results': [datetime.timedelta(0, 0, 82), datetime.timedelta(0, 0, 27), datetime.timedelta(0, 0, 25),
+   datetime.timedelta(0, 0, 24), datetime.timedelta(0, 0, 23)], 'total': datetime.timedelta(0, 0, 181)}}
    
    
