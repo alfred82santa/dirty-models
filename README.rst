@@ -54,10 +54,29 @@ Features
 - Easy import from/export to dict.
 - Basic field type implemented.
 - HashMap model. It could be used instead of DynamicModel.
-- FastDynamicModel. It could be used instead of DynamicModel. Same behavior better performance.
+- FastDynamicModel. It could be used instead of DynamicModel. Same behavior, better performance.
 - Pickable models.
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
+
+*********
+Changelog
+*********
+
+Version 0.5.0
+-------------
+
+- Added autolist parameter to ArrayField. It allows to assign a single item to a list field,
+so it will be converted to a list with this value.
+
+    ..  code-block:: python
+
+        class ExampleModel(BaseModel):
+            array_field = ArrayField(field_type=StringField(), autolist=True)
+
+        model = ExampleModel()
+        model.array_field = 'foo'
+        assert model.array_field[0] is 'foo'
 
 ************
 Installation
@@ -70,7 +89,7 @@ Installation
 Issues
 ******
 - Getter and setter feature needs refactor to be able to use as decorators.
-- DynamicModel is too strange. I don't trust in it. Try to use HashMapModel.
+- DynamicModel is too strange. I don't trust in it. Try to use HashMapModel or FastDynamicModel.
 
 ***********
 Basic usage
@@ -149,6 +168,12 @@ Performance Tests
    BlobField: iteration no. 4 start
    BlobField: iteration no. 4 => 0:00:00.000023
    BlobField => 0:00:00.000181
-   {'DynamicModel': {'results': [datetime.timedelta(0, 2, 528166), datetime.timedelta(0, 3, 415274), datetime.timedelta(0, 3, 115128), datetime.timedelta(0, 4, 91488), datetime.timedelta(0, 5, 275302)], 'total': datetime.timedelta(0, 18, 425358)}, 'FastDynamicModel': {'results': [datetime.timedelta(0, 1, 351796), datetime.timedelta(0, 1, 265681), datetime.timedelta(0, 1, 270142), datetime.timedelta(0, 1, 273443), datetime.timedelta(0, 1, 280512)], 'total': datetime.timedelta(0, 6, 441574)}, 'BlobField': {'results': [datetime.timedelta(0, 0, 82), datetime.timedelta(0, 0, 27), datetime.timedelta(0, 0, 25), datetime.timedelta(0, 0, 24), datetime.timedelta(0, 0, 23)], 'total': datetime.timedelta(0, 0, 181)}}
+   {'DynamicModel': {'results': [datetime.timedelta(0, 2, 528166), datetime.timedelta(0, 3, 415274),
+   datetime.timedelta(0, 3, 115128), datetime.timedelta(0, 4, 91488), datetime.timedelta(0, 5, 275302)],
+   'total': datetime.timedelta(0, 18, 425358)}, 'FastDynamicModel': {'results': [datetime.timedelta(0, 1, 351796),
+   datetime.timedelta(0, 1, 265681), datetime.timedelta(0, 1, 270142), datetime.timedelta(0, 1, 273443),
+   datetime.timedelta(0, 1, 280512)], 'total': datetime.timedelta(0, 6, 441574)}, 'BlobField':
+   {'results': [datetime.timedelta(0, 0, 82), datetime.timedelta(0, 0, 27), datetime.timedelta(0, 0, 25),
+   datetime.timedelta(0, 0, 24), datetime.timedelta(0, 0, 23)], 'total': datetime.timedelta(0, 0, 181)}}
    
    
