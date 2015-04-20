@@ -858,11 +858,12 @@ class TestFields(TestCase):
         class TestModel(BaseModel):
             field_name = StringIdField()
         field = ModelField(model_class=TestModel)
-        self.assertEqual(field.export_definition(), {'alias': None,
-                         'doc': 'ModelField field (:class:`tests.dirty_models.tests_fields.TestModel`)',
-                                                     'model_class': TestModel,
-                                                     'name': None,
-                                                     'read_only': False})
+        self.assertEqual(field.export_definition(),
+                         {'alias': None,
+                          'doc': 'ModelField field (:class:`tests.dirty_models.tests_fields.TestModel`)',
+                          'model_class': TestModel,
+                          'name': None,
+                          'read_only': False})
 
     def test_array_field(self):
 
