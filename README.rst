@@ -4,38 +4,38 @@
 .. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
     :target: https://travis-ci.org/alfred82santa/dirty-models
     
-.. |coverall-master| image:: https://coveralls.io/repos/alfred82santa/dirty-models/badge.png?branch=master 
+.. |coverall-master| image:: https://coveralls.io/repos/alfred82santa/dirty-models/badge.svg?branch=master&service=github
     :target: https://coveralls.io/r/alfred82santa/dirty-models?branch=master
     
 .. |doc-master| image:: https://readthedocs.org/projects/dirty-models/badge/?version=latest
     :target: https://readthedocs.org/projects/dirty-models/?badge=latest
     :alt: Documentation Status
     
-.. |pypi-downloads| image:: https://pypip.in/download/dirty-models/badge.svg
+.. |pypi-downloads| image:: https://img.shields.io/pypi/dm/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Downloads
     
-.. |pypi-lastrelease| image:: https://pypip.in/version/dirty-models/badge.svg
+.. |pypi-lastrelease| image:: https://img.shields.io/pypi/v/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Latest Version
     
-.. |python-versions| image:: https://pypip.in/py_versions/dirty-models/badge.svg
+.. |python-versions| image:: https://img.shields.io/pypi/pyversions/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Supported Python versions
     
-.. |project-status| image:: https://pypip.in/status/dirty-models/badge.svg
+.. |project-status| image:: https://img.shields.io/pypi/status/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Development Status
 
-.. |project-license| image:: https://pypip.in/license/dirty-models/badge.svg
+.. |project-license| image:: https://img.shields.io/pypi/l/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: License
 
-.. |project-format| image:: https://pypip.in/format/dirty-models/badge.svg
+.. |project-format| image:: https://img.shields.io/pypi/format/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Download format
 
-.. |project-implementation| image:: https://pypip.in/implementation/dirty-models/badge.svg
+.. |project-implementation| image:: https://img.shields.io/pypi/implementation/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Supported Python implementations
 
