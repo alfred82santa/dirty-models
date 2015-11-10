@@ -276,7 +276,7 @@ class DateField(DateTimeBaseField):
             return value.date()
 
     def check_value(self, value):
-        return type(value) is date
+        return isinstance(value, date)
 
     def can_use_value(self, value):
         return isinstance(value, (int, str, datetime, list, dict))
@@ -306,7 +306,7 @@ class DateTimeField(DateTimeBaseField):
                             day=value.day)
 
     def check_value(self, value):
-        return type(value) is datetime
+        return isinstance(value, datetime)
 
     def can_use_value(self, value):
         return isinstance(value, (int, str, date, dict, list))

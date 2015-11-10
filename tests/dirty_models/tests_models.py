@@ -20,6 +20,7 @@ class PicklableModel(BaseModel):
 
 
 class TestModels(TestCase):
+
     def setUp(self):
         class FakeModel(BaseModel):
             testField1 = BaseField()
@@ -149,7 +150,7 @@ class TestModels(TestCase):
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField4':
                                              {'testField2':
-                                                  'Field Value2 Modified',
+                                              'Field Value2 Modified',
                                               'testField1': 'Field Value1'}})
 
     def test_export_modified(self):
@@ -745,6 +746,7 @@ class ModelReadOnly(BaseModel):
 
 
 class TestModelReadOnly(TestCase):
+
     def test_no_writing(self):
         data = {
             'testField1': 1, 'testField2': 2, 'testField3': 3,
@@ -883,6 +885,7 @@ class TestModelReadOnly(TestCase):
 
 
 class TestDynamicModel(TestCase):
+
     def setUp(self):
         self.model = DynamicModel()
         self.dict_model = DynamicModel
@@ -1009,6 +1012,7 @@ class TestDynamicModel(TestCase):
 
 
 class TestFastDynamicModel(TestDynamicModel):
+
     def setUp(self):
         self.model = FastDynamicModel()
         self.dict_model = FastDynamicModel
@@ -1025,6 +1029,7 @@ class FastDynamicModelExtraFields(FastDynamicModel):
 
 
 class TestFastDynamicModelExtraFields(TestDynamicModel):
+
     def setUp(self):
         self.model = FastDynamicModelExtraFields()
         self.dict_model = FastDynamicModel
@@ -1126,6 +1131,7 @@ class PickableHashMapModel(HashMapModel):
 
 
 class TestHashMapModel(TestCase):
+
     def setUp(self):
         self.model = PickableHashMapModel(field_type=IntegerField())
 

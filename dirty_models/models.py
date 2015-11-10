@@ -394,7 +394,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
     def _can_write_field(self, name):
         return name not in self._structure or (not self._structure[name].read_only and not self.get_read_only()) or \
-               not self.is_locked()
+            not self.is_locked()
 
     def _update_read_only(self):
         for value in itertools.chain(self._original_data.values(), self._modified_data.values()):
