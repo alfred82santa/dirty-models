@@ -1,13 +1,12 @@
 import pickle
+from datetime import datetime
 from unittest import TestCase
-from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel
+
+from dirty_models.base import Unlocker
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
                                  ArrayField, BooleanField)
-
-from datetime import datetime
-from dirty_models.base import Unlocker
-
+from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel
 
 INITIAL_DATA = {
     'testField1': 'testValue1',
@@ -16,13 +15,11 @@ INITIAL_DATA = {
 
 
 class PicklableModel(BaseModel):
-
     field_1 = ModelField()
     field_2 = IntegerField()
 
 
 class TestModels(TestCase):
-
     def setUp(self):
         class FakeModel(BaseModel):
             testField1 = BaseField()
@@ -34,7 +31,6 @@ class TestModels(TestCase):
         self.model.clear_all()
 
     def test_object_creation_test(self):
-
         class FakeModel(BaseModel):
             testField1 = BaseField()
             testField3 = BaseField()
@@ -129,7 +125,6 @@ class TestModels(TestCase):
         self.assertNotEqual(id(model1), id(model2))
 
     def _get_test_model_instance(self):
-
         class TestExportModel(BaseModel):
             testField1 = BaseField()
             testField2 = BaseField()
@@ -140,7 +135,6 @@ class TestModels(TestCase):
         return TestExportModel()
 
     def test_export_data(self):
-
         model_field = self._get_test_model_instance()
         model_field._original_data = {'testField1': 'Field Value1',
                                       'testField2': 'Field Value2'}
@@ -154,12 +148,11 @@ class TestModels(TestCase):
         exported_data = self.model.export_data()
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField4':
-                                         {'testField2':
-                                          'Field Value2 Modified',
-                                             'testField1': 'Field Value1'}})
+                                             {'testField2':
+                                                  'Field Value2 Modified',
+                                              'testField1': 'Field Value1'}})
 
     def test_export_modified(self):
-
         model_field = self._get_test_model_instance()
         model_field._original_data = {
             'testField1': 'Field Value1', 'testField2': 'Field Value2',
@@ -176,11 +169,10 @@ class TestModels(TestCase):
                                          'testField3': None,
                                          'testField4': {
                                              'testField2':
-                                             'Field Value2 Modified',
+                                                 'Field Value2 Modified',
                                              'testField3': None}})
 
     def test_export_deleted_fields_1st_level(self):
-
         model_field = self._get_test_model_instance()
         model_field.import_data({
             'testField1': 'Field Value1', 'testField2': 'Field Value2',
@@ -195,7 +187,6 @@ class TestModels(TestCase):
         self.assertEqual(model_field.export_deleted_fields(), ['testField1', 'testField2'])
 
     def test_export_deleted_fields_2nd_level(self):
-
         model_field = self._get_test_model_instance()
         model_field.import_data({
             'testField1': 'Field Value1', 'testField2': 'Field Value2',
@@ -212,9 +203,7 @@ class TestModels(TestCase):
                                                                'testFieldModel.testField3'])
 
     def test_export_deleted_with_array_fields(self):
-
         class TestModel(BaseModel):
-
             field_1 = IntegerField()
             field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
             field_3 = ArrayField(field_type=IntegerField())
@@ -229,9 +218,7 @@ class TestModels(TestCase):
         self.assertEqual(model.export_deleted_fields(), ['field_1', 'field_2.0.field_2'])
 
     def test_import_deleted_fields(self):
-
         class TestModel(BaseModel):
-
             field_1 = IntegerField()
             field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
             field_3 = ArrayField(field_type=IntegerField())
@@ -245,9 +232,7 @@ class TestModels(TestCase):
         self.assertEqual(model.export_data(), {'field_2': [{'field_1': {'field_2': 122}}], 'field_3': [12, 23]})
 
     def test_export_original_data(self):
-
         class TestModel(BaseModel):
-
             field_1 = IntegerField()
             field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
             field_3 = ArrayField(field_type=IntegerField())
@@ -331,7 +316,6 @@ class TestModels(TestCase):
         self.assertEqual(model_field._original_data, {})
 
     def test_dirty_model_meta_field(self):
-
         class TestIntegerField(BaseField):
             pass
 
@@ -380,7 +364,6 @@ class TestModels(TestCase):
         self.assertEqual(model.testField3, 'c')
 
     def test_is_modified_field(self):
-
         model = self._get_test_model_instance()
         model.testField1 = 'a'
         model.testField2 = 'b'
@@ -453,7 +436,6 @@ class TestModels(TestCase):
         self.assertEqual(model_unpickled.export_deleted_fields(), model.export_deleted_fields())
 
     def test_object_creation_test_with_alias(self):
-
         class FakeModel(BaseModel):
             testField1 = BaseField(
                 alias=[
@@ -469,7 +451,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.alias_2_test_field_1, 'Value1')
 
     def test_object_creation_test_with_getter(self):
-
         def getter_function(self, instance, value):
             return 'getter_function'
 
@@ -483,7 +464,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1, 'getter_function')
 
     def test_object_creation_test_with_setter(self):
-
         def setter_function(self, instance, value):
             self.set_value(instance, self.use_value('setter_function'))
 
@@ -498,7 +478,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1, 'setter_function')
 
     def test_object_model_field_creation_test_with_setter(self):
-
         def setter_function(self, instance, value):
             data = {'testBaseField1': 'setter_function'}
             super(ModelField, self).__set__(instance, data)
@@ -521,7 +500,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1.testBaseField1, 'setter_function')
 
     def test_get_field_obj(self):
-
         class FakeModel(BaseModel):
             testField1 = BaseField()
 
@@ -533,7 +511,6 @@ class TestModels(TestCase):
         self.assertIsInstance(test_field_obj, BaseField)
 
     def test_delete_attr_by_path(self):
-
         class FakeBaseModel(BaseModel):
             testBaseField1 = BaseField()
             testBaseField2 = IntegerField()
@@ -553,7 +530,6 @@ class TestModels(TestCase):
         self.assertIsNone(model_object.testField1.testBaseField2)
 
     def test_delete_attr_by_path_with_list_model(self):
-
         class EvenMoreFakeBaseModel(BaseModel):
             bruceWayneField = IntegerField()
 
@@ -589,7 +565,6 @@ class TestModels(TestCase):
         self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
 
     def test_delete_attr_by_path_with_list_model_empty_list(self):
-
         class FakeBaseModel(BaseModel):
             testBaseField1 = BaseField()
             testBaseField2 = IntegerField()
@@ -676,7 +651,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1.testBaseField4[0].bruceWayneField, 45)
 
     def test_reset_attr_by_path(self):
-
         class FakeBaseModel(BaseModel):
             testBaseField1 = BaseField()
             testBaseField2 = IntegerField()
@@ -699,7 +673,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1.testBaseField2, 19)
 
     def test_reset_attr_by_path_with_flag(self):
-
         class FakeBaseModel(BaseModel):
             testBaseField1 = BaseField()
             testBaseField2 = IntegerField()
@@ -729,7 +702,6 @@ class TestModels(TestCase):
         self.assertEqual(model_object.testField1.testBaseField1, 'Value1')
 
     def test_to_str(self):
-
         class TestModel(BaseModel):
             field_1 = IntegerField()
             field_2 = ArrayField(field_type=ModelField(model_class=PicklableModel))
@@ -742,6 +714,26 @@ class TestModels(TestCase):
         self.assertEqual(str(model), "TestModel('field_1': 23,'field_2': [PicklableModel('field_1': PicklableModel("
                                      "'field_2': 122),'field_2': 12)],'field_3': [12, 23])")
 
+    def test_get_structure(self):
+        model = self._get_test_model_instance()
+
+        s = model.get_structure()
+
+        self.assertIn('testField1', s)
+        self.assertIsInstance(s['testField1'], BaseField)
+
+        self.assertIn('testField2', s)
+        self.assertIsInstance(s['testField2'], BaseField)
+
+        self.assertIn('testField3', s)
+        self.assertIsInstance(s['testField3'], BaseField)
+
+        self.assertIn('testField4', s)
+        self.assertIsInstance(s['testField4'], BaseField)
+
+        self.assertIn('testFieldModel', s)
+        self.assertIsInstance(s['testFieldModel'], ModelField)
+
 
 class ModelReadOnly(BaseModel):
     testField1 = BaseField()
@@ -753,7 +745,6 @@ class ModelReadOnly(BaseModel):
 
 
 class TestModelReadOnly(TestCase):
-
     def test_no_writing(self):
         data = {
             'testField1': 1, 'testField2': 2, 'testField3': 3,
@@ -849,7 +840,6 @@ class TestModelReadOnly(TestCase):
         model.flat_data()
 
         with Unlocker(model):
-
             model.testField2 = 99
             self.assertEqual(model.testField2, 99, 'Read only simple field')
             self.assertTrue(model.is_modified())
@@ -893,7 +883,6 @@ class TestModelReadOnly(TestCase):
 
 
 class TestDynamicModel(TestCase):
-
     def setUp(self):
         self.model = DynamicModel()
         self.dict_model = DynamicModel
@@ -954,6 +943,7 @@ class TestDynamicModel(TestCase):
     def test_set_model_value(self):
         class FakeModel(BaseModel):
             test2 = IntegerField()
+
         self.model.test1 = FakeModel({"test2": 23})
         self.assertEqual(self.model.export_data(), {"test1": {"test2": 23}})
         self.assertIsInstance(self._get_field_type('test1'), ModelField)
@@ -1019,7 +1009,6 @@ class TestDynamicModel(TestCase):
 
 
 class TestFastDynamicModel(TestDynamicModel):
-
     def setUp(self):
         self.model = FastDynamicModel()
         self.dict_model = FastDynamicModel
@@ -1036,7 +1025,6 @@ class FastDynamicModelExtraFields(FastDynamicModel):
 
 
 class TestFastDynamicModelExtraFields(TestDynamicModel):
-
     def setUp(self):
         self.model = FastDynamicModelExtraFields()
         self.dict_model = FastDynamicModel
@@ -1121,13 +1109,23 @@ class TestFastDynamicModelExtraFields(TestDynamicModel):
         self.assertIsNone(self.model.testField4)
         self.assertEqual(self.model.testField5, '212')
 
+    def test_get_structure(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = 1
+
+        s = self.model.get_structure()
+
+        self.assertIn('testField1', s)
+        self.assertIsInstance(s['testField1'], StringField)
+        self.assertIn('testField1', s)
+        self.assertIsInstance(s['testField2'], IntegerField)
+
 
 class PickableHashMapModel(HashMapModel):
     testField1 = StringField()
 
 
 class TestHashMapModel(TestCase):
-
     def setUp(self):
         self.model = PickableHashMapModel(field_type=IntegerField())
 
@@ -1226,7 +1224,6 @@ class TestHashMapModel(TestCase):
                          self.model.get_field_type().export_definition())
 
     def test_copy_model(self):
-
         self.model.field1 = '1'
         self.model.field2 = '3'
         model2 = self.model.copy()

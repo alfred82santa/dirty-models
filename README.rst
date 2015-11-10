@@ -71,10 +71,16 @@ Features
 - Pickable models.
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
+- Auto documentation using https://github.com/alfred82santa/dirty-models-sphinx
 
 *********
 Changelog
 *********
+
+Version 0.5.1
+-------------
+
+- Added a easy way to get model structure. It will be used by autodoc libraries as sphinx or json-schema.
 
 Version 0.5.0
 -------------
@@ -94,6 +100,7 @@ so it will be converted to a list with this value.
 ************
 Installation
 ************
+
 .. code-block:: bash
 
     $ pip install dirty-models
@@ -101,6 +108,7 @@ Installation
 ******
 Issues
 ******
+
 - Getter and setter feature needs refactor to be able to use as decorators.
 - DynamicModel is too strange. I don't trust in it. Try to use HashMapModel or FastDynamicModel.
 

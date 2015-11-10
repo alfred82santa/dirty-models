@@ -4,54 +4,60 @@ models.py
 Base model for dirty_models.
 """
 
-from .fields import BaseField, ModelField, ArrayField
-from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
-from datetime import datetime
-from dirty_models.model_types import ListModel
-from dirty_models.base import BaseData, InnerFieldTypeMixin
 import itertools
+from datetime import datetime
+
 from collections import Mapping
+
+from dirty_models.base import BaseData, InnerFieldTypeMixin
+from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
+from dirty_models.model_types import ListModel
+from .fields import BaseField, ModelField, ArrayField
 
 
 class DirtyModelMeta(type):
-
     """
     Metaclass for dirty_models. It sets automatic fieldnames and
     automatic model_class for ModelField fields.
     """
 
-    def __init__(self, name, bases, classdict):
-        super(DirtyModelMeta, self).__init__(name, bases, classdict)
+    def __init__(cls, name, bases, classdict):
+        super(DirtyModelMeta, cls).__init__(name, bases, classdict)
 
-        fields = {key: field for key, field in self.__dict__.items()}
+        fields = {key: field for key, field in cls.__dict__.items()}
+        structure = {}
         read_only_fields = []
         for key, field in fields.items():
             if isinstance(field, BaseField):
-                self.process_base_field(field, key)
+                cls.process_base_field(field, key)
+                structure[field.name] = field
                 if field.read_only:
                     read_only_fields.append(field.name)
 
-        self._read_only_fields = read_only_fields
+        cls._structure = structure
 
-    def process_base_field(self, field, key):
+    def process_base_field(cls, field, key):
         """
-        Preprocess class fields.
+        Preprocess field instances.
+
+        :param field: Field object
+        :param key: Key where field was found
         """
         if not field.name:
             field.name = key
         elif key != field.name:
-            setattr(self, field.name, field)
+            setattr(cls, field.name, field)
         if isinstance(field, ModelField) and not field.model_class:
-            field.model_class = self
+            field.model_class = cls
             field.__doc__ = field.get_field_docstring()
         if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
                 and not field.field_type.model_class:
-            field.field_type.model_class = self
+            field.field_type.model_class = cls
             field.field_type.__doc__ = field.field_type.get_field_docstring()
 
         if field.alias:
             for alias_name in field.alias:
-                setattr(self, alias_name, field)
+                setattr(cls, alias_name, field)
 
 
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):
@@ -69,7 +75,6 @@ def recover_model_from_data(model_class, original_data, modified_data, deleted_d
 
 
 class BaseModel(BaseData, metaclass=DirtyModelMeta):
-
     """
     Base model with dirty feature. It stores original data and saves
     modifications in other side.
@@ -122,7 +127,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             else:
                 self._modified_data[name] = value
                 self._prepare_child(value)
-                if name in self._read_only_fields:
+                if name in self._structure and self._structure[name].read_only:
                     try:
                         value.set_read_only(True)
                     except AttributeError:
@@ -300,6 +305,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Pass all the data from modified_data to original_data
         """
+
         def flat_field(value):
             """
             Flat field data
@@ -387,8 +393,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return iterfunc()
 
     def _can_write_field(self, name):
-        return (name not in self._read_only_fields and not self.get_read_only()) or \
-            not self.is_locked()
+        return name not in self._structure or (not self._structure[name].read_only and not self.get_read_only()) or \
+               not self.is_locked()
 
     def _update_read_only(self):
         for value in itertools.chain(self._original_data.values(), self._modified_data.values()):
@@ -458,9 +464,15 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             else:
                 self.reset_field_value(field)
 
+    def get_structure(self):
+        """
+        Returns a dictionary with model field objects.
+        :return: dict
+        """
+        return self._structure.copy()
+
 
 class BaseDynamicModel(BaseModel):
-
     """
 
     """
@@ -523,13 +535,16 @@ class BaseDynamicModel(BaseModel):
 
 
 class DynamicModel(BaseDynamicModel):
-
     """
     DynamicModel allow to create model with no structure. Each instance has its own
     derivated class from DynamicModels.
     """
 
     _next_id = 0
+
+    def __init__(self, *args, **kwargs):
+        super(DynamicModel, self).__init__(*args, **kwargs)
+        self._structure = {}
 
     def __new__(cls, *args, **kwargs):
         new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {'_dynamic_model': DynamicModel})
@@ -542,6 +557,7 @@ class DynamicModel(BaseDynamicModel):
                 field_type = self._get_field_type(name, value)
                 if not field_type:
                     return
+                self._structure[field_type.name] = field_type
                 setattr(self.__class__, name, field_type)
 
         super(DynamicModel, self).__setattr__(name, value)
@@ -582,7 +598,6 @@ def recover_hashmap_model_from_data(model_class, original_data, modified_data, d
 
 
 class HashMapModel(InnerFieldTypeMixin, BaseModel):
-
     """
     Hash map model with dirty feature. It stores original data and saves
     modifications in other side.
@@ -665,7 +680,6 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
 
 
 class FastDynamicModel(BaseDynamicModel):
-
     """
     FastDynamicModel allow to create model with no structure.
     """
@@ -693,6 +707,16 @@ class FastDynamicModel(BaseDynamicModel):
             return data
         else:
             return None
+
+    def get_structure(self):
+        """
+        Returns a dictionary with model field objects.
+        :return: dict
+        """
+
+        struct = super(FastDynamicModel, self).get_structure()
+        struct.update(self._field_types)
+        return struct
 
     def __setattr__(self, name, value):
         if self._field_types is not None and not self.__hasattr__(name) \
