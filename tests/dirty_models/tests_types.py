@@ -165,7 +165,8 @@ class TestTypes(TestCase):
         self.assertEqual(["three", "two", "one"], list(test_list))
 
     def test_sort(self):
-        test_list = sorted(ListModel(["one", "two", 1, 2, 9, 3, "three", []], field_type=IntegerField()))
+        test_list = ListModel(["one", "two", 1, 2, 9, 3, "three", []], field_type=IntegerField())
+        test_list.sort()
         self.assertEqual([1, 2, 3, 9], list(test_list))
 
     def test_length_initialised(self):
