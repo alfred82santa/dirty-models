@@ -1118,7 +1118,7 @@ class TestFastDynamicModelExtraFields(TestDynamicModel):
         self.model.testField1 = 'aaaa'
         self.model.testField2 = 1
 
-        s = self.model.get_structure()
+        s = self.model.get_current_structure()
 
         self.assertIn('testField1', s)
         self.assertIsInstance(s['testField1'], StringField)

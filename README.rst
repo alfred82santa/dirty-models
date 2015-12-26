@@ -43,6 +43,7 @@
 ============
 dirty-models
 ============
+
 Dirty models for python 3
 
 *************
@@ -54,6 +55,7 @@ http://dirty-models.readthedocs.org
 ********
 Features
 ********
+
 - Python 3 package.
 - Easy to create a model.
 - Non destructive modifications.
@@ -77,6 +79,13 @@ Features
 Changelog
 *********
 
+Version 0.5.2
+-------------
+
+- Fix model structure.
+- Makefile helpers.
+
+
 Version 0.5.1
 -------------
 
@@ -88,14 +97,14 @@ Version 0.5.0
 - Added autolist parameter to ArrayField. It allows to assign a single item to a list field,
 so it will be converted to a list with this value.
 
-    ..  code-block:: python
+..  code-block:: python
 
-        class ExampleModel(BaseModel):
-            array_field = ArrayField(field_type=StringField(), autolist=True)
+    class ExampleModel(BaseModel):
+        array_field = ArrayField(field_type=StringField(), autolist=True)
 
-        model = ExampleModel()
-        model.array_field = 'foo'
-        assert model.array_field[0] is 'foo'
+    model = ExampleModel()
+    model.array_field = 'foo'
+    assert model.array_field[0] is 'foo'
 
 ************
 Installation
@@ -141,11 +150,11 @@ Basic usage
     assert fb.alias_field is 3
     assert fb.alias1 is fb.alias_field
     assert fb.alias2 is fb.alias_field
-    
-Note:
------
 
-Look at tests for more examples
+
+.. note::
+
+    Look at tests for more examples
     
 
 *****************
