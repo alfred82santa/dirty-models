@@ -464,12 +464,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             else:
                 self.reset_field_value(field)
 
-    def get_structure(self):
+    @classmethod
+    def get_structure(cls):
         """
         Returns a dictionary with model field objects.
         :return: dict
         """
-        return self._structure.copy()
+        return cls._structure.copy()
 
 
 class BaseDynamicModel(BaseModel):
@@ -483,19 +484,6 @@ class BaseDynamicModel(BaseModel):
             return getattr(super(BaseDynamicModel, self), name)
         except AttributeError:
             return self.get_field_value(name)
-
-    def __reduce__(self):
-        """
-        Reduce function to allow dumpable by pickle
-        """
-        return recover_model_from_data, (self.__class__, self.export_original_data(),
-                                         self.export_modified_data(), self.export_deleted_fields(),)
-
-    def copy(self):
-        """
-        Creates a copy of model
-        """
-        return self.__class__(data=self.export_data())
 
     def _get_field_type(self, key, value):
         """
@@ -708,13 +696,13 @@ class FastDynamicModel(BaseDynamicModel):
         else:
             return None
 
-    def get_structure(self):
+    def get_current_structure(self):
         """
         Returns a dictionary with model field objects.
         :return: dict
         """
 
-        struct = super(FastDynamicModel, self).get_structure()
+        struct = self.__class__.get_structure()
         struct.update(self._field_types)
         return struct
 
