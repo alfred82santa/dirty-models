@@ -68,21 +68,61 @@ Features
 - Automatic cast value.
 - Easy import from/export to dict.
 - Basic field type implemented.
+- Multi type fields.
+- Default values for each field or whole model.
 - HashMap model. It could be used instead of DynamicModel.
 - FastDynamicModel. It could be used instead of DynamicModel. Same behavior, better performance.
 - Pickable models.
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
 - Auto documentation using https://github.com/alfred82santa/dirty-models-sphinx
+- Opensource (BSD License)
 
 *********
 Changelog
 *********
 
+Version 0.6.0
+-------------
+
+- Added default value for fields.
+
+..  code-block:: python
+
+    class ExampleModel(BaseModel):
+        integer_field = IntegerField(default=1)
+
+    model = ExampleModel()
+    assert model.integer_field is 1
+
+- Added default values at model level. Inherit default values could be override on new model classes.
+
+..  code-block:: python
+
+    class InheritExampleModel(ExampleModel):
+        _default_data = {'integer_field': 2}
+
+    model = InheritExampleModel()
+    assert model.integer_field is 2
+
+- Added multi type fields.
+
+..  code-block:: python
+
+    class ExampleModel(BaseModel):
+        multi_field = MultiTypeField(field_types=[IntegerField(), StringField()])
+
+    model = ExampleModel()
+    model.multi_field = 2
+    assert model.multi_field is 2
+
+    model.multi_field = 'foo'
+    assert model.multi_field is 'foo'
+
 Version 0.5.2
 -------------
 
-- Fix model structure.
+- Fixex model structure.
 - Makefile helpers.
 
 
@@ -155,57 +195,3 @@ Basic usage
 .. note::
 
     Look at tests for more examples
-    
-
-*****************
-Performance Tests
-*****************
-
-.. code-block:: bash
-   
-   $ python3 performancerunner.py 
-   DynamicModel start
-   DynamicModel: iteration no. 0 start
-   DynamicModel: iteration no. 0 => 0:00:02.528166
-   DynamicModel: iteration no. 1 start
-   DynamicModel: iteration no. 1 => 0:00:03.415274
-   DynamicModel: iteration no. 2 start
-   DynamicModel: iteration no. 2 => 0:00:03.115128
-   DynamicModel: iteration no. 3 start
-   DynamicModel: iteration no. 3 => 0:00:04.091488
-   DynamicModel: iteration no. 4 start
-   DynamicModel: iteration no. 4 => 0:00:05.275302
-   DynamicModel => 0:00:18.425358
-   FastDynamicModel start
-   FastDynamicModel: iteration no. 0 start
-   FastDynamicModel: iteration no. 0 => 0:00:01.351796
-   FastDynamicModel: iteration no. 1 start
-   FastDynamicModel: iteration no. 1 => 0:00:01.265681
-   FastDynamicModel: iteration no. 2 start
-   FastDynamicModel: iteration no. 2 => 0:00:01.270142
-   FastDynamicModel: iteration no. 3 start
-   FastDynamicModel: iteration no. 3 => 0:00:01.273443
-   FastDynamicModel: iteration no. 4 start
-   FastDynamicModel: iteration no. 4 => 0:00:01.280512
-   FastDynamicModel => 0:00:06.441574
-   BlobField start
-   BlobField: iteration no. 0 start
-   BlobField: iteration no. 0 => 0:00:00.000082
-   BlobField: iteration no. 1 start
-   BlobField: iteration no. 1 => 0:00:00.000027
-   BlobField: iteration no. 2 start
-   BlobField: iteration no. 2 => 0:00:00.000025
-   BlobField: iteration no. 3 start
-   BlobField: iteration no. 3 => 0:00:00.000024
-   BlobField: iteration no. 4 start
-   BlobField: iteration no. 4 => 0:00:00.000023
-   BlobField => 0:00:00.000181
-   {'DynamicModel': {'results': [datetime.timedelta(0, 2, 528166), datetime.timedelta(0, 3, 415274),
-   datetime.timedelta(0, 3, 115128), datetime.timedelta(0, 4, 91488), datetime.timedelta(0, 5, 275302)],
-   'total': datetime.timedelta(0, 18, 425358)}, 'FastDynamicModel': {'results': [datetime.timedelta(0, 1, 351796),
-   datetime.timedelta(0, 1, 265681), datetime.timedelta(0, 1, 270142), datetime.timedelta(0, 1, 273443),
-   datetime.timedelta(0, 1, 280512)], 'total': datetime.timedelta(0, 6, 441574)}, 'BlobField':
-   {'results': [datetime.timedelta(0, 0, 82), datetime.timedelta(0, 0, 27), datetime.timedelta(0, 0, 25),
-   datetime.timedelta(0, 0, 24), datetime.timedelta(0, 0, 23)], 'total': datetime.timedelta(0, 0, 181)}}
-   
-   

@@ -12,6 +12,7 @@ help:
 	@echo "clean:                    Clean compiled files"
 	@echo "flake:                    Run Flake8"
 	@echo "prepush:                  Helper to run before to push to repo"
+	@echo "autopep:                  Reformat code using PEP8"
 	@echo "---------------------------------------------------------------"
 
 requirements:
@@ -44,6 +45,9 @@ flake:
 	@echo "Running flake8 tests..."
 	flake8 dirty_models
 	flake8 tests
+
+autopep:
+	autopep8 --max-line-length 120 -r -j 8 -i .
 
 prepush:
 	@make flake
