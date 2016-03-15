@@ -1,7 +1,7 @@
 from unittest import TestCase
 from dirty_models.fields import (IntegerField, StringField, BooleanField,
                                  FloatField, ModelField, TimeField, DateField,
-                                 DateTimeField, ArrayField, StringIdField, HashMapField)
+                                 DateTimeField, ArrayField, StringIdField, HashMapField, MultiTypeField)
 from dirty_models.models import BaseModel, HashMapModel
 from dirty_models.model_types import ListModel
 
@@ -1309,3 +1309,98 @@ class TestArrayOfStringField(TestCase):
         self.model.__class__.__dict__['array_field'].autolist = False
         self.model.array_field = 'foo'
         self.assertEqual(self.model.export_data(), {})
+
+
+class TestMultiTypeFieldSimpleTypes(TestCase):
+
+    def setUp(self):
+        super(TestMultiTypeFieldSimpleTypes, self).setUp()
+
+        class MultiTypeModel(BaseModel):
+            multi_field = MultiTypeField(field_types=[IntegerField(), StringField()])
+
+        self.model = MultiTypeModel()
+
+    def test_string_field(self):
+        self.model.multi_field = 'foo'
+        self.assertEqual(self.model.multi_field, 'foo')
+
+    def test_integer_field(self):
+        self.model.multi_field = 3
+        self.assertEqual(self.model.multi_field, 3)
+
+    def test_update_string_field(self):
+        self.model.multi_field = 3
+        self.model.flat_data()
+        self.model.multi_field = 'foo'
+        self.assertEqual(self.model.multi_field, 'foo')
+
+    def test_update_integer_field(self):
+        self.model.multi_field = 'foo'
+        self.model.flat_data()
+        self.model.multi_field = 3
+        self.assertEqual(self.model.multi_field, 3)
+
+    def test_no_update_integer_field(self):
+        self.model.multi_field = 3
+        self.model.flat_data()
+        self.model.multi_field = [3, 4]
+        self.assertEqual(self.model.multi_field, 3)
+
+    def test_integer_field_use_float(self):
+        self.model.multi_field = 3.0
+        self.assertEqual(self.model.multi_field, 3)
+
+    def test_string_field_conversion_priority(self):
+        self.model.multi_field = '3'
+        self.assertEqual(self.model.multi_field, '3')
+
+    def test_multi_field_desc(self):
+        self.maxDiff = None
+        field = MultiTypeField(field_types=[IntegerField(), StringField()])
+        self.assertEqual(field.export_definition(), {
+            'alias': None,
+            'doc': "\n".join(['Multiple type values allowed:',
+                              '* IntegerField field',
+                              '* StringField field']),
+            'field_types': [(IntegerField, {'alias': None,
+                                            'doc': 'IntegerField field',
+                                            'name': None,
+                                            'read_only': False}),
+                            (StringField, {'alias': None,
+                                           'doc': 'StringField field',
+                                           'name': None,
+                                           'read_only': False})],
+            'name': None,
+            'read_only': False})
+
+
+class TestMultiTypeFieldComplexTypes(TestCase):
+
+    def setUp(self):
+        super(TestMultiTypeFieldComplexTypes, self).setUp()
+
+        class MultiTypeModel(BaseModel):
+            multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": StringField()})])
+
+        self.model = MultiTypeModel()
+
+    def test_integer_field(self):
+        self.model.multi_field = 3
+        self.assertEqual(self.model.multi_field, 3)
+
+    def test_array_field(self):
+        self.model.multi_field = ['foo', 'bar']
+        self.assertEqual(self.model.multi_field.export_data(), ['foo', 'bar'])
+
+    def test_update_array_field(self):
+        self.model.multi_field = 3
+        self.model.flat_data()
+        self.model.multi_field = ['foo', 'bar']
+        self.assertEqual(self.model.multi_field.export_data(), ['foo', 'bar'])
+
+    def test_update_integer_field(self):
+        self.model.multi_field = ['foo', 'bar']
+        self.model.flat_data()
+        self.model.multi_field = 3
+        self.assertEqual(self.model.multi_field, 3)

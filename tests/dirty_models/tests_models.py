@@ -1,11 +1,11 @@
 import pickle
-from datetime import datetime
+from datetime import datetime, date, time
 from unittest import TestCase
 
 from dirty_models.base import Unlocker
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
-                                 ArrayField, BooleanField)
+                                 ArrayField, BooleanField, DateField, TimeField, HashMapField)
 from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel
 
 INITIAL_DATA = {
@@ -1243,3 +1243,146 @@ class TestHashMapModel(TestCase):
         model = PickableHashMapModel()
         model.field1 = 'sdsd'
         self.assertEqual(model.field1, 'sdsd')
+
+
+class SecondaryModel(BaseModel):
+
+    field_integer = IntegerField(default=2)
+    field_string = StringField(default='test')
+
+
+class ModelDefaultValues(BaseModel):
+
+    field_integer = IntegerField(default=1)
+    field_string = StringField(default='foobar')
+    field_boolean = BooleanField(default=True)
+    field_float = FloatField(default=0.1)
+    field_date = DateField(default=date(2016, 11, 23))
+    field_time = TimeField(default=time(23, 56, 59))
+    field_datetime = DateTimeField(default=datetime(2016, 11, 23, 23, 56, 59))
+    field_array_integer = ArrayField(field_type=IntegerField(), default=[1, 3, 4])
+    field_model = ModelField(model_class=SecondaryModel, default={"field_integer": 5})
+    field_hashmap = HashMapField(field_type=StringField(), default={"item1": "aaaa",
+                                                                    "item2": "bbbb"})
+
+
+class TestDefaultValues(TestCase):
+
+    def test_field_default_value(self):
+
+        model = ModelDefaultValues()
+
+        self.assertEqual(model.field_integer, 1)
+        self.assertEqual(model.field_string, 'foobar')
+        self.assertEqual(model.field_boolean, True)
+        self.assertEqual(model.field_float, 0.1)
+        self.assertEqual(model.field_date, date(2016, 11, 23))
+        self.assertEqual(model.field_time, time(23, 56, 59))
+        self.assertEqual(model.field_datetime, datetime(2016, 11, 23, 23, 56, 59))
+        self.assertEqual(model.field_array_integer.export_data(), [1, 3, 4])
+        self.assertEqual(model.field_model.export_data(), {"field_integer": 5,
+                                                           "field_string": "test"})
+        self.assertEqual(model.field_hashmap.export_data(), {"item1": "aaaa",
+                                                             "item2": "bbbb"})
+
+    def test_original_data(self):
+        model = ModelDefaultValues()
+        self.assertEqual(model.export_original_data(), {})
+
+    def test_modified_data(self):
+        model = ModelDefaultValues()
+        self.assertEqual(model.export_modified_data(), {'field_array_integer': [1, 3, 4],
+                                                        'field_boolean': True,
+                                                        'field_date': date(2016, 11, 23),
+                                                        'field_datetime': datetime(2016, 11, 23, 23, 56, 59),
+                                                        'field_float': 0.1,
+                                                        'field_hashmap': {'item1': 'aaaa', 'item2': 'bbbb'},
+                                                        'field_integer': 1,
+                                                        'field_model': {'field_integer': 5, 'field_string': 'test'},
+                                                        'field_string': 'foobar',
+                                                        'field_time': time(23, 56, 59)})
+
+    def test_modify_model(self):
+        model = ModelDefaultValues()
+        del model.field_model
+        del model.field_hashmap
+
+        model.field_integer = 4
+        model.field_string = 'test'
+
+        self.assertEqual(model.export_modified_data(), {'field_array_integer': [1, 3, 4],
+                                                        'field_boolean': True,
+                                                        'field_date': date(2016, 11, 23),
+                                                        'field_datetime': datetime(2016, 11, 23, 23, 56, 59),
+                                                        'field_float': 0.1,
+                                                        'field_integer': 4,
+                                                        'field_string': 'test',
+                                                        'field_time': time(23, 56, 59)})
+
+
+class ModelGeneralDefault(ModelDefaultValues):
+
+    _default_data = {'field_array_integer': [20, 30, 40],
+                     'field_boolean': False,
+                     'field_datetime': datetime(2017, 11, 23, 23, 56, 59),
+                     'field_float': 1.1,
+                     'field_hashmap': {'item3': 'cccc', 'item4': 'dddd'},
+                     'field_integer': 9,
+                     'field_model': {'field_integer': 6, 'field_string': 'tost'},
+                     'field_string': 'barfoo',
+                     'field_time': time(13, 56, 59)}
+
+
+class TestGeneralDefaultValues(TestCase):
+
+    def test_field_default_value(self):
+
+        model = ModelGeneralDefault()
+
+        self.assertEqual(model.field_integer, 9)
+        self.assertEqual(model.field_string, 'barfoo')
+        self.assertEqual(model.field_boolean, False)
+        self.assertEqual(model.field_float, 1.1)
+        self.assertEqual(model.field_date, date(2016, 11, 23))
+        self.assertEqual(model.field_time, time(13, 56, 59))
+        self.assertEqual(model.field_datetime, datetime(2017, 11, 23, 23, 56, 59))
+        self.assertEqual(model.field_array_integer.export_data(), [20, 30, 40])
+        self.assertEqual(model.field_model.export_data(), {"field_integer": 6,
+                                                           "field_string": "tost"})
+        self.assertEqual(model.field_hashmap.export_data(), {"item3": "cccc",
+                                                             "item4": "dddd"})
+
+    def test_original_data(self):
+        model = ModelGeneralDefault()
+        self.assertEqual(model.export_original_data(), {})
+
+    def test_modified_data(self):
+        model = ModelGeneralDefault()
+
+        self.assertEqual(model.export_modified_data(), {'field_array_integer': [20, 30, 40],
+                                                        'field_boolean': False,
+                                                        'field_date': date(2016, 11, 23),
+                                                        'field_datetime': datetime(2017, 11, 23, 23, 56, 59),
+                                                        'field_float': 1.1,
+                                                        'field_hashmap': {'item3': 'cccc', 'item4': 'dddd'},
+                                                        'field_integer': 9,
+                                                        'field_model': {'field_integer': 6, 'field_string': 'tost'},
+                                                        'field_string': 'barfoo',
+                                                        'field_time': time(13, 56, 59)})
+
+    def test_modify_model(self):
+        model = ModelGeneralDefault()
+        del model.field_model
+        del model.field_hashmap
+
+        model.field_integer = 4
+        model.field_string = 'test'
+
+        self.assertEqual(model.export_modified_data(), {'field_array_integer': [20, 30, 40],
+                                                        'field_boolean': False,
+                                                        'field_date': date(2016, 11, 23),
+                                                        'field_datetime': datetime(2017, 11, 23, 23, 56, 59),
+                                                        'field_float': 1.1,
+                                                        'field_integer': 4,
+                                                        'field_string': 'test',
+                                                        'field_time': time(13, 56, 59)})

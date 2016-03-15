@@ -13,11 +13,12 @@ class BaseField:
 
     """Base field descriptor."""
 
-    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, doc=None):
+    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, default=None, doc=None):
         self._name = None
         self.name = name
         self.alias = alias
         self.read_only = read_only
+        self.default = default
         self._getter = getter
         self._setter = setter
         self.__doc__ = doc or self.get_field_docstring()
@@ -482,3 +483,45 @@ class HashMapField(InnerFieldTypeMixin, ModelField):
 
 class BlobField(BaseField):
     pass
+
+
+class MultiTypeField(BaseField):
+
+    def __init__(self, field_types=None, **kwargs):
+        self._field_types = []
+
+        field_types = field_types or []
+
+        for field_type in field_types:
+            if isinstance(field_type, tuple):
+                field_type = field_type[0](**field_type[1])
+            self._field_types.append(field_type if field_type else BaseField())
+        super(MultiTypeField, self).__init__(**kwargs)
+
+    def get_field_docstring(self):
+        if len(self._field_types):
+            return 'Multiple type values allowed:\n{0}'.format("\n".join(["* {0}".format(field.get_field_docstring())
+                                                                          for field in self._field_types]))
+
+    def export_definition(self):
+        result = super(MultiTypeField, self).export_definition()
+        result['field_types'] = [(field_type.__class__, field_type.export_definition())
+                                 for field_type in self._field_types]
+        return result
+
+    def convert_value(self, value):
+        for ft in self._field_types:
+            if ft.can_use_value(value):
+                return ft.convert_value(value)
+
+    def check_value(self, value):
+        for ft in self._field_types:
+            if ft.check_value(value):
+                return True
+        return False
+
+    def can_use_value(self, value):
+        for ft in self._field_types:
+            if ft.can_use_value(value):
+                return True
+        return False
