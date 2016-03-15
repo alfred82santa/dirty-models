@@ -8,6 +8,7 @@ import itertools
 from datetime import datetime
 
 from collections import Mapping
+from copy import deepcopy
 
 from dirty_models.base import BaseData, InnerFieldTypeMixin
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
@@ -35,6 +36,16 @@ class DirtyModelMeta(type):
                     read_only_fields.append(field.name)
 
         cls._structure = structure
+        default_data = {}
+        for p in bases:
+            try:
+                default_data.update(deepcopy(p._default_data))
+            except AttributeError:
+                pass
+
+        default_data.update(deepcopy(cls._default_data))
+        default_data.update({f.name: f.default for f in structure.values() if f.default is not None})
+        cls._default_data = default_data
 
     def process_base_field(cls, field, key):
         """
@@ -83,6 +94,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     _modified_data = None
     _deleted_fields = None
 
+    _default_data = {}
+
     def __init__(self, data=None, flat=False, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
         self._original_data = {}
@@ -90,6 +103,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         self._deleted_fields = []
 
         self.unlock()
+        self.import_data(self._default_data)
         if isinstance(data, (dict, Mapping)):
             self.import_data(data)
         self.import_data(kwargs)
