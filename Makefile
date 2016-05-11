@@ -4,7 +4,7 @@ help:
 	@echo "Options"
 	@echo "---------------------------------------------------------------"
 	@echo "help:                     This help"
-	@echo "requirements:             Download requeroments"
+	@echo "requirements:             Download requirements"
 	@echo "requirements-test:        Download requirements for tests"
 	@echo "requirements-docs:        Download requirements for docs"
 	@echo "run-tests:                Run tests with coverage"
@@ -31,12 +31,12 @@ requirements-docs:
 
 run-tests:
 	@echo "Running tests..."
-	nosetests --with-coverage -d --cover-package=dirty_models
+	nosetests --with-coverage -d --cover-package=dirty_models --cover-erase
 
 publish:
 	@echo "Publishing new version on Pypi..."
 	python setup.py sdist upload
-	
+
 clean:
 	@echo "Cleaning compiled files..."
 	find . | grep -E "(__pycache__|\.pyc|\.pyo)$ " | xargs rm -rf

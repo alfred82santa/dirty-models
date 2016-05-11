@@ -58,17 +58,29 @@ class DirtyModelMeta(type):
             field.name = key
         elif key != field.name:
             setattr(cls, field.name, field)
-        if isinstance(field, ModelField) and not field.model_class:
-            field.model_class = cls
-            field.__doc__ = field.get_field_docstring()
-        if isinstance(field, ArrayField) and isinstance(field.field_type, ModelField) \
-                and not field.field_type.model_class:
-            field.field_type.model_class = cls
-            field.field_type.__doc__ = field.field_type.get_field_docstring()
+
+        cls.prepare_field(field)
 
         if field.alias:
             for alias_name in field.alias:
                 setattr(cls, alias_name, field)
+
+    def prepare_field(cls, field):
+        if isinstance(field, ModelField) and not field.model_class:
+            field.model_class = cls
+            field.__doc__ = field.get_field_docstring()
+
+        try:
+            cls.prepare_field(field.field_type)
+            field.field_type.__doc__ = field.field_type.get_field_docstring()
+        except AttributeError:
+            pass
+
+        try:
+            for inner_field in field.field_types:
+                cls.prepare_field(inner_field)
+        except AttributeError:
+            pass
 
 
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):

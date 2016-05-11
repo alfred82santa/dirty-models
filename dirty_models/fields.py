@@ -525,3 +525,7 @@ class MultiTypeField(BaseField):
             if ft.can_use_value(value):
                 return True
         return False
+
+    @property
+    def field_types(self):
+        return self._field_types.copy()
