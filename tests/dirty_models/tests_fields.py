@@ -1404,3 +1404,23 @@ class TestMultiTypeFieldComplexTypes(TestCase):
         self.model.flat_data()
         self.model.multi_field = 3
         self.assertEqual(self.model.multi_field, 3)
+
+
+class TestAutoreferenceModel(TestCase):
+
+    def setUp(self):
+        super(TestAutoreferenceModel, self).setUp()
+
+        class AutoreferenceModel(BaseModel):
+            multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": ModelField()})])
+            array_of_array = ArrayField(field_type=ArrayField(field_type=ModelField()))
+            test_field = IntegerField()
+
+        self.model = AutoreferenceModel()
+
+    def test_model_reference(self):
+        self.model.import_data({'multi_field': [{'test_field': 1}, {'test_field': 2}],
+                                'array_of_array': [[{'test_field': 3}]]})
+        self.assertIsInstance(self.model.multi_field[0], self.model.__class__)
+        self.assertIsInstance(self.model.multi_field[1], self.model.__class__)
+        self.assertIsInstance(self.model.array_of_array[0][0], self.model.__class__)

@@ -1,28 +1,28 @@
 |travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions|
 |project-status| |project-license| |project-format| |project-implementation|
 
-.. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master   
+.. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master
     :target: https://travis-ci.org/alfred82santa/dirty-models
-    
+
 .. |coverall-master| image:: https://coveralls.io/repos/alfred82santa/dirty-models/badge.svg?branch=master&service=github
     :target: https://coveralls.io/r/alfred82santa/dirty-models?branch=master
-    
+
 .. |doc-master| image:: https://readthedocs.org/projects/dirty-models/badge/?version=latest
     :target: https://readthedocs.org/projects/dirty-models/?badge=latest
     :alt: Documentation Status
-    
+
 .. |pypi-downloads| image:: https://img.shields.io/pypi/dm/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Downloads
-    
+
 .. |pypi-lastrelease| image:: https://img.shields.io/pypi/v/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Latest Version
-    
+
 .. |python-versions| image:: https://img.shields.io/pypi/pyversions/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Supported Python versions
-    
+
 .. |project-status| image:: https://img.shields.io/pypi/status/dirty-models.svg
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Development Status
@@ -81,6 +81,18 @@ Features
 *********
 Changelog
 *********
+
+Version 0.6.1
+-------------
+
+- Improved model field autoreference.
+
+.. code-block:: python
+
+    class ExampleModel(BaseModel):
+        model_field = ModelField()  # Field with a ExampleModel
+        array_of_model = ArrayField(field_type=ModelField())  # Array of ExampleModels
+
 
 Version 0.6.0
 -------------
@@ -169,23 +181,23 @@ Basic usage
 
     from dirty_models.models import BaseModel
     from dirty_models.fields import StringField, IntegerField
-    
+
     class FooBarModel(BaseModel):
         foo = IntegerField()
         bar = StringField(name="real_bar")
         alias_field = IntegerField(alias=['alias1', 'alias2'])
-        
-        
-    
+
+
+
     fb = FooBarModel()
-    
+
     fb.foo = 2
     assert fb.foo is 2
-    
+
     fb.bar = 'wow'
     assert fb.bar is 'wow'
     assert fb.real_bar is 'wow'
-    
+
     fb.alias_field = 3
     assert fb.alias_field is 3
     assert fb.alias1 is fb.alias_field
