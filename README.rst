@@ -88,34 +88,34 @@ Version 0.6.2
 
 - Improved datetime fields parser and formatter definitions. Now there are three ways to define them:
 
-* Format string to use both parse and formatter:
+    * Format string to use both parse and formatter:
 
-.. code-block:: python
+    .. code-block:: python
 
-    class ExampleModel(BaseModel):
-        datetime_field = DateTimeField(parse_format='%Y-%m-%dT%H:%M:%SZ')
+        class ExampleModel(BaseModel):
+            datetime_field = DateTimeField(parse_format='%Y-%m-%dT%H:%M:%SZ')
 
 
-* Define a format string or function for parse and format datetime:
+    * Define a format string or function for parse and format datetime:
 
-.. code-block:: python
+    .. code-block:: python
 
-    class ExampleModel(BaseModel):
-        datetime_field = DateTimeField(parse_format={'parser': callable_func,
-                                                     'formatter': '%Y-%m-%dT%H:%M:%SZ'})
+        class ExampleModel(BaseModel):
+            datetime_field = DateTimeField(parse_format={'parser': callable_func,
+                                                         'formatter': '%Y-%m-%dT%H:%M:%SZ'})
 
-* Use predefined format:
+    * Use predefined format:
 
-.. code-block:: python
+    .. code-block:: python
 
-    DateTimeField.date_parsers = {
-        'iso8061': {
-            'formatter': '%Y-%m-%dT%H:%M:%SZ',
-            'parser': iso8601.parse_date
+        DateTimeField.date_parsers = {
+            'iso8061': {
+                'formatter': '%Y-%m-%dT%H:%M:%SZ',
+                'parser': iso8601.parse_date
+            }
         }
-    }
-    class ExampleModel(BaseModel):
-        datetime_field = DateTimeField(parse_format='iso8061')
+        class ExampleModel(BaseModel):
+            datetime_field = DateTimeField(parse_format='iso8061')
 
 
 Version 0.6.1
