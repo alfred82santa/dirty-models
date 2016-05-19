@@ -720,7 +720,7 @@ class TestFields(TestCase):
         data = '2012-09-11T13:02:41Z'
         self.assertFalse(field.check_value(data))
         self.assertTrue(field.can_use_value(data))
-        self.assertIsNone(field.use_value(data))
+        self.assertIsNotNone(field.use_value(data))
 
     def test_datetime_field_using_is8061_parser_and_def_formatter(self):
 
@@ -853,6 +853,49 @@ class TestFields(TestCase):
                         hour=13, minute=2, second=41,
                         tzinfo=timezone.utc)
         self.assertEqual(field.get_formatted_value(data), '2012-09-11T13:02:41Z')
+
+    def test_datetime_field_using_parser_as_formatter(self):
+        field = DateTimeField('%Y-%m-%dT%H:%M:%SZ-test')
+
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41,
+                        tzinfo=timezone.utc)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11T13:02:41Z-test')
+
+    def test_datetime_field_using_dict_as_parser(self):
+        field = DateTimeField({'parser': '%Y-%m-%dT%H:%M:%SZ-test',
+                               'formatter': '%Y-%m-%dT%H:%M:%SZ-test2'})
+
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41)
+        self.assertEqual(field.get_parsed_value('2012-09-11T13:02:41Z-test'), data)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11T13:02:41Z-test2')
+
+    def test_datetime_field_using_dict_as_parser_default_formatter(self):
+        field = DateTimeField({'parser': '%Y-%m-%dT%H:%M:%SZ-test'})
+
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41)
+        self.assertEqual(field.get_parsed_value('2012-09-11T13:02:41Z-test'), data)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11T13:02:41Z-test')
+
+    def test_datetime_field_using_dict_neither_parser_or_formatter(self):
+        field = DateTimeField({})
+
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41,
+                        tzinfo=timezone.utc)
+        self.assertIsNone(field.get_parsed_value('2012-09-11T13:02:41Z-test'))
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11 13:02:41+00:00')
+
+    def test_datetime_field_using_default_parser_formatter(self):
+        field = DateTimeField()
+
+        data = datetime(year=2012, month=9, day=11,
+                        hour=13, minute=2, second=41,
+                        tzinfo=timezone.utc)
+        self.assertEqual(field.get_parsed_value('2012-09-11T13:02:41Z'), data)
+        self.assertEqual(field.get_formatted_value(data), '2012-09-11 13:02:41+00:00')
 
     def test_model_field_desc(self):
         class TestModel(BaseModel):
