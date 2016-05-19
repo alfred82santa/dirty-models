@@ -204,23 +204,58 @@ class DateTimeBaseField(BaseField):
         self._parse_format = value
 
     def get_parsed_value(self, value):
-        try:
-            parser = self.date_parsers.get(self.parse_format, {}).get('parser')
-            if callable(parser):
-                return parser(value)
-            return datetime.strptime(value, parser)
-        except:
-            return datetime.strptime(value, self.parse_format)
+
+        def get_parser(parser_desc):
+            try:
+                return parser_desc['parser']
+            except TypeError:
+                try:
+                    return get_parser(self.date_parsers[parser_desc])
+                except KeyError:
+                    return parser_desc
+            except KeyError:
+                pass
+
+        parser = get_parser(self.parse_format)
+
+        if parser is None:
+            try:
+                return dateutil_parse(value)
+            except ValueError:
+                return None
+
+        if callable(parser):
+            return parser(value)
+        return datetime.strptime(value, parser)
 
     def get_formatted_value(self, value):
-        try:
-            formatter = self.date_parsers.get(self.parse_format, {}).get('formatter')
-            if callable(formatter):
-                return formatter(value)
+        def get_formatter(parser_desc):
+            try:
+                return parser_desc['formatter']
+            except TypeError:
+                if isinstance(parser_desc, str):
+                    try:
+                        return get_formatter(self.date_parsers[parser_desc])
+                    except KeyError:
+                        return parser_desc
+                else:
+                    pass
+            except KeyError:
+                try:
+                    if isinstance(parser_desc['parser'], str):
+                        return parser_desc['parser']
+                except KeyError:
+                    pass
 
-            return value.strftime(format=formatter)
-        except:
+        formatter = get_formatter(self.parse_format)
+
+        if formatter is None:
             return str(value)
+
+        if callable(formatter):
+            return formatter(value)
+
+        return value.strftime(format=formatter)
 
 
 class TimeField(DateTimeBaseField):
@@ -241,7 +276,7 @@ class TimeField(DateTimeBaseField):
                     return value.time()
 
                 return self.convert_value(self.get_parsed_value(value))
-            except ValueError:
+            except:
                 return None
         elif isinstance(value, datetime):
             return value.timetz()
@@ -271,7 +306,7 @@ class DateField(DateTimeBaseField):
                     return value.date()
 
                 return self.convert_value(self.get_parsed_value(value))
-            except(TypeError, ValueError):
+            except:
                 return None
         elif isinstance(value, datetime):
             return value.date()
@@ -300,7 +335,7 @@ class DateTimeField(DateTimeBaseField):
                     return dateutil_parse(value)
 
                 return self.get_parsed_value(value)
-            except(TypeError, ValueError):
+            except:
                 return None
         elif isinstance(value, date):
             return datetime(year=value.year, month=value.month,

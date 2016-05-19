@@ -46,15 +46,15 @@ dirty-models
 
 Dirty models for python 3
 
-*************
+-------------
 Documentation
-*************
+-------------
 
 http://dirty-models.readthedocs.org
 
-********
+--------
 Features
-********
+--------
 
 - Python 3 package.
 - Easy to create a model.
@@ -78,9 +78,46 @@ Features
 - Auto documentation using https://github.com/alfred82santa/dirty-models-sphinx
 - Opensource (BSD License)
 
-*********
+---------
 Changelog
-*********
+---------
+
+
+Version 0.6.2
+-------------
+
+- Improved datetime fields parser and formatter definitions. Now there are three ways to define them:
+
+    * Format string to use both parse and formatter:
+
+        .. code-block:: python
+
+            class ExampleModel(BaseModel):
+                datetime_field = DateTimeField(parse_format='%Y-%m-%dT%H:%M:%SZ')
+
+
+    * Define a format string or function for parse and format datetime:
+
+        .. code-block:: python
+
+            class ExampleModel(BaseModel):
+                datetime_field = DateTimeField(parse_format={'parser': callable_func,
+                                                             'formatter': '%Y-%m-%dT%H:%M:%SZ'})
+
+    * Use predefined format:
+
+        .. code-block:: python
+
+            DateTimeField.date_parsers = {
+                'iso8061': {
+                    'formatter': '%Y-%m-%dT%H:%M:%SZ',
+                    'parser': iso8601.parse_date
+                }
+            }
+            class ExampleModel(BaseModel):
+                datetime_field = DateTimeField(parse_format='iso8061')
+
+.. code-block::
 
 Version 0.6.1
 -------------
@@ -134,7 +171,7 @@ Version 0.6.0
 Version 0.5.2
 -------------
 
-- Fixex model structure.
+- Fixed model structure.
 - Makefile helpers.
 
 
@@ -158,24 +195,24 @@ so it will be converted to a list with this value.
     model.array_field = 'foo'
     assert model.array_field[0] is 'foo'
 
-************
+------------
 Installation
-************
+------------
 
 .. code-block:: bash
 
     $ pip install dirty-models
 
-******
+------
 Issues
-******
+------
 
 - Getter and setter feature needs refactor to be able to use as decorators.
 - DynamicModel is too strange. I don't trust in it. Try to use HashMapModel or FastDynamicModel.
 
-***********
+-----------
 Basic usage
-***********
+-----------
 
 .. code-block:: python
 
