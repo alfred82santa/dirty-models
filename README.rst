@@ -82,6 +82,11 @@ Features
 Changelog
 ---------
 
+Version 0.6.3
+-------------
+
+- Documentation fixed.
+- Allow import main members from root package.
 
 Version 0.6.2
 -------------
