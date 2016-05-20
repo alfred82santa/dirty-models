@@ -8,7 +8,7 @@
     :target: https://coveralls.io/r/alfred82santa/dirty-models?branch=master
 
 .. |doc-master| image:: https://readthedocs.org/projects/dirty-models/badge/?version=latest
-    :target: https://readthedocs.org/projects/dirty-models/?badge=latest
+    :target: http://dirty-models.readthedocs.io/?badge=latest
     :alt: Documentation Status
 
 .. |pypi-downloads| image:: https://img.shields.io/pypi/dm/dirty-models.svg
@@ -50,7 +50,7 @@ Dirty models for python 3
 Documentation
 -------------
 
-http://dirty-models.readthedocs.org
+http://dirty-models.readthedocs.io/
 
 --------
 Features
@@ -183,7 +183,7 @@ Version 0.5.0
 -------------
 
 - Added autolist parameter to ArrayField. It allows to assign a single item to a list field,
-so it will be converted to a list with this value.
+  so it will be converted to a list with this value.
 
 ..  code-block:: python
 

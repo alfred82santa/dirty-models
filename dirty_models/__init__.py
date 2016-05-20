@@ -1,5 +1,8 @@
 """
-__init__.py
-
-dirty_models package.
+Dirty Models package.
 """
+
+# flake8: noqa
+
+from .models import *
+from .fields import *
