@@ -1,7 +1,5 @@
 """
-models.py
-
-Base model for dirty_models.
+Base models for dirty_models.
 """
 
 import itertools
@@ -14,6 +12,9 @@ from dirty_models.base import BaseData, InnerFieldTypeMixin
 from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
 from dirty_models.model_types import ListModel
 from .fields import BaseField, ModelField, ArrayField
+
+
+__all__ = ['BaseModel', 'DynamicModel', 'FastDynamicModel', 'HashMapModel']
 
 
 class DirtyModelMeta(type):
@@ -226,7 +227,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 data = data.export_data()
             if isinstance(data, (dict, Mapping)):
                 for key, value in data.items():
-                    if hasattr(self, key):
+                    if not key.startswith('__') and hasattr(self, key):
                         setattr(self, key, value)
 
     def import_deleted_fields(self, data):
@@ -238,13 +239,14 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 data = [data]
             if isinstance(data, list):
                 for key in data:
-                    if hasattr(self, key):
-                        delattr(self, key)
-                    else:
-                        keys = key.split('.', 1)
-                        if len(keys) == 2:
-                            child = getattr(self, keys[0])
-                            child.import_deleted_fields(keys[1])
+                    if not key.startswith('__'):
+                        if hasattr(self, key):
+                            delattr(self, key)
+                        else:
+                            keys = key.split('.', 1)
+                            if len(keys) == 2:
+                                child = getattr(self, keys[0])
+                                child.import_deleted_fields(keys[1])
 
     def export_data(self):
         """
@@ -545,7 +547,8 @@ class BaseDynamicModel(BaseModel):
         """
         if isinstance(data, (dict, Mapping)):
             for key, value in data.items():
-                setattr(self, key, value)
+                if not key.startswith('__'):
+                    setattr(self, key, value)
 
 
 class DynamicModel(BaseDynamicModel):

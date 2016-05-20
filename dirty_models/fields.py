@@ -1,12 +1,16 @@
 """
-fields.py
-
-Fields to be used with dirty_models
+Fields to be used with dirty models.
 """
+
 from datetime import datetime, date, time
 from dateutil.parser import parse as dateutil_parse
 from .model_types import ListModel
 from collections import Mapping
+
+
+__all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField',
+           'TimeField', 'DateField', 'DateTimeField', 'ModelField', 'ArrayField',
+           'HashMapField', 'BlobField', 'MultiTypeField']
 
 
 class BaseField:
@@ -167,7 +171,7 @@ class StringField(BaseField):
 
 class StringIdField(StringField):
 
-    """It allows to use a stringId as value in a field."""
+    """It allows to use a string as value in a field, but not allows empty strings"""
 
     def set_value(self, obj, value):
         """Sets value to model if not empty"""
@@ -184,6 +188,16 @@ class DateTimeBaseField(BaseField):
     date_parsers = {}
 
     def __init__(self, parse_format=None, **kwargs):
+        """
+
+        :param parse_format: String format to cast string to datetime. It could be
+            an string format or a :class:`dict` with two keys:
+
+                * ``parser`` key to set how string must be parsed. It could be a callable.
+                * ``formatter`` key to set how datetime must be formatted. It could be a callable.
+
+        :type parse_format: str or dict
+        """
         super(DateTimeBaseField, self).__init__(**kwargs)
         self._parse_format = None
         self.parse_format = parse_format
@@ -195,7 +209,7 @@ class DateTimeBaseField(BaseField):
 
     @property
     def parse_format(self):
-        """Model_class getter: model class used on field"""
+        """Parse_format getter: datetime format used on field"""
         return self._parse_format
 
     @parse_format.setter
@@ -204,6 +218,13 @@ class DateTimeBaseField(BaseField):
         self._parse_format = value
 
     def get_parsed_value(self, value):
+        """
+        Helper to cast string to datetime using :member:`parse_format`.
+
+        :param value: String representing a datetime
+        :type value: str
+        :return: datetime
+        """
 
         def get_parser(parser_desc):
             try:
@@ -229,6 +250,13 @@ class DateTimeBaseField(BaseField):
         return datetime.strptime(value, parser)
 
     def get_formatted_value(self, value):
+        """
+        Returns a string from datetime using :member:`parse_format`.
+
+        :param value: Datetime to cast to string
+        :type value: datetime
+        :return: str
+        """
         def get_formatter(parser_desc):
             try:
                 return parser_desc['formatter']
@@ -441,7 +469,7 @@ class InnerFieldTypeMixin:
 class ArrayField(InnerFieldTypeMixin, BaseField):
 
     """
-    It allows to create a ListModel (iterable in dirty_models.types) of different elements according
+    It allows to create a ListModel (iterable in :mod:`dirty_models.types`) of different elements according
     to the specified field_type. So it is possible to have a list of Integers, Strings, Models, etc.
     When using a model with no specified model_class the model inside field.
     """
@@ -505,6 +533,10 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
 
 class HashMapField(InnerFieldTypeMixin, ModelField):
 
+    """
+    It allows to create a field which contains a hash map.
+    """
+
     def __init__(self, model_class=None, **kwargs):
         if model_class is None:
             from dirty_models.models import HashMapModel
@@ -517,10 +549,19 @@ class HashMapField(InnerFieldTypeMixin, ModelField):
 
 
 class BlobField(BaseField):
+
+    """
+    It allows any type of data.
+    """
     pass
 
 
 class MultiTypeField(BaseField):
+
+    """
+    It allows to define multiple type for a field. So, it is possible to define a field as
+    a integer and as a model field, for example.
+    """
 
     def __init__(self, field_types=None, **kwargs):
         self._field_types = []

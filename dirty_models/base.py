@@ -1,15 +1,14 @@
 '''
-Created on 28/03/2014
-
-@author: alfred
+Base classes for Dirty Models
 '''
+
 import weakref
 
 
-class BaseData():
+class BaseData:
 
     """
-    Base class for data inside dirty model
+    Base class for data inside dirty model.
     """
 
     __slots__ = []
