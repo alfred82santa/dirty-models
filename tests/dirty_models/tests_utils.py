@@ -17,5 +17,5 @@ class UnderscoreToCamelTests(TestCase):
     def test_underscore_number(self):
         self.assertEqual(underscore_to_camel('foo_bar_1'), 'fooBar_1')
 
-    def test_underscore_multi(self):
+    def test_underscore_multi_number(self):
         self.assertEqual(underscore_to_camel('foo_bar_tor_pir_1'), 'fooBarTorPir_1')
