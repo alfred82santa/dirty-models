@@ -9,3 +9,4 @@ Dirty Models API
     fields
     inner_models
     base
+    utils
