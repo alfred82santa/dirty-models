@@ -2,14 +2,14 @@
 Fields to be used with dirty models.
 """
 
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from dateutil.parser import parse as dateutil_parse
 from .model_types import ListModel
 from collections import Mapping
 
 
 __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField',
-           'TimeField', 'DateField', 'DateTimeField', 'ModelField', 'ArrayField',
+           'TimeField', 'DateField', 'DateTimeField', 'TimedeltaField', 'ModelField', 'ArrayField',
            'HashMapField', 'BlobField', 'MultiTypeField']
 
 
@@ -130,9 +130,9 @@ class FloatField(BaseField):
         return isinstance(value, float)
 
     def can_use_value(self, value):
-        return isinstance(value, int) \
-            or (isinstance(value, str)
-                and value.replace('.', '', 1).isnumeric())
+        return isinstance(value, int) or \
+            (isinstance(value, str) and
+                value.replace('.', '', 1).isnumeric())
 
 
 class BooleanField(BaseField):
@@ -376,6 +376,20 @@ class DateTimeField(DateTimeBaseField):
         return isinstance(value, (int, str, date, dict, list))
 
 
+class TimedeltaField(BaseField):
+    """It allows to use a timedelta as value in a field."""
+
+    def convert_value(self, value):
+        if isinstance(value, (int, float)):
+            return timedelta(seconds=value)
+
+    def check_value(self, value):
+        return type(value) is timedelta
+
+    def can_use_value(self, value):
+        return isinstance(value, (int, float))
+
+
 class ModelField(BaseField):
 
     """
@@ -601,6 +615,16 @@ class MultiTypeField(BaseField):
             if ft.can_use_value(value):
                 return True
         return False
+
+    def get_field_type_by_value(self, value):
+        for ft in self._field_types:
+            if ft.check_value(value):
+                return ft
+        for ft in self._field_types:
+            if ft.can_use_value(value):
+                return ft
+
+        raise TypeError("Value `{0}` can not be used on field `{1}`".format(value, self.name))
 
     @property
     def field_types(self):

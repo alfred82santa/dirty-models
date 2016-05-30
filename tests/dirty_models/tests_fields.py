@@ -1,11 +1,11 @@
 from unittest import TestCase
 from dirty_models.fields import (IntegerField, StringField, BooleanField,
                                  FloatField, ModelField, TimeField, DateField,
-                                 DateTimeField, ArrayField, StringIdField, HashMapField, MultiTypeField)
+                                 DateTimeField, ArrayField, StringIdField, HashMapField, MultiTypeField, TimedeltaField)
 from dirty_models.models import BaseModel, HashMapModel
 from dirty_models.model_types import ListModel
 
-from datetime import time, date, datetime, timezone
+from datetime import time, date, datetime, timezone, timedelta
 import iso8601
 
 
@@ -1448,6 +1448,18 @@ class TestMultiTypeFieldComplexTypes(TestCase):
         self.model.multi_field = 3
         self.assertEqual(self.model.multi_field, 3)
 
+    def test_get_field_type_by_value(self):
+        multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": StringField()})])
+        self.assertIsInstance(multi_field.get_field_type_by_value(['foo', 'bar']),
+                              ArrayField)
+        self.assertIsInstance(multi_field.get_field_type_by_value(3),
+                              IntegerField)
+
+    def test_get_field_type_by_value_fail(self):
+        multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": StringField()})])
+        with self.assertRaises(TypeError):
+            multi_field.get_field_type_by_value({})
+
 
 class TestAutoreferenceModel(TestCase):
 
@@ -1467,3 +1479,30 @@ class TestAutoreferenceModel(TestCase):
         self.assertIsInstance(self.model.multi_field[0], self.model.__class__)
         self.assertIsInstance(self.model.multi_field[1], self.model.__class__)
         self.assertIsInstance(self.model.array_of_array[0][0], self.model.__class__)
+
+
+class TestTimedeltaField(TestCase):
+
+    def setUp(self):
+        self.field = TimedeltaField()
+
+    def test_check_value_success(self):
+        self.assertTrue(self.field.check_value(timedelta(seconds=0)))
+
+    def test_check_value_fail(self):
+        self.assertFalse(self.field.check_value(12))
+
+    def test_can_use_value_int(self):
+        self.assertTrue(self.field.can_use_value(12))
+
+    def test_can_use_value_float(self):
+        self.assertTrue(self.field.can_use_value(12.11))
+
+    def test_can_use_value_fail(self):
+        self.assertFalse(self.field.can_use_value('test'))
+
+    def test_convert_value_int(self):
+        self.assertTrue(self.field.convert_value(12), timedelta(seconds=12))
+
+    def test_convert_value_float(self):
+        self.assertTrue(self.field.convert_value(12.11), timedelta(seconds=12, milliseconds=110))

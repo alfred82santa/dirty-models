@@ -76,11 +76,37 @@ Features
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
 - Auto documentation using https://github.com/alfred82santa/dirty-models-sphinx
+- Json encoder.
 - Opensource (BSD License)
 
 ---------
 Changelog
 ---------
+
+Version 0.7.0
+-------------
+
+- Timedelta field
+- Generic formatters
+- Json encoder
+
+.. code-block:: python
+
+    import json
+    from datetime import datetime
+    from dirty_models import BaseModel, DatetimeField
+    from dirty_models.utils import JSONEncoder
+
+
+    class ExampleModel(BaseModel):
+        field_datetime = DatetimeField(parse_format="%Y-%m-%dT%H:%M:%S")
+
+    model = ExampleModel(field_datetime=datetime.now())
+
+    assert json.dumps(model, cls=JSONEncoder) == '{"field_datetime": "2016-05-30T22:22:22"}'
+
+- Auto camelCase fields metaclass
+
 
 Version 0.6.3
 -------------

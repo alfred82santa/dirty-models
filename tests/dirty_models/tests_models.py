@@ -6,7 +6,7 @@ from dirty_models.base import Unlocker
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
                                  ArrayField, BooleanField, DateField, TimeField, HashMapField)
-from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel
+from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel, CamelCaseMeta
 
 INITIAL_DATA = {
     'testField1': 'testValue1',
@@ -1386,3 +1386,32 @@ class TestGeneralDefaultValues(TestCase):
                                                         'field_integer': 4,
                                                         'field_string': 'test',
                                                         'field_time': time(13, 56, 59)})
+
+
+class CamelCaseMetaclassTest(TestCase):
+
+    def test_camelcase_fields(self):
+
+        class TestModel(BaseModel, metaclass=CamelCaseMeta):
+
+            test_field_1 = StringField()
+            test_field2 = StringField()
+            testField_3 = StringField()
+            testField4 = StringField(name='test_field_4')
+
+        model = TestModel(data={'testField_1': 'foo',
+                                'testField2': 'bar',
+                                'testField_3': 'tor',
+                                'test_field_4': 'pir'})
+
+        self.assertEqual(model.test_field_1, 'foo')
+        self.assertEqual(model.testField_1, 'foo')
+        self.assertEqual(model.test_field2, 'bar')
+        self.assertEqual(model.testField2, 'bar')
+        self.assertEqual(model.testField_3, 'tor')
+        self.assertEqual(model.testField4, 'pir')
+        self.assertEqual(model.test_field_4, 'pir')
+        self.assertEqual(model.export_data(), {'testField_1': 'foo',
+                                               'testField2': 'bar',
+                                               'testField_3': 'tor',
+                                               'test_field_4': 'pir'})

@@ -2,7 +2,7 @@
 Internal types for dirty models
 """
 import itertools
-from dirty_models.base import BaseData, InnerFieldTypeMixin
+from .base import BaseData, InnerFieldTypeMixin
 from functools import wraps
 
 

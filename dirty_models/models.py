@@ -8,10 +8,10 @@ from datetime import datetime
 from collections import Mapping
 from copy import deepcopy
 
-from dirty_models.base import BaseData, InnerFieldTypeMixin
-from dirty_models.fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField
-from dirty_models.model_types import ListModel
-from .fields import BaseField, ModelField, ArrayField
+from .base import BaseData, InnerFieldTypeMixin
+from .fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField, \
+    BaseField, ModelField, ArrayField
+from .model_types import ListModel
 
 
 __all__ = ['BaseModel', 'DynamicModel', 'FastDynamicModel', 'HashMapModel']
@@ -82,6 +82,20 @@ class DirtyModelMeta(type):
                 cls.prepare_field(inner_field)
         except AttributeError:
             pass
+
+
+class CamelCaseMeta(DirtyModelMeta):
+
+    """
+    Metaclass for dirty_models. Sets camel case version of field's name as default field name.
+    """
+
+    def process_base_field(self, field, key):
+        from .utils import underscore_to_camel
+
+        if not field.name:
+            field.name = underscore_to_camel(key)
+        super(CamelCaseMeta, self).process_base_field(field, key)
 
 
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):
