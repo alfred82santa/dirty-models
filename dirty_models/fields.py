@@ -616,6 +616,16 @@ class MultiTypeField(BaseField):
                 return True
         return False
 
+    def get_field_type_by_value(self, value):
+        for ft in self._field_types:
+            if ft.check_value(value):
+                return ft
+        for ft in self._field_types:
+            if ft.can_use_value(value):
+                return ft
+
+        raise TypeError("Value `{0}` can not be used on field `{1}`".format(value, self.name))
+
     @property
     def field_types(self):
         return self._field_types.copy()

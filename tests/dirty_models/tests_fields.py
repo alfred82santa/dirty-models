@@ -1448,6 +1448,18 @@ class TestMultiTypeFieldComplexTypes(TestCase):
         self.model.multi_field = 3
         self.assertEqual(self.model.multi_field, 3)
 
+    def test_get_field_type_by_value(self):
+        multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": StringField()})])
+        self.assertIsInstance(multi_field.get_field_type_by_value(['foo', 'bar']),
+                              ArrayField)
+        self.assertIsInstance(multi_field.get_field_type_by_value(3),
+                              IntegerField)
+
+    def test_get_field_type_by_value_fail(self):
+        multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": StringField()})])
+        with self.assertRaises(TypeError):
+            multi_field.get_field_type_by_value({})
+
 
 class TestAutoreferenceModel(TestCase):
 
