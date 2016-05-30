@@ -131,7 +131,7 @@ class FloatField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, int) or \
-               (isinstance(value, str) and
+            (isinstance(value, str) and
                 value.replace('.', '', 1).isnumeric())
 
 
