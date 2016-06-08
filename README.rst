@@ -83,6 +83,12 @@ Features
 Changelog
 ---------
 
+Version 0.7.1
+-------------
+
+- Solved problem formatting dynamic models
+- Added date, time and timedelta fields to dynamic models.
+
 Version 0.7.0
 -------------
 
