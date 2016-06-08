@@ -3,11 +3,12 @@ Base models for dirty_models.
 """
 
 import itertools
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 
 from collections import Mapping
 from copy import deepcopy
 
+from dirty_models.fields import DateField, TimeField, TimedeltaField
 from .base import BaseData, InnerFieldTypeMixin
 from .fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField, \
     BaseField, ModelField, ArrayField
@@ -147,7 +148,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                                          self.export_modified_data(), self.export_deleted_fields(),)
 
     def _get_real_name(self, name):
-        obj = self.__class__.get_field_obj(name)
+        obj = self.get_field_obj(name)
         try:
             return obj.name
         except AttributeError:
@@ -539,8 +540,14 @@ class BaseDynamicModel(BaseModel):
             return FloatField(name=key)
         elif isinstance(value, str):
             return StringField(name=key)
+        elif isinstance(value, time):
+            return TimeField(name=key)
         elif isinstance(value, datetime):
             return DateTimeField(name=key)
+        elif isinstance(value, date):
+            return DateField(name=key)
+        elif isinstance(value, timedelta):
+            return TimedeltaField(name=key)
         elif isinstance(value, (dict, BaseDynamicModel, Mapping)):
             return ModelField(name=key, model_class=self._dynamic_model or self.__class__)
         elif isinstance(value, BaseModel):
@@ -592,6 +599,9 @@ class DynamicModel(BaseDynamicModel):
                 setattr(self.__class__, name, field_type)
 
         super(DynamicModel, self).__setattr__(name, value)
+
+    # def get_field_obj(self, name):
+    #    return self._structure[name]
 
     def __hasattr__(self, name):
         try:
@@ -790,3 +800,9 @@ class FastDynamicModel(BaseDynamicModel):
             self.delete_field_value(name)
             return
         super(FastDynamicModel, self).__delattr__(name)
+
+    def get_field_obj(self, name):
+        try:
+            return self._field_types[name]
+        except KeyError:
+            return super(FastDynamicModel, self).get_field_obj(name)

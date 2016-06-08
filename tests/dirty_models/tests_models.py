@@ -1,11 +1,11 @@
 import pickle
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from unittest import TestCase
 
 from dirty_models.base import Unlocker
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
-                                 ArrayField, BooleanField, DateField, TimeField, HashMapField)
+                                 ArrayField, BooleanField, DateField, TimeField, HashMapField, TimedeltaField)
 from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel, CamelCaseMeta
 
 INITIAL_DATA = {
@@ -931,6 +931,21 @@ class TestDynamicModel(TestCase):
         self.model.test4 = datetime(year=2014, month=11, day=1)
         self.assertEqual(self.model.test4, datetime(year=2014, month=11, day=1))
         self.assertIsInstance(self._get_field_type('test4'), DateTimeField)
+
+    def test_set_date_value(self):
+        self.model.test4 = date(year=2014, month=11, day=1)
+        self.assertEqual(self.model.test4, date(year=2014, month=11, day=1))
+        self.assertIsInstance(self._get_field_type('test4'), DateField)
+
+    def test_set_time_value(self):
+        self.model.test4 = time(hour=23, minute=43, second=11)
+        self.assertEqual(self.model.test4, time(hour=23, minute=43, second=11))
+        self.assertIsInstance(self._get_field_type('test4'), TimeField)
+
+    def test_set_timedelta_value(self):
+        self.model.test4 = timedelta(seconds=3223)
+        self.assertEqual(self.model.test4, timedelta(seconds=3223))
+        self.assertIsInstance(self._get_field_type('test4'), TimedeltaField)
 
     def test_load_from_dict_value(self):
         self.model.import_data({"aa": "aaaaaa"})
