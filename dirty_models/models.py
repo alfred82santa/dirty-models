@@ -27,15 +27,14 @@ class DirtyModelMeta(type):
     def __init__(cls, name, bases, classdict):
         super(DirtyModelMeta, cls).__init__(name, bases, classdict)
 
-        fields = {key: field for key, field in cls.__dict__.items()}
+        fields = {key: field for key, field in cls.__dict__.items() if isinstance(field, BaseField)}
         structure = {}
         read_only_fields = []
         for key, field in fields.items():
-            if isinstance(field, BaseField):
-                cls.process_base_field(field, key)
-                structure[field.name] = field
-                if field.read_only:
-                    read_only_fields.append(field.name)
+            cls.process_base_field(field, key)
+            structure[field.name] = field
+            if field.read_only:
+                read_only_fields.append(field.name)
 
         cls._structure = structure
         default_data = {}
@@ -45,8 +44,17 @@ class DirtyModelMeta(type):
             except AttributeError:
                 pass
 
-        default_data.update(deepcopy(cls._default_data))
+        default_data.update(deepcopy(cls.get_default_data()))
         default_data.update({f.name: f.default for f in structure.values() if f.default is not None})
+
+        cls._structure = {}
+        for p in bases:
+            try:
+                cls._structure.update(deepcopy(p.get_structure()))
+            except AttributeError:
+                pass
+
+        cls._structure.update(structure)
         cls._default_data = default_data
 
     def process_base_field(cls, field, key):
@@ -59,13 +67,18 @@ class DirtyModelMeta(type):
         if not field.name:
             field.name = key
         elif key != field.name:
+            if not isinstance(field.alias, list):
+                field.alias = [key]
+            else:
+                field.alias.insert(0, key)
             setattr(cls, field.name, field)
 
         cls.prepare_field(field)
 
         if field.alias:
             for alias_name in field.alias:
-                setattr(cls, alias_name, field)
+                if key is not alias_name:
+                    setattr(cls, alias_name, field)
 
     def prepare_field(cls, field):
         if isinstance(field, ModelField) and not field.model_class:
@@ -514,6 +527,14 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         :return: dict
         """
         return cls._structure.copy()
+
+    @classmethod
+    def get_default_data(cls):
+        """
+        Returns a dictionary with default data.
+        :return: dict
+        """
+        return deepcopy(cls._default_data)
 
 
 class BaseDynamicModel(BaseModel):

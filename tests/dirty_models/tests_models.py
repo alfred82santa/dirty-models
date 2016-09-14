@@ -1430,3 +1430,50 @@ class CamelCaseMetaclassTest(TestCase):
                                                'testField2': 'bar',
                                                'testField_3': 'tor',
                                                'test_field_4': 'pir'})
+
+
+class AliasTest(TestCase):
+
+    def tests_field_alias(self):
+
+        class Model(BaseModel):
+
+            integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
+            string_field = StringField(name='text_field')
+
+        self.assertEqual(Model.get_structure()['scalar_field'].alias, ['integer_field', 'int_field', 'number_field'])
+        self.assertEqual(Model.get_structure()['text_field'].alias, ['string_field'])
+
+
+class StructureTest(TestCase):
+
+    def tests_simple_structure(self):
+        class Model(BaseModel):
+            integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
+            string_field = StringField(name='text_field')
+
+        self.assertEqual(len(Model.get_structure()), 2)
+        self.assertIn('scalar_field',  Model.get_structure())
+        self.assertIsInstance(Model.get_structure()['scalar_field'], IntegerField)
+        self.assertIn('text_field', Model.get_structure())
+        self.assertIsInstance(Model.get_structure()['text_field'], StringField)
+
+    def tests_inherit_structure(self):
+
+        class Model(BaseModel):
+            integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
+            string_field = StringField(name='text_field')
+
+        class InheritModel(Model):
+            integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
+            float_field = FloatField()
+
+
+        self.assertEqual(len(InheritModel.get_structure()), 3)
+        self.assertIn('scalar_field',  InheritModel.get_structure())
+        self.assertIsInstance(InheritModel.get_structure()['scalar_field'], IntegerField)
+        self.assertIn('text_field', InheritModel.get_structure())
+        self.assertIsInstance(InheritModel.get_structure()['text_field'], StringField)
+        self.assertIn('float_field', InheritModel.get_structure())
+        self.assertIsInstance(InheritModel.get_structure()['float_field'], FloatField)
+

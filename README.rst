@@ -83,6 +83,12 @@ Features
 Changelog
 ---------
 
+Version 0.7.2
+-------------
+
+- Fixed inherited structure
+- Added ``get_default_data`` method to models in order to retrieve default data.
+
 Version 0.7.1
 -------------
 
