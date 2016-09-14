@@ -1468,7 +1468,6 @@ class StructureTest(TestCase):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
             float_field = FloatField()
 
-
         self.assertEqual(len(InheritModel.get_structure()), 3)
         self.assertIn('scalar_field',  InheritModel.get_structure())
         self.assertIsInstance(InheritModel.get_structure()['scalar_field'], IntegerField)
@@ -1476,4 +1475,3 @@ class StructureTest(TestCase):
         self.assertIsInstance(InheritModel.get_structure()['text_field'], StringField)
         self.assertIn('float_field', InheritModel.get_structure())
         self.assertIsInstance(InheritModel.get_structure()['float_field'], FloatField)
-
