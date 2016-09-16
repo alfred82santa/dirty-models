@@ -590,8 +590,8 @@ class MultiTypeField(BaseField):
 
     def get_field_docstring(self):
         if len(self._field_types):
-            return 'Multiple type values allowed:\n{0}'.format("\n".join(["* {0}".format(field.get_field_docstring())
-                                                                          for field in self._field_types]))
+            return 'Multiple type values are allowed:\n\n{0}'.format(
+                "\n\n".join(["* {0}".format(field.get_field_docstring())for field in self._field_types]))
 
     def export_definition(self):
         result = super(MultiTypeField, self).export_definition()

@@ -36,26 +36,28 @@ class DirtyModelMeta(type):
             if field.read_only:
                 read_only_fields.append(field.name)
 
-        cls._structure = structure
+        cls.__structure__ = structure
         default_data = {}
         for p in bases:
             try:
-                default_data.update(deepcopy(p._default_data))
+                default_data.update(deepcopy(p.__default_data__))
             except AttributeError:
                 pass
 
         default_data.update(deepcopy(cls.get_default_data()))
         default_data.update({f.name: f.default for f in structure.values() if f.default is not None})
 
-        cls._structure = {}
+        cls.__structure__ = {}
         for p in bases:
             try:
-                cls._structure.update(deepcopy(p.get_structure()))
+                cls.__structure__.update(deepcopy(p.get_structure()))
             except AttributeError:
                 pass
 
-        cls._structure.update(structure)
-        cls._default_data = default_data
+        cls.check_structure()
+
+        cls.__structure__.update(structure)
+        cls.__default_data__ = {k: v for k, v in default_data.items() if k in cls.__structure__.keys()}
 
     def process_base_field(cls, field, key):
         """
@@ -97,6 +99,35 @@ class DirtyModelMeta(type):
         except AttributeError:
             pass
 
+    def check_structure(cls):
+        fields = {key: field for key, field in cls.__dict__.items() if isinstance(field, BaseField)}
+        try:
+            name, field = fields.popitem()
+        except KeyError:
+            field = None
+
+        while field:
+            twins = [k for k, f in fields.items() if f is field]
+            [fields.pop(n) for n in twins]
+
+            twins.append(name)
+
+            if field.name not in twins:
+                [delattr(cls, n) for n in twins]
+                try:
+                    del cls.__structure__[field.name]
+                except KeyError:
+                    pass
+            else:
+                twins.remove(field.name)
+                field.alias = [a for a in field.alias or [] if a in twins]
+                field.alias.extend([a for a in twins if a not in field.alias])
+
+            try:
+                name, field = fields.popitem()
+            except KeyError:
+                field = None
+
 
 class CamelCaseMeta(DirtyModelMeta):
 
@@ -131,20 +162,20 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     Base model with dirty feature. It stores original data and saves
     modifications in other side.
     """
-    _original_data = None
-    _modified_data = None
-    _deleted_fields = None
+    __original_data__ = None
+    __modified_data__ = None
+    __deleted_fields__ = None
 
-    _default_data = {}
+    __default_data__ = {}
 
     def __init__(self, data=None, flat=False, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
-        self._original_data = {}
-        self._modified_data = {}
-        self._deleted_fields = []
+        self.__original_data__ = {}
+        self.__modified_data__ = {}
+        self.__deleted_fields__ = []
 
         self.unlock()
-        self.import_data(self._default_data)
+        self.import_data(self.__default_data__)
         if isinstance(data, (dict, Mapping)):
             self.import_data(data)
         self.import_data(kwargs)
@@ -174,15 +205,15 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         name = self._get_real_name(name)
 
         if name and self._can_write_field(name):
-            if name in self._deleted_fields:
-                self._deleted_fields.remove(name)
-            if self._original_data.get(name) == value:
-                if self._modified_data.get(name):
-                    self._modified_data.pop(name)
+            if name in self.__deleted_fields__:
+                self.__deleted_fields__.remove(name)
+            if self.__original_data__.get(name) == value:
+                if self.__modified_data__.get(name):
+                    self.__modified_data__.pop(name)
             else:
-                self._modified_data[name] = value
+                self.__modified_data__[name] = value
                 self._prepare_child(value)
-                if name in self._structure and self._structure[name].read_only:
+                if name in self.__structure__ and self.__structure__[name].read_only:
                     try:
                         value.set_read_only(True)
                     except AttributeError:
@@ -194,12 +225,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         name = self._get_real_name(name)
 
-        if not name or name in self._deleted_fields:
+        if not name or name in self.__deleted_fields__:
             return None
-        modified = self._modified_data.get(name)
+        modified = self.__modified_data__.get(name)
         if modified is not None:
             return modified
-        return self._original_data.get(name)
+        return self.__original_data__.get(name)
 
     def delete_field_value(self, name):
         """
@@ -208,11 +239,11 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         name = self._get_real_name(name)
 
         if name and self._can_write_field(name):
-            if name in self._modified_data:
-                self._modified_data.pop(name)
+            if name in self.__modified_data__:
+                self.__modified_data__.pop(name)
 
-            if name in self._original_data and name not in self._deleted_fields:
-                self._deleted_fields.append(name)
+            if name in self.__original_data__ and name not in self.__deleted_fields__:
+                self.__deleted_fields__.append(name)
 
     def reset_field_value(self, name):
         """
@@ -221,14 +252,14 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         name = self._get_real_name(name)
 
         if name and self._can_write_field(name):
-            if name in self._modified_data:
-                del self._modified_data[name]
+            if name in self.__modified_data__:
+                del self.__modified_data__[name]
 
-            if name in self._deleted_fields:
-                self._deleted_fields.remove(name)
+            if name in self.__deleted_fields__:
+                self.__deleted_fields__.remove(name)
 
             try:
-                self._original_data[name].clear_modified_data()
+                self.__original_data__[name].clear_modified_data()
             except (KeyError, AttributeError):
                 pass
 
@@ -238,7 +269,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         name = self._get_real_name(name)
 
-        if name in self._modified_data or name in self._deleted_fields:
+        if name in self.__modified_data__ or name in self.__deleted_fields__:
             return True
 
         try:
@@ -255,36 +286,59 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 data = data.export_data()
             if isinstance(data, (dict, Mapping)):
                 for key, value in data.items():
-                    if not key.startswith('__') and hasattr(self, key):
-                        setattr(self, key, value)
+                    if key.startswith('__') or not self.get_field_obj(key):
+                        self._not_allowed_field(key)
+                        continue
+                    setattr(self, key, value)
+
+    def _not_allowed_field(self, name):
+        pass
+
+    def _not_allowed_value(self, name, value):
+        pass
+
+    def _not_allowed_modify(self, name):
+        pass
 
     def import_deleted_fields(self, data):
         """
         Set data fields to deleted
         """
-        if not self.get_read_only() or not self.is_locked():
-            if isinstance(data, str):
-                data = [data]
-            if isinstance(data, list):
-                for key in data:
-                    if not key.startswith('__'):
-                        if hasattr(self, key):
-                            delattr(self, key)
-                        else:
-                            keys = key.split('.', 1)
-                            if len(keys) == 2:
-                                child = getattr(self, keys[0])
-                                child.import_deleted_fields(keys[1])
+        if not data:
+            return
+
+        if self.get_read_only() and self.is_locked():
+            self._not_allowed_modify()
+            return
+
+        if isinstance(data, str):
+            data = [data]
+
+        if not isinstance(data, list):
+            raise ValueError("Import deleted fields data must be a string or list of strings")
+
+        for key in data:
+            if key.startswith('__'):
+                self._not_allowed_field(key)
+                continue
+
+            if hasattr(self, key):
+                delattr(self, key)
+            else:
+                keys = key.split('.', 1)
+                if len(keys) == 2:
+                    child = getattr(self, keys[0])
+                    child.import_deleted_fields(keys[1])
 
     def export_data(self):
         """
         Get the results with the modified_data
         """
         result = {}
-        data = self._original_data.copy()
-        data.update(self._modified_data)
+        data = self.__original_data__.copy()
+        data.update(self.__modified_data__)
         for key, value in data.items():
-            if key not in self._deleted_fields:
+            if key not in self.__deleted_fields__:
                 try:
                     result[key] = value.export_data()
                 except AttributeError:
@@ -297,16 +351,16 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         Get the modified data
         """
         # TODO: why None? Try to get a better flag
-        result = {key: None for key in self._deleted_fields}
+        result = {key: None for key in self.__deleted_fields__}
 
-        for key, value in self._modified_data.items():
+        for key, value in self.__modified_data__.items():
             if key not in result.keys():
                 try:
                     result[key] = value.export_modified_data()
                 except AttributeError:
                     result[key] = value
 
-        for key, value in self._original_data.items():
+        for key, value in self.__original_data__.items():
             if key not in result.keys():
                 try:
                     if value.is_modified():
@@ -323,7 +377,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         name = self._get_real_name(name)
 
         try:
-            value = self._original_data[name]
+            value = self.__original_data__[name]
         except KeyError:
             return None
 
@@ -337,16 +391,16 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         Get the original data
         """
 
-        return {key: self.get_original_field_value(key) for key in self._original_data.keys()}
+        return {key: self.get_original_field_value(key) for key in self.__original_data__.keys()}
 
     def export_deleted_fields(self):
         """
         Resturns a list with any deleted fields form original data.
         In tree models, deleted fields on children will be appended.
         """
-        result = self._deleted_fields.copy()
+        result = self.__deleted_fields__.copy()
 
-        for key, value in self._original_data.items():
+        for key, value in self.__original_data__.items():
             if key not in result:
                 try:
                     partial = value.export_deleted_fields()
@@ -372,11 +426,11 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             except AttributeError:
                 return value
 
-        modified_dict = self._original_data
-        modified_dict.update(self._modified_data)
-        self._original_data = dict((k, flat_field(v))
-                                   for k, v in modified_dict.items()
-                                   if k not in self._deleted_fields)
+        modified_dict = self.__original_data__
+        modified_dict.update(self.__modified_data__)
+        self.__original_data__ = dict((k, flat_field(v))
+                                      for k, v in modified_dict.items()
+                                      if k not in self.__deleted_fields__)
 
         self.clear_modified_data()
 
@@ -384,10 +438,10 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Clears only the modified data
         """
-        self._modified_data = {}
-        self._deleted_fields = []
+        self.__modified_data__ = {}
+        self.__deleted_fields__ = []
 
-        for value in self._original_data.values():
+        for value in self.__original_data__.values():
             try:
                 value.clear_modified_data()
             except AttributeError:
@@ -397,25 +451,25 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Clears all the data in the object, keeping original data
         """
-        self._modified_data = {}
-        self._deleted_fields = [field for field in self._original_data.keys()]
+        self.__modified_data__ = {}
+        self.__deleted_fields__ = [field for field in self.__original_data__.keys()]
 
     def clear_all(self):
         """
         Clears all the data in the object
         """
-        self._modified_data = {}
-        self._original_data = {}
-        self._deleted_fields = []
+        self.__modified_data__ = {}
+        self.__original_data__ = {}
+        self.__deleted_fields__ = []
 
     def get_fields(self):
         """
         Returns used fields of model
         """
-        result = [key for key in self._original_data.keys()
-                  if key not in self._deleted_fields]
-        result.extend([key for key in self._modified_data.keys()
-                       if key not in result and key not in self._deleted_fields])
+        result = [key for key in self.__original_data__.keys()
+                  if key not in self.__deleted_fields__]
+        result.extend([key for key in self.__modified_data__.keys()
+                       if key not in result and key not in self.__deleted_fields__])
 
         return result
 
@@ -423,10 +477,10 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Returns whether model is modified or not
         """
-        if len(self._modified_data) or len(self._deleted_fields):
+        if len(self.__modified_data__) or len(self.__deleted_fields__):
             return True
 
-        for value in self._original_data.values():
+        for value in self.__original_data__.values():
             try:
                 if value.is_modified():
                     return True
@@ -449,11 +503,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return iterfunc()
 
     def _can_write_field(self, name):
-        return name not in self._structure or (not self._structure[name].read_only and not self.get_read_only()) or \
+        return name not in self.__structure__ or (not self.__structure__[name].read_only
+                                                  and not self.get_read_only()) or \
             not self.is_locked()
 
     def _update_read_only(self):
-        for value in itertools.chain(self._original_data.values(), self._modified_data.values()):
+        for value in itertools.chain(self.__original_data__.values(), self.__modified_data__.values()):
             try:
                 value.set_read_only(self.get_read_only())
             except AttributeError:
@@ -469,17 +524,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
     @classmethod
     def get_field_obj(cls, name):
-        return getattr(cls, name, None)
+        obj_field = getattr(cls, name, None)
+        if not isinstance(obj_field, BaseField):
+            return None
+        return obj_field
 
     def _get_fields_by_path(self, field):
-        """
-        Function to perform a function to the field specified. If the function has to be performed by the same object
-        the field name is retrieved
-        :param field: Field structure as following:
-         field_1.*.subfield_2  would apply a the function to the every subfield_2 of the elements in field_1
-         field_1.1.subfield_2  would apply a the function to the subfield_2 of the element 1 in field_1
-        :field function: string containing the function in the class to be applied to the field
-        """
+
         try:
             field, next_field = field.split('.', 1)
         except ValueError:
@@ -490,12 +541,65 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         else:
             return [field], next_field
 
-    def delete_attr_by_path(self, field):
+    def get_attrs_by_path(self, field_path, stop_first=False):
         """
-        Function for deleting a field specifying the path in the whole model as described
-        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        It returns list of values looked up by field path.
+        Field path is dot-formatted string path: ``parent_field.child_field``.
+
+        :param field_path: field path. It allows ``*`` as wildcard.
+        :type field_path: list or None.
+        :param stop_first: Stop iteration on first value looked up. Default: False.
+        :type stop_first: bool
+        :return: value
         """
-        fields, next_field = self._get_fields_by_path(field)
+        fields, next_field = self._get_fields_by_path(field_path)
+        values = []
+        for field in fields:
+            if next_field:
+                try:
+                    res = self.get_field_value(field).get_attrs_by_path(next_field, stop_first=stop_first)
+                    values.extend(res)
+
+                    if stop_first and len(values):
+                        break
+
+                except AttributeError:
+                    pass
+            else:
+                if stop_first:
+                    return self.get_field_value(field)
+                values.append(self.get_field_value(field))
+
+        return values if len(values) else None
+
+    def get_1st_attr_by_path(self, field_path, **kwargs):
+        """
+        It returns first value looked up by field path.
+        Field path is dot-formatted string path: ``parent_field.child_field``.
+
+        :param field_path: field path. It allows ``*`` as wildcard.
+        :type field_path: str
+        :param default: Default value if field does not exist.
+                        If it is not defined :class:`AttributeError` exception will be raised.
+        :return: value
+        """
+
+        res = self.get_attrs_by_path(field_path, stop_first=True)
+        if res is None:
+            if 'default' in kwargs:
+                return kwargs['default']
+            raise AttributeError("Field '{0}' does not exist".format(field_path))
+        return res.pop()
+
+    def delete_attr_by_path(self, field_path):
+        """
+        It deletes fields looked up by field path.
+        Field path is dot-formatted string path: ``parent_field.child_field``.
+
+        :param field_path: field path. It allows ``*`` as wildcard.
+        :type field_path: str
+        """
+        fields, next_field = self._get_fields_by_path(field_path)
         for field in fields:
             if next_field:
                 try:
@@ -505,12 +609,15 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             else:
                 self.delete_field_value(field)
 
-    def reset_attr_by_path(self, field):
+    def reset_attr_by_path(self, field_path):
         """
-        Function for restoring a field specifying the path in the whole model as described
-        in :func:`dirty:models.models.BaseModel.perform_function_by_path`
+        It restores original values for fields looked up by field path.
+        Field path is dot-formatted string path: ``parent_field.child_field``.
+
+        :param field_path: field path. It allows ``*`` as wildcard.
+        :type field_path: str
         """
-        fields, next_field = self._get_fields_by_path(field)
+        fields, next_field = self._get_fields_by_path(field_path)
         for field in fields:
             if next_field:
                 try:
@@ -520,13 +627,22 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             else:
                 self.reset_field_value(field)
 
+    def __getitem__(self, key):
+        if not isinstance(key, str):
+            raise TypeError("Key must be a string")
+
+        try:
+            return self.get_1st_attr_by_path(key)
+        except AttributeError as ex:
+            raise KeyError(str(ex))
+
     @classmethod
     def get_structure(cls):
         """
         Returns a dictionary with model field objects.
         :return: dict
         """
-        return cls._structure.copy()
+        return cls.__structure__.copy()
 
     @classmethod
     def get_default_data(cls):
@@ -534,7 +650,10 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         Returns a dictionary with default data.
         :return: dict
         """
-        return deepcopy(cls._default_data)
+        return deepcopy(cls.__default_data__)
+
+    def __len__(self):
+        return len(self.export_data())
 
 
 class BaseDynamicModel(BaseModel):
@@ -589,8 +708,15 @@ class BaseDynamicModel(BaseModel):
         """
         if isinstance(data, (dict, Mapping)):
             for key, value in data.items():
-                if not key.startswith('__'):
-                    setattr(self, key, value)
+                if key.startswith('__'):
+                    self._not_allowed_field(key)
+                    continue
+                if not self.get_field_obj(key):
+                    if not self._define_new_field_by_value(key, value):
+                        self._not_allowed_value(key, value)
+                        continue
+
+                setattr(self, key, value)
 
 
 class DynamicModel(BaseDynamicModel):
@@ -603,26 +729,32 @@ class DynamicModel(BaseDynamicModel):
 
     def __init__(self, *args, **kwargs):
         super(DynamicModel, self).__init__(*args, **kwargs)
-        self._structure = {}
+        self.__structure__ = {}
 
     def __new__(cls, *args, **kwargs):
         new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {'_dynamic_model': DynamicModel})
         cls._next_id = id(new_class)
         return super(DynamicModel, new_class).__new__(new_class)
 
+    def _define_new_field_by_value(self, name, value):
+        field_type = self._get_field_type(name, value)
+        if not field_type:
+            return False
+        self.__structure__[field_type.name] = field_type
+        setattr(self.__class__, name, field_type)
+        return True
+
     def __setattr__(self, name, value):
         if not self.__hasattr__(name):
             if not self.get_read_only() or not self.is_locked():
-                field_type = self._get_field_type(name, value)
-                if not field_type:
+                if not self._define_new_field_by_value(name, value):
+                    self._not_allowed_value(name, value)
                     return
-                self._structure[field_type.name] = field_type
-                setattr(self.__class__, name, field_type)
 
         super(DynamicModel, self).__setattr__(name, value)
 
     # def get_field_obj(self, name):
-    #    return self._structure[name]
+    #    return self.__structure__[name]
 
     def __hasattr__(self, name):
         try:
@@ -700,6 +832,20 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
         except AttributeError:
             return value
 
+    def import_data(self, data):
+        """
+        Set the fields in data to the hashmap instance.
+        """
+        if not self.get_read_only() or not self.is_locked():
+            if isinstance(data, BaseModel):
+                data = data.export_data()
+            if isinstance(data, (dict, Mapping)):
+                for key, value in data.items():
+                    if key.startswith('__'):
+                        self._not_allowed_field(key)
+                        continue
+                    setattr(self, key, value)
+
     def __setattr__(self, name, value):
         if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
             if value is None:
@@ -708,7 +854,7 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
             validated_value = self.get_validated_object(value)
 
             if validated_value is not None and \
-                    (name not in self._original_data or self._original_data[name] != validated_value):
+                    (name not in self.__original_data__ or self.__original_data__[name] != validated_value):
                 self.set_field_value(name, validated_value)
             return
 
@@ -725,7 +871,6 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
                     self.__class__.__dict__[name]
                 except KeyError:
                     return False
-
         return True
 
     def __getattr__(self, name):
@@ -746,10 +891,10 @@ class FastDynamicModel(BaseDynamicModel):
     FastDynamicModel allow to create model with no structure.
     """
 
-    _field_types = None
+    __field_types__ = None
 
     def __init__(self, *args, **kwargs):
-        self._field_types = {}
+        self.__field_types__ = {}
         self._dynamic_model = FastDynamicModel
         super(FastDynamicModel, self).__init__(*args, **kwargs)
 
@@ -777,26 +922,33 @@ class FastDynamicModel(BaseDynamicModel):
         """
 
         struct = self.__class__.get_structure()
-        struct.update(self._field_types)
+        struct.update(self.__field_types__)
         return struct
 
+    def _define_new_field_by_value(self, name, value):
+        field_type = self._get_field_type(name, value)
+        if not field_type:
+            return False
+        self.__field_types__[name] = field_type
+        return True
+
     def __setattr__(self, name, value):
-        if self._field_types is not None and not self.__hasattr__(name) \
+        if self.__field_types__ is not None and not self.__hasattr__(name) \
                 and (not self.get_read_only() or not self.is_locked()):
             if value is None:
                 delattr(self, name)
                 return
             try:
-                field_type = self._field_types[name]
+                field_type = self.__field_types__[name]
             except KeyError:
-                field_type = self._get_field_type(name, value)
-                if not field_type:
+                if not self._define_new_field_by_value(name, value):
+                    self._not_allowed_value(name, value)
                     return
-                self._field_types[name] = field_type
+                field_type = self.__field_types__[name]
 
             validated_value = self.get_validated_object(field_type, value)
             if validated_value is not None and \
-                    (name not in self._original_data or self._original_data[name] != validated_value):
+                    (name not in self.__original_data__ or self.__original_data__[name] != validated_value):
                 self.set_field_value(name, validated_value)
             return
 
@@ -824,6 +976,6 @@ class FastDynamicModel(BaseDynamicModel):
 
     def get_field_obj(self, name):
         try:
-            return self._field_types[name]
+            return self.__field_types__[name]
         except KeyError:
             return super(FastDynamicModel, self).get_field_obj(name)

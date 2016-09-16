@@ -39,7 +39,7 @@
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Supported Python implementations
 
-
+.. _Dirty Models Sphinx extension: http://dirty-models-sphinx-extension.readthedocs.io
 ============
 dirty-models
 ============
@@ -75,13 +75,22 @@ Features
 - Pickable models.
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
-- Auto documentation using https://github.com/alfred82santa/dirty-models-sphinx
+- Auto documentation using `Dirty Models Sphinx extension`_.
 - Json encoder.
 - Opensource (BSD License)
 
 ---------
 Changelog
 ---------
+
+Version 0.8.0
+-------------
+
+- Renamed internal fields. Now they use double score format ``__fieldname__``.
+- Cleanup fields which are override on inheritance.
+- Fixed default docstring for MultiTypeField.
+- Cleanup default data. Only real name fields are allowed to use as key.
+
 
 Version 0.7.2
 -------------
@@ -191,7 +200,7 @@ Version 0.6.0
 ..  code-block:: python
 
     class InheritExampleModel(ExampleModel):
-        _default_data = {'integer_field': 2}
+        __default_data__ = {'integer_field': 2}
 
     model = InheritExampleModel()
     assert model.integer_field is 2

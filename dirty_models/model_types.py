@@ -30,11 +30,12 @@ class ListModel(InnerFieldTypeMixin, BaseData):
     to work also as a model, having the old and the modified values.
     """
 
-    _original_data = None
-    _modified_data = None
+    __original_data__ = None
+    __modified_data__ = None
 
     def __init__(self, seq=None, *args, **kwargs):
         super(ListModel, self).__init__(*args, **kwargs)
+        self.__original_data__ = []
         if seq is not None:
             self.extend(seq)
 
@@ -56,11 +57,11 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         Initialise the modified_data if necessary
         """
-        if self._modified_data is None:
-            if self._original_data:
-                self._modified_data = list(self._original_data)
+        if self.__modified_data__ is None:
+            if self.__original_data__:
+                self.__modified_data__ = list(self.__original_data__)
             else:
-                self._modified_data = []
+                self.__modified_data__ = []
 
     @modified_data_decorator
     def __setitem__(self, key, value):
@@ -68,38 +69,47 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         Function to set a value to an element e.g list[key] = value
         """
 
-        if (self._original_data is not None and self._original_data.__getitem__(key) != value)\
-                or not self._original_data:
-            validated_value = self.get_validated_object(value)
-            if validated_value is not None:
-                self._modified_data.__setitem__(key, validated_value)
+        validated_value = self.get_validated_object(value)
+        if validated_value is not None:
+            self.__modified_data__.__setitem__(key, validated_value)
 
     def __getitem__(self, item):
         """
         Function to get an item from a list e.g list[key]
         """
-        if self._modified_data:
-            val = self._modified_data.__getitem__(item)
+        if not isinstance(item, (str, int, slice)):
+            raise TypeError("Item must be an integer, slice or string")
+
+        if isinstance(item, str):
+            try:
+                return self.get_1st_attr_by_path(item)
+            except AttributeError as ex:
+                raise KeyError(str(ex))
+
+        if self.__modified_data__ is not None:
+            val = self.__modified_data__.__getitem__(item)
             if val is not None:
                 return val
-        if self._original_data:
-            return self._original_data.__getitem__(item)
+        elif self.__original_data__ is not None:
+            return self.__original_data__.__getitem__(item)
+
+        raise IndexError("list index out of range")
 
     @modified_data_decorator
     def __delitem__(self, key):
         """
         Delete item from a list
         """
-        del self._modified_data[key]
+        del self.__modified_data__[key]
 
     def __len__(self):
         """
         Function to get the list length
         """
-        if self._modified_data is not None:
-            return len(self._modified_data)
-        elif self._original_data is not None:
-            return len(self._original_data)
+        if self.__modified_data__ is not None:
+            return len(self.__modified_data__)
+        elif self.__original_data__ is not None:
+            return len(self.__original_data__)
         return 0
 
     @modified_data_decorator
@@ -109,7 +119,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         validated_value = self.get_validated_object(item)
         if validated_value is not None:
-            self._modified_data.append(validated_value)
+            self.__modified_data__.append(validated_value)
 
     @modified_data_decorator
     def insert(self, index, p_object):
@@ -118,37 +128,37 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         validated_value = self.get_validated_object(p_object)
         if validated_value is not None:
-            self._modified_data.insert(index, validated_value)
+            self.__modified_data__.insert(index, validated_value)
 
     def index(self, value):
         """
         Gets the index in the list for a value
         """
-        if self._modified_data is not None:
-            return self._modified_data.index(value)
-        if self._original_data is not None:
-            return self._original_data.index(value)
+        if self.__modified_data__ is not None:
+            return self.__modified_data__.index(value)
+        if self.__original_data__ is not None:
+            return self.__original_data__.index(value)
         raise ValueError()
 
     def clear(self):
         """
         Resets our list, keeping original data
         """
-        self._modified_data = []
+        self.__modified_data__ = None
 
     def clear_all(self):
         """
         Resets our list
         """
-        self._original_data = None
-        self._modified_data = None
+        self.__original_data__ = []
+        self.__modified_data__ = None
 
     @modified_data_decorator
     def remove(self, value):
         """
         Deleting an element from the list
         """
-        return self._modified_data.remove(value)
+        return self.__modified_data__.remove(value)
 
     @modified_data_decorator
     def extend(self, iterable):
@@ -163,17 +173,17 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         Obtains and delete the element from the list
         """
-        if self._modified_data is not None:
-            return self._modified_data.pop(index)
+        if self.__modified_data__ is not None:
+            return self.__modified_data__.pop(index)
 
     def count(self, value):
         """
         Gives the number of occurrencies of a value in the list
         """
-        if self._modified_data is not None:
-            return self._modified_data.count(value)
-        if self._original_data is not None:
-            return self._original_data.count(value)
+        if self.__modified_data__ is not None:
+            return self.__modified_data__.count(value)
+        if self.__original_data__ is not None:
+            return self.__original_data__.count(value)
         return 0
 
     @modified_data_decorator
@@ -181,25 +191,25 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         Reverses the list order
         """
-        if self._modified_data:
-            self._modified_data.reverse()
+        if self.__modified_data__:
+            self.__modified_data__.reverse()
 
     @modified_data_decorator
     def sort(self):
         """
         Sorts the list
         """
-        if self._modified_data:
-            self._modified_data.sort()
+        if self.__modified_data__:
+            self.__modified_data__.sort()
 
     def __iter__(self):
         """
         Defined behaviour for our iterable to be iterated
         """
-        if self._modified_data is not None:
-            return self._modified_data.__iter__()
-        if self._original_data is not None:
-            return self._original_data.__iter__()
+        if self.__modified_data__ is not None:
+            return self.__modified_data__.__iter__()
+        if self.__original_data__ is not None:
+            return self.__original_data__.__iter__()
         return [].__iter__()
 
     def flat_data(self):
@@ -217,10 +227,10 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             except AttributeError:
                 return value
 
-        modified_data = self._modified_data if self._modified_data is not None else self._original_data
+        modified_data = self.__modified_data__ if self.__modified_data__ is not None else self.__original_data__
         if modified_data is not None:
-            self._original_data = [flat_field(value) for value in modified_data]
-        self._modified_data = None
+            self.__original_data__ = [flat_field(value) for value in modified_data]
+        self.__modified_data__ = None
 
     def export_data(self):
         """
@@ -236,10 +246,10 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             except AttributeError:
                 return value
 
-        if self._modified_data is not None:
-            return [export_field(value) for value in self._modified_data]
-        if self._original_data is not None:
-            return [export_field(value) for value in self._original_data]
+        if self.__modified_data__ is not None:
+            return [export_field(value) for value in self.__modified_data__]
+        if self.__original_data__ is not None:
+            return [export_field(value) for value in self.__original_data__]
         return []
 
     def export_modified_data(self):
@@ -256,10 +266,10 @@ class ListModel(InnerFieldTypeMixin, BaseData):
                 if is_modified_seq:
                     return value
 
-        if self._modified_data is not None:
-            return [export_modfield(value) for value in self._modified_data]
-        if self._original_data is not None:
-            return list(x for x in [export_modfield(value) for value in self._original_data] if x is not None)
+        if self.__modified_data__ is not None:
+            return [export_modfield(value) for value in self.__modified_data__]
+        if self.__original_data__ is not None:
+            return list(x for x in [export_modfield(value) for value in self.__original_data__] if x is not None)
         return []
 
     def export_original_data(self):
@@ -274,7 +284,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
                 return value.export_original_data()
             except AttributeError:
                 return value
-        return [export_field(val) for val in self._original_data]
+        return [export_field(val) for val in self.__original_data__]
 
     def import_data(self, data):
         """
@@ -323,9 +333,9 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         Returns whether list is modified or not
         """
-        if self._modified_data is not None:
+        if self.__modified_data__ is not None:
             return True
-        for value in self._original_data:
+        for value in self.__original_data__:
             try:
                 if value.is_modified():
                     return True
@@ -338,21 +348,71 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         Clears only the modified data
         """
-        self._modified_data = None
+        self.__modified_data__ = None
 
-        for value in self._original_data:
+        for value in self.__original_data__:
             try:
                 value.clear_modified_data()
             except AttributeError:
                 pass
 
     def _update_read_only(self):
-        for value in itertools.chain(self._original_data if self._original_data else [],
-                                     self._modified_data if self._modified_data else []):
+        for value in itertools.chain(self.__original_data__ if self.__original_data__ else [],
+                                     self.__modified_data__ if self.__modified_data__ else []):
             try:
                 value.set_read_only(self.get_read_only())
             except AttributeError:
                 pass
+
+    def get_attrs_by_path(self, field_path, stop_first=False):
+        """
+        It returns list of values looked up by field path.
+        Field path is dot-formatted string path: ``parent_field.child_field``.
+
+        :param field_path: field path. It allows ``*`` as wildcard.
+        :type field_path: list or None.
+        :param stop_first: Stop iteration on first value looked up. Default: False.
+        :type stop_first: bool
+        :return: value
+        """
+        index_list, next_field = self._get_indexes_by_path(field_path)
+        values = []
+        for idx in index_list:
+            if next_field:
+                try:
+                    res = self[idx].get_attrs_by_path(next_field, stop_first=stop_first)
+                    values.extend(res)
+
+                    if stop_first and len(values):
+                        break
+
+                except AttributeError:
+                    pass
+            else:
+                if stop_first:
+                    return self[idx]
+                values.append(self[idx])
+
+        return values if len(values) else None
+
+    def get_1st_attr_by_path(self, field_path, **kwargs):
+        """
+        It returns first value looked up by field path.
+        Field path is dot-formatted string path: ``parent_field.child_field``.
+
+        :param field_path: field path. It allows ``*`` as wildcard.
+        :type field_path: str
+        :param default: Default value if field does not exist.
+                        If it is not defined :class:`AttributeError` exception will be raised.
+        :return: value
+        """
+
+        res = self.get_attrs_by_path(field_path, stop_first=True)
+        if res is None:
+            if 'default' in kwargs:
+                return kwargs['default']
+            raise AttributeError("Field '{0}' does not exist".format(field_path))
+        return res.pop()
 
     def delete_attr_by_path(self, field):
         """

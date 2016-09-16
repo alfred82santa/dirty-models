@@ -26,7 +26,7 @@ class TestModels(TestCase):
             testField1 = BaseField()
 
         self.model = FakeModel()
-        self.model._original_data = INITIAL_DATA
+        self.model.__original_data__ = INITIAL_DATA
 
     def tearDown(self):
         self.model.clear_all()
@@ -47,42 +47,42 @@ class TestModels(TestCase):
         self.assertEqual(str(model_object), "FakeModel('testField1': 'Value1','testField3': 'Value3')")
 
     def test_set_initial_value(self):
-        self.model._original_data = {}
+        self.model.__original_data__ = {}
         self.model.set_field_value('testField1', 'whatever')
-        self.assertIsNone(self.model._original_data.get('testField1'))
-        self.assertEqual('whatever', self.model._modified_data['testField1'])
+        self.assertIsNone(self.model.__original_data__.get('testField1'))
+        self.assertEqual('whatever', self.model.__modified_data__['testField1'])
 
     def test_set_value_to_modify(self):
         self.model.set_field_value('testField1', 'whatever')
         self.assertEqual(INITIAL_DATA['testField1'],
-                         self.model._original_data['testField1'])
-        self.assertEqual('whatever', self.model._modified_data['testField1'])
+                         self.model.__original_data__['testField1'])
+        self.assertEqual('whatever', self.model.__modified_data__['testField1'])
 
     def test_set_value_already_modified_with_previous_value(self):
-        self.model._modified_data = {'testField1': 'modifiedValue1'}
+        self.model.__modified_data__ = {'testField1': 'modifiedValue1'}
         self.model.set_field_value('testField1', INITIAL_DATA['testField1'])
-        self.assertEquals(self.model._original_data['testField1'],
+        self.assertEquals(self.model.__original_data__['testField1'],
                           INITIAL_DATA['testField1'])
-        self.assertEquals({}, self.model._modified_data)
+        self.assertEquals({}, self.model.__modified_data__)
 
     def test_delete_value(self):
         self.model.delete_field_value('testField1')
         self.assertEqual(INITIAL_DATA['testField1'],
-                         self.model._original_data['testField1'])
-        self.assertTrue('testField1' in self.model._deleted_fields)
+                         self.model.__original_data__['testField1'])
+        self.assertTrue('testField1' in self.model.__deleted_fields__)
 
     def test_set_value_deleted(self):
         self.model.delete_field_value('testField1')
-        self.assertTrue('testField1' in self.model._deleted_fields)
+        self.assertTrue('testField1' in self.model.__deleted_fields__)
         self.model.set_field_value('testField1', 'undelete')
-        self.assertFalse('testField1' in self.model._deleted_fields)
-        self.assertEquals('undelete', self.model._modified_data['testField1'])
+        self.assertFalse('testField1' in self.model.__deleted_fields__)
+        self.assertEquals('undelete', self.model.__modified_data__['testField1'])
 
     def test_delete_modified_value(self):
-        self.model._modified_data = {'testField1': 'modifiedValue1'}
+        self.model.__modified_data__ = {'testField1': 'modifiedValue1'}
         self.model.delete_field_value('testField1')
-        self.assertEquals({}, self.model._modified_data)
-        self.assertTrue('testField1' in self.model._deleted_fields)
+        self.assertEquals({}, self.model.__modified_data__)
+        self.assertTrue('testField1' in self.model.__deleted_fields__)
 
     def test_get_deleted_value(self):
         self.model.delete_field_value('testField1')
@@ -137,15 +137,15 @@ class TestModels(TestCase):
 
     def test_export_data(self):
         model_field = self._get_test_model_instance()
-        model_field._original_data = {'testField1': 'Field Value1',
-                                      'testField2': 'Field Value2'}
-        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
+        model_field.__original_data__ = {'testField1': 'Field Value1',
+                                         'testField2': 'Field Value2'}
+        model_field.__modified_data__ = {'testField2': 'Field Value2 Modified'}
 
-        self.model._modified_data = {'testField1': 'Value1Modified',
-                                     'testField2': 'Value2Modified',
-                                     'testField3': 'Value3',
-                                     'testField4': model_field}
-        self.model._deleted_fields = ['testField2', 'testField3']
+        self.model.__modified_data__ = {'testField1': 'Value1Modified',
+                                        'testField2': 'Value2Modified',
+                                        'testField3': 'Value3',
+                                        'testField4': model_field}
+        self.model.__deleted_fields__ = ['testField2', 'testField3']
         exported_data = self.model.export_data()
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField4':
@@ -155,16 +155,16 @@ class TestModels(TestCase):
 
     def test_export_modified(self):
         model_field = self._get_test_model_instance()
-        model_field._original_data = {
+        model_field.__original_data__ = {
             'testField1': 'Field Value1', 'testField2': 'Field Value2',
             'testField3': 'Field Value3'}
-        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
-        model_field._deleted_fields = ['testField3']
+        model_field.__modified_data__ = {'testField2': 'Field Value2 Modified'}
+        model_field.__deleted_fields__ = ['testField3']
 
-        self.model._modified_data = {'testField1': 'Value1Modified',
-                                     'testField3': 'Value3',
-                                     'testField4': model_field}
-        self.model._deleted_fields = ['testField3']
+        self.model.__modified_data__ = {'testField1': 'Value1Modified',
+                                        'testField3': 'Value3',
+                                        'testField4': model_field}
+        self.model.__deleted_fields__ = ['testField3']
         exported_data = self.model.export_modified_data()
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField3': None,
@@ -255,66 +255,66 @@ class TestModels(TestCase):
 
     def test_flat_data(self):
         model_field = self._get_test_model_instance()
-        model_field._original_data = {'testField1': 'Field Value1',
-                                      'testField2': 'Field Value2'}
-        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
+        model_field.__original_data__ = {'testField1': 'Field Value1',
+                                         'testField2': 'Field Value2'}
+        model_field.__modified_data__ = {'testField2': 'Field Value2 Modified'}
 
-        self.model._modified_data = {'testField1': 'Value1Modified',
-                                     'testField2': 'Value2Modified',
-                                     'testField3': 'Value3',
-                                     'testField4': model_field}
-        self.model._deleted_fields = ['testField2', 'testField3']
+        self.model.__modified_data__ = {'testField1': 'Value1Modified',
+                                        'testField2': 'Value2Modified',
+                                        'testField3': 'Value3',
+                                        'testField4': model_field}
+        self.model.__deleted_fields__ = ['testField2', 'testField3']
         self.assertTrue(model_field.is_modified())
         self.model.flat_data()
-        self.assertEqual(self.model._deleted_fields, [])
-        self.assertEqual(self.model._modified_data, {})
+        self.assertEqual(self.model.__deleted_fields__, [])
+        self.assertEqual(self.model.__modified_data__, {})
         self.assertFalse(self.model.is_modified())
 
-        self.assertEqual(set(self.model._original_data.keys()),
+        self.assertEqual(set(self.model.__original_data__.keys()),
                          set(['testField1', 'testField4']))
         self.assertEqual(
-            self.model._original_data['testField1'], 'Value1Modified')
+            self.model.__original_data__['testField1'], 'Value1Modified')
         self.assertEqual(
-            self.model._original_data['testField4']._original_data,
+            self.model.__original_data__['testField4'].__original_data__,
             {'testField1': 'Field Value1',
              'testField2': 'Field Value2 Modified'})
 
     def test_clear(self):
         model_field = self._get_test_model_instance()
-        model_field._original_data = {'testField1': 'Field Value1',
-                                      'testField2': 'Field Value2'}
-        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
+        model_field.__original_data__ = {'testField1': 'Field Value1',
+                                         'testField2': 'Field Value2'}
+        model_field.__modified_data__ = {'testField2': 'Field Value2 Modified'}
 
-        model_field._modified_data = {'testField1': 'Value1Modified',
-                                      'testField2': 'Value2Modified',
-                                      'testField3': 'Value3',
-                                      'testField4': model_field}
-        model_field._deleted_fields = ['testField2', 'testField3']
+        model_field.__modified_data__ = {'testField1': 'Value1Modified',
+                                         'testField2': 'Value2Modified',
+                                         'testField3': 'Value3',
+                                         'testField4': model_field}
+        model_field.__deleted_fields__ = ['testField2', 'testField3']
         self.assertTrue(model_field.is_modified())
         model_field.clear()
         self.assertTrue(model_field.is_modified())
-        self.assertEqual(sorted(model_field._deleted_fields), sorted(['testField1', 'testField2']))
-        self.assertEqual(model_field._modified_data, {})
-        self.assertEqual(model_field._original_data, {'testField1': 'Field Value1',
-                                                      'testField2': 'Field Value2'})
+        self.assertEqual(sorted(model_field.__deleted_fields__), sorted(['testField1', 'testField2']))
+        self.assertEqual(model_field.__modified_data__, {})
+        self.assertEqual(model_field.__original_data__, {'testField1': 'Field Value1',
+                                                         'testField2': 'Field Value2'})
 
     def test_clear_all(self):
         model_field = self._get_test_model_instance()
-        model_field._original_data = {'testField1': 'Field Value1',
-                                      'testField2': 'Field Value2'}
-        model_field._modified_data = {'testField2': 'Field Value2 Modified'}
+        model_field.__original_data__ = {'testField1': 'Field Value1',
+                                         'testField2': 'Field Value2'}
+        model_field.__modified_data__ = {'testField2': 'Field Value2 Modified'}
 
-        model_field._modified_data = {'testField1': 'Value1Modified',
-                                      'testField2': 'Value2Modified',
-                                      'testField3': 'Value3',
-                                      'testField4': model_field}
-        model_field._deleted_fields = ['testField2', 'testField3']
+        model_field.__modified_data__ = {'testField1': 'Value1Modified',
+                                         'testField2': 'Value2Modified',
+                                         'testField3': 'Value3',
+                                         'testField4': model_field}
+        model_field.__deleted_fields__ = ['testField2', 'testField3']
         self.assertTrue(model_field.is_modified())
         model_field.clear_all()
         self.assertFalse(model_field.is_modified())
-        self.assertEqual(model_field._deleted_fields, [])
-        self.assertEqual(model_field._modified_data, {})
-        self.assertEqual(model_field._original_data, {})
+        self.assertEqual(model_field.__deleted_fields__, [])
+        self.assertEqual(model_field.__modified_data__, {})
+        self.assertEqual(model_field.__original_data__, {})
 
     def test_dirty_model_meta_field(self):
         class TestIntegerField(BaseField):
@@ -613,7 +613,10 @@ class TestModels(TestCase):
         model_object.delete_attr_by_path('testField1.testBaseField3.*')
         model_object.delete_attr_by_path('testField1.testBaseField4.0.bruceWayneField')
         model_object.delete_attr_by_path('testField1.testBaseField4.3.bruceWayneField')
-        self.assertIsNone(model_object.testField1.testBaseField3[2])
+
+        with self.assertRaises(IndexError):
+            model_object.testField1.testBaseField3[2]
+
         self.assertIsNone(model_object.testField1.testBaseField4[0].bruceWayneField)
 
     def test_reset_attr_by_path_with_lists(self):
@@ -1034,7 +1037,7 @@ class TestFastDynamicModel(TestDynamicModel):
 
     def _get_field_type(self, name):
         try:
-            return self.model._field_types[name]
+            return self.model.__field_types__[name]
         except KeyError:
             return None
 
@@ -1051,7 +1054,7 @@ class TestFastDynamicModelExtraFields(TestDynamicModel):
 
     def _get_field_type(self, name):
         try:
-            return self.model._field_types[name]
+            return self.model.__field_types__[name]
         except KeyError:
             return None
 
@@ -1337,15 +1340,15 @@ class TestDefaultValues(TestCase):
 
 class ModelGeneralDefault(ModelDefaultValues):
 
-    _default_data = {'field_array_integer': [20, 30, 40],
-                     'field_boolean': False,
-                     'field_datetime': datetime(2017, 11, 23, 23, 56, 59),
-                     'field_float': 1.1,
-                     'field_hashmap': {'item3': 'cccc', 'item4': 'dddd'},
-                     'field_integer': 9,
-                     'field_model': {'field_integer': 6, 'field_string': 'tost'},
-                     'field_string': 'barfoo',
-                     'field_time': time(13, 56, 59)}
+    __default_data__ = {'field_array_integer': [20, 30, 40],
+                        'field_boolean': False,
+                        'field_datetime': datetime(2017, 11, 23, 23, 56, 59),
+                        'field_float': 1.1,
+                        'field_hashmap': {'item3': 'cccc', 'item4': 'dddd'},
+                        'field_integer': 9,
+                        'field_model': {'field_integer': 6, 'field_string': 'tost'},
+                        'field_string': 'barfoo',
+                        'field_time': time(13, 56, 59)}
 
 
 class TestGeneralDefaultValues(TestCase):
