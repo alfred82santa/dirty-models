@@ -39,9 +39,10 @@
     :target: https://pypi.python.org/pypi/dirty-models/
     :alt: Supported Python implementations
 
+.. _Dirty Models Sphinx extension: http://dirty-models-sphinx-extension.readthedocs.io
 
 ============
-dirty-models
+Dirty Models
 ============
 
 Dirty models for python 3
@@ -75,13 +76,27 @@ Features
 - Pickable models.
 - Datetime fields can use any datetime format using parser and formatter functions.
 - No database dependent.
-- Auto documentation using https://github.com/alfred82santa/dirty-models-sphinx
+- Auto documentation using `Dirty Models Sphinx extension`_.
 - Json encoder.
+- Field access like dictionary but with wildcards.
 - Opensource (BSD License)
 
 ---------
 Changelog
 ---------
+
+Version 0.8.0
+-------------
+
+- Renamed internal fields. Now they use double score format ``__fieldname__``.
+- Raise a RunTimeError exception if two fields use same alias in a model.
+- Fixed default docstrings.
+- Cleanup default data. Only real name fields are allowed to use as key.
+- Added :meth:`~dirty_models.models.get_attrs_by_path` in order to get all values using path.
+- Added :meth:`~dirty_models.models.get_1st_attr_by_path` in order to get first value using path.
+- Added option to access fields like in a dictionary, but using wildcards. Only for getters.
+  See: :meth:`~dirty_models.models.get_1st_attr_by_path`.
+- Added some documentation.
 
 Version 0.7.2
 -------------
@@ -131,34 +146,34 @@ Version 0.6.2
 
 - Improved datetime fields parser and formatter definitions. Now there are three ways to define them:
 
-    * Format string to use both parse and formatter:
+* Format string to use both parse and formatter:
 
-    .. code-block:: python
+.. code-block:: python
 
-        class ExampleModel(BaseModel):
-            datetime_field = DateTimeField(parse_format='%Y-%m-%dT%H:%M:%SZ')
+    class ExampleModel(BaseModel):
+        datetime_field = DateTimeField(parse_format='%Y-%m-%dT%H:%M:%SZ')
 
 
-    * Define a format string or function for parse and format datetime:
+* Define a format string or function for parse and format datetime:
 
-    .. code-block:: python
+.. code-block:: python
 
-        class ExampleModel(BaseModel):
-            datetime_field = DateTimeField(parse_format={'parser': callable_func,
-                                                         'formatter': '%Y-%m-%dT%H:%M:%SZ'})
+    class ExampleModel(BaseModel):
+        datetime_field = DateTimeField(parse_format={'parser': callable_func,
+                                                     'formatter': '%Y-%m-%dT%H:%M:%SZ'})
 
-    * Use predefined format:
+* Use predefined format:
 
-    .. code-block:: python
+.. code-block:: python
 
-        DateTimeField.date_parsers = {
-            'iso8061': {
-                'formatter': '%Y-%m-%dT%H:%M:%SZ',
-                'parser': iso8601.parse_date
-            }
+    DateTimeField.date_parsers = {
+        'iso8061': {
+            'formatter': '%Y-%m-%dT%H:%M:%SZ',
+            'parser': iso8601.parse_date
         }
-        class ExampleModel(BaseModel):
-            datetime_field = DateTimeField(parse_format='iso8061')
+    }
+    class ExampleModel(BaseModel):
+        datetime_field = DateTimeField(parse_format='iso8061')
 
 
 Version 0.6.1
@@ -191,7 +206,7 @@ Version 0.6.0
 ..  code-block:: python
 
     class InheritExampleModel(ExampleModel):
-        _default_data = {'integer_field': 2}
+        __default_data__ = {'integer_field': 2}
 
     model = InheritExampleModel()
     assert model.integer_field is 2
@@ -281,8 +296,8 @@ Basic usage
     assert fb.alias_field is 3
     assert fb.alias1 is fb.alias_field
     assert fb.alias2 is fb.alias_field
-
+    assert fb['alias_field'] is 3
 
 .. note::
 
-    Look at tests for more examples
+    More examples and documentation on http://dirty-models.readthedocs.io/

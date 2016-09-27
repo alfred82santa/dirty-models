@@ -9,6 +9,7 @@ Welcome to Dirty Models's documentation!
 .. toctree::
 
    intro
+   getting_started
    dirty_models
 
 

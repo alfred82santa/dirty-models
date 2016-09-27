@@ -106,7 +106,16 @@ class BaseField:
 
 class IntegerField(BaseField):
 
-    """It allows to use an integer as value in a field."""
+    """
+    It allows to use an integer as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`float`
+
+    * :class:`str` if all characters are digits
+
+    """
 
     def convert_value(self, value):
         return int(value)
@@ -121,7 +130,15 @@ class IntegerField(BaseField):
 
 class FloatField(BaseField):
 
-    """It allows to use a float as value in a field."""
+    """
+    It allows to use a float as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`int`
+
+    * :class:`str` if all characters are digits and there is only one dot (``.``).
+    """
 
     def convert_value(self, value):
         return float(value)
@@ -137,11 +154,19 @@ class FloatField(BaseField):
 
 class BooleanField(BaseField):
 
-    """It allows to use a boolean as value in a field."""
+    """
+    It allows to use a boolean as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`int` ``0`` become ``False``, anything else ``True``
+
+    * :class:`str` ``true`` and ``yes`` become ``True``, anything else ``False``. It is case-insensitive.
+    """
 
     def convert_value(self, value):
         if isinstance(value, str):
-            if value.lower().strip() == 'true':
+            if value.lower().strip() in ['true', 'yes']:
                 return True
             else:
                 return False
@@ -157,7 +182,16 @@ class BooleanField(BaseField):
 
 class StringField(BaseField):
 
-    """It allows to use a string as value in a field."""
+    """
+    It allows to use a string as value in a field.
+
+
+    **Automatic cast from:**
+
+    * :class:`int`
+
+    * :class:`float`
+    """
 
     def convert_value(self, value):
         return str(value)
@@ -171,7 +205,16 @@ class StringField(BaseField):
 
 class StringIdField(StringField):
 
-    """It allows to use a string as value in a field, but not allows empty strings"""
+    """
+    It allows to use a string as value in a field, but not allows empty strings. Empty string are like ``None``
+    and they will remove data of field.
+
+    **Automatic cast from:**
+
+    * :class:`int`
+
+    * :class:`float`
+    """
 
     def set_value(self, obj, value):
         """Sets value to model if not empty"""
@@ -288,7 +331,21 @@ class DateTimeBaseField(BaseField):
 
 class TimeField(DateTimeBaseField):
 
-    """It allows to use a time as value in a field."""
+    """
+    It allows to use a time as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`list` items will be used to construct :class:`~datetime.time` object as arguments.
+
+    * :class:`dict` items will be used to construct :class:`~datetime.time` object as keyword arguments.
+
+    * :class:`str` will be parsed using a function or format in ``parser`` constructor parameter.
+
+    * :class:`int` will be used as timestamp.
+
+    * :class:`~datetime.datetime` will get time part.
+    """
 
     def convert_value(self, value):
         if isinstance(value, list):
@@ -318,7 +375,21 @@ class TimeField(DateTimeBaseField):
 
 class DateField(DateTimeBaseField):
 
-    """It allows to use a date as value in a field."""
+    """
+    It allows to use a date as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`list` items will be used to construct :class:`~datetime.date` object as arguments.
+
+    * :class:`dict` items will be used to construct :class:`~datetime.date` object as keyword arguments.
+
+    * :class:`str` will be parsed using a function or format in ``parser`` constructor parameter.
+
+    * :class:`int` will be used as timestamp.
+
+    * :class:`~datetime.datetime` will get date part.
+    """
 
     def convert_value(self, value):
         if isinstance(value, list):
@@ -348,7 +419,21 @@ class DateField(DateTimeBaseField):
 
 class DateTimeField(DateTimeBaseField):
 
-    """It allows to use a datetime as value in a field."""
+    """
+    It allows to use a datetime as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`list` items will be used to construct :class:`~datetime.datetime` object as arguments.
+
+    * :class:`dict` items will be used to construct :class:`~datetime.datetime` object as keyword arguments.
+
+    * :class:`str` will be parsed using a function or format in ``parser`` constructor parameter.
+
+    * :class:`int` will be used as timestamp.
+
+    * :class:`~datetime.date` will set date part.
+    """
 
     def convert_value(self, value):
         if isinstance(value, list):
@@ -377,7 +462,16 @@ class DateTimeField(DateTimeBaseField):
 
 
 class TimedeltaField(BaseField):
-    """It allows to use a timedelta as value in a field."""
+    """
+    It allows to use a timedelta as value in a field.
+
+    **Automatic cast from:**
+
+    * :class:`float` as seconds.
+
+    * :class:`int` as seconds.
+
+    """
 
     def convert_value(self, value):
         if isinstance(value, (int, float)):
@@ -397,6 +491,12 @@ class ModelField(BaseField):
     defined on constructor using param model_class. If it is not defined
     self model will be used. It means model inside field will be the same
     class than model who define field.
+
+    **Automatic cast from:**
+
+    * :class:`dict`.
+
+    * :class:`collections.Mapping`.
     """
 
     def __init__(self, model_class=None, **kwargs):
@@ -486,6 +586,12 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
     It allows to create a ListModel (iterable in :mod:`dirty_models.types`) of different elements according
     to the specified field_type. So it is possible to have a list of Integers, Strings, Models, etc.
     When using a model with no specified model_class the model inside field.
+
+    **Automatic cast from:**
+
+    * :class:`set`.
+
+    * :class:`tuple`.
     """
 
     def __init__(self, autolist=False, **kwargs):
@@ -549,6 +655,12 @@ class HashMapField(InnerFieldTypeMixin, ModelField):
 
     """
     It allows to create a field which contains a hash map.
+
+    **Automatic cast from:**
+
+    * :class:`dict`.
+
+    * :class:`BaseModel`.
     """
 
     def __init__(self, model_class=None, **kwargs):
@@ -590,8 +702,8 @@ class MultiTypeField(BaseField):
 
     def get_field_docstring(self):
         if len(self._field_types):
-            return 'Multiple type values allowed:\n{0}'.format("\n".join(["* {0}".format(field.get_field_docstring())
-                                                                          for field in self._field_types]))
+            return 'Multiple type values are allowed:\n\n{0}'.format(
+                "\n\n".join(["* {0}".format(field.get_field_docstring())for field in self._field_types]))
 
     def export_definition(self):
         result = super(MultiTypeField, self).export_definition()

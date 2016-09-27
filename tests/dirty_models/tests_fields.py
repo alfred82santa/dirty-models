@@ -1403,8 +1403,10 @@ class TestMultiTypeFieldSimpleTypes(TestCase):
         field = MultiTypeField(field_types=[IntegerField(), StringField()])
         self.assertEqual(field.export_definition(), {
             'alias': None,
-            'doc': "\n".join(['Multiple type values allowed:',
+            'doc': "\n".join(['Multiple type values are allowed:',
+                              '',
                               '* IntegerField field',
+                              '',
                               '* StringField field']),
             'field_types': [(IntegerField, {'alias': None,
                                             'doc': 'IntegerField field',
