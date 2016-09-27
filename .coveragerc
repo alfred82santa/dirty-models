@@ -1,8 +1,9 @@
 [report]
+show_missing = True
 omit =
     */tests/*
     */site-packages/*
-    
+
 exclude_lines =
     pragma: no cover
     def __repr__

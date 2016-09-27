@@ -183,3 +183,15 @@ class TestTypes(TestCase):
         test_list = ListModel()
         test_list.import_data(set([1, 2]))
         self.assertTrue(1 in test_list)
+
+    def test_invalid_index(self):
+        test_list = ListModel([2, 4, 5])
+
+        with self.assertRaises(TypeError):
+            test_list[23.12]
+
+    def test_out_of_bounds_index(self):
+        test_list = ListModel([2, 4, 5])
+
+        with self.assertRaises(IndexError):
+            test_list[23]

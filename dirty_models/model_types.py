@@ -36,6 +36,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
     def __init__(self, seq=None, *args, **kwargs):
         super(ListModel, self).__init__(*args, **kwargs)
         self.__original_data__ = []
+        self.__modified_data__ = None
         if seq is not None:
             self.extend(seq)
 
@@ -90,10 +91,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             val = self.__modified_data__.__getitem__(item)
             if val is not None:
                 return val
-        elif self.__original_data__ is not None:
-            return self.__original_data__.__getitem__(item)
-
-        raise IndexError("list index out of range")
+        return self.__original_data__.__getitem__(item)
 
     @modified_data_decorator
     def __delitem__(self, key):
@@ -108,9 +106,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         if self.__modified_data__ is not None:
             return len(self.__modified_data__)
-        elif self.__original_data__ is not None:
-            return len(self.__original_data__)
-        return 0
+        return len(self.__original_data__)
 
     @modified_data_decorator
     def append(self, item):
@@ -136,9 +132,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         if self.__modified_data__ is not None:
             return self.__modified_data__.index(value)
-        if self.__original_data__ is not None:
-            return self.__original_data__.index(value)
-        raise ValueError()
+        return self.__original_data__.index(value)
 
     def clear(self):
         """
@@ -182,9 +176,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         if self.__modified_data__ is not None:
             return self.__modified_data__.count(value)
-        if self.__original_data__ is not None:
-            return self.__original_data__.count(value)
-        return 0
+        return self.__original_data__.count(value)
 
     @modified_data_decorator
     def reverse(self):
@@ -208,9 +200,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         if self.__modified_data__ is not None:
             return self.__modified_data__.__iter__()
-        if self.__original_data__ is not None:
-            return self.__original_data__.__iter__()
-        return [].__iter__()
+        return self.__original_data__.__iter__()
 
     def flat_data(self):
         """
@@ -248,9 +238,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
 
         if self.__modified_data__ is not None:
             return [export_field(value) for value in self.__modified_data__]
-        if self.__original_data__ is not None:
-            return [export_field(value) for value in self.__original_data__]
-        return []
+        return [export_field(value) for value in self.__original_data__]
 
     def export_modified_data(self):
         """
@@ -268,9 +256,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
 
         if self.__modified_data__ is not None:
             return [export_modfield(value) for value in self.__modified_data__]
-        if self.__original_data__ is not None:
-            return list(x for x in [export_modfield(value) for value in self.__original_data__] if x is not None)
-        return []
+        return list(x for x in [export_modfield(value) for value in self.__original_data__] if x is not None)
 
     def export_original_data(self):
         """
@@ -381,6 +367,8 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             if next_field:
                 try:
                     res = self[idx].get_attrs_by_path(next_field, stop_first=stop_first)
+                    if res is None:
+                        continue
                     values.extend(res)
 
                     if stop_first and len(values):
@@ -390,7 +378,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
                     pass
             else:
                 if stop_first:
-                    return self[idx]
+                    return [self[idx], ]
                 values.append(self[idx])
 
         return values if len(values) else None
@@ -421,7 +409,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         index_list, next_field = self._get_indexes_by_path(field)
         if index_list:
-            for index in index_list:
+            for index in reversed(index_list):
                 if next_field:
                     self[index].delete_attr_by_path(next_field)
                 else:
@@ -446,14 +434,13 @@ class ListModel(InnerFieldTypeMixin, BaseData):
 
     def _get_indexes_by_path(self, field):
         """
-        Function to perform a function to the field specified. Returns a list of index where the function has to be
-        applied
+        Returns a list of indexes by field path.
+
         :param field: Field structure as following:
          *.subfield_2  would apply the function to the every subfield_2 of the elements
          1.subfield_2  would apply the function to the subfield_2 of the element 1
          * would apply the function to every element
          1 would apply the function to element 1
-        :field function: string containing the function in the class to be applied to the field
         """
         try:
             field, next_field = field.split('.', 1)
@@ -463,7 +450,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         if field == '*':
             index_list = []
             for item in self:
-                index_list.insert(0, self.index(item))
+                index_list.append(self.index(item))
             if index_list:
                 return index_list, next_field
             return [], None

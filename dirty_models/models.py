@@ -28,6 +28,7 @@ class DirtyModelMeta(type):
         super(DirtyModelMeta, cls).__init__(name, bases, classdict)
 
         fields = {key: field for key, field in cls.__dict__.items() if isinstance(field, BaseField)}
+
         structure = {}
         read_only_fields = []
         for key, field in fields.items():
@@ -54,9 +55,8 @@ class DirtyModelMeta(type):
             except AttributeError:
                 pass
 
-        cls.check_structure()
-
         cls.__structure__.update(structure)
+        cls.check_structure()
         cls.__default_data__ = {k: v for k, v in default_data.items() if k in cls.__structure__.keys()}
 
     def process_base_field(cls, field, key):
@@ -100,6 +100,7 @@ class DirtyModelMeta(type):
             pass
 
     def check_structure(cls):
+        names = set()
         fields = {key: field for key, field in cls.__dict__.items() if isinstance(field, BaseField)}
         try:
             name, field = fields.popitem()
@@ -107,21 +108,14 @@ class DirtyModelMeta(type):
             field = None
 
         while field:
-            twins = [k for k, f in fields.items() if f is field]
-            [fields.pop(n) for n in twins]
+            [fields.pop(n) for n, f in fields.copy().items() if f is field]
 
-            twins.append(name)
-
-            if field.name not in twins:
-                [delattr(cls, n) for n in twins]
-                try:
-                    del cls.__structure__[field.name]
-                except KeyError:
-                    pass
-            else:
-                twins.remove(field.name)
-                field.alias = [a for a in field.alias or [] if a in twins]
-                field.alias.extend([a for a in twins if a not in field.alias])
+            alias = set(field.alias or [])
+            alias.add(field.name)
+            for n in alias:
+                if n in names:
+                    raise RuntimeError("Field '{0}' used twice on model '{1}'".format(n, cls.__name__))
+                names.add(n)
 
             try:
                 name, field = fields.popitem()
@@ -286,7 +280,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 data = data.export_data()
             if isinstance(data, (dict, Mapping)):
                 for key, value in data.items():
-                    if key.startswith('__') or not self.get_field_obj(key):
+                    if not self.get_field_obj(key):
                         self._not_allowed_field(key)
                         continue
                     setattr(self, key, value)
@@ -308,20 +302,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             return
 
         if self.get_read_only() and self.is_locked():
-            self._not_allowed_modify()
             return
 
         if isinstance(data, str):
             data = [data]
 
-        if not isinstance(data, list):
-            raise ValueError("Import deleted fields data must be a string or list of strings")
-
         for key in data:
-            if key.startswith('__'):
-                self._not_allowed_field(key)
-                continue
-
             if hasattr(self, key):
                 delattr(self, key)
             else:
@@ -503,9 +489,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return iterfunc()
 
     def _can_write_field(self, name):
-        return name not in self.__structure__ or (not self.__structure__[name].read_only
-                                                  and not self.get_read_only()) or \
-            not self.is_locked()
+        if name not in self.__structure__ or (not self.__structure__[name].read_only
+                                              and not self.get_read_only()) or not self.is_locked():
+            return True
+        else:
+            self._not_allowed_modify(name)
+            return False
 
     def _update_read_only(self):
         for value in itertools.chain(self.__original_data__.values(), self.__modified_data__.values()):
@@ -550,7 +539,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         :type field_path: list or None.
         :param stop_first: Stop iteration on first value looked up. Default: False.
         :type stop_first: bool
-        :return: value
+        :return: A list of values or None it was a invalid path.
+        :rtype: :class:`list` or :class:`None`
         """
         fields, next_field = self._get_fields_by_path(field_path)
         values = []
@@ -558,6 +548,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
             if next_field:
                 try:
                     res = self.get_field_value(field).get_attrs_by_path(next_field, stop_first=stop_first)
+                    if res is None:
+                        continue
                     values.extend(res)
 
                     if stop_first and len(values):
@@ -566,9 +558,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 except AttributeError:
                     pass
             else:
+                value = self.get_field_value(field)
+                if value is None:
+                    continue
                 if stop_first:
-                    return self.get_field_value(field)
-                values.append(self.get_field_value(field))
+                    return [value, ]
+                values.append(value)
 
         return values if len(values) else None
 
@@ -586,9 +581,10 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         res = self.get_attrs_by_path(field_path, stop_first=True)
         if res is None:
-            if 'default' in kwargs:
+            try:
                 return kwargs['default']
-            raise AttributeError("Field '{0}' does not exist".format(field_path))
+            except KeyError:
+                raise AttributeError("Field '{0}' does not exist".format(field_path))
         return res.pop()
 
     def delete_attr_by_path(self, field_path):
@@ -628,9 +624,6 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
                 self.reset_field_value(field)
 
     def __getitem__(self, key):
-        if not isinstance(key, str):
-            raise TypeError("Key must be a string")
-
         try:
             return self.get_1st_attr_by_path(key)
         except AttributeError as ex:
@@ -640,6 +633,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     def get_structure(cls):
         """
         Returns a dictionary with model field objects.
+
         :return: dict
         """
         return cls.__structure__.copy()
@@ -648,6 +642,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     def get_default_data(cls):
         """
         Returns a dictionary with default data.
+
         :return: dict
         """
         return deepcopy(cls.__default_data__)
@@ -738,6 +733,7 @@ class DynamicModel(BaseDynamicModel):
 
     def _define_new_field_by_value(self, name, value):
         field_type = self._get_field_type(name, value)
+
         if not field_type:
             return False
         self.__structure__[field_type.name] = field_type
@@ -918,6 +914,7 @@ class FastDynamicModel(BaseDynamicModel):
     def get_current_structure(self):
         """
         Returns a dictionary with model field objects.
+
         :return: dict
         """
 
@@ -927,6 +924,7 @@ class FastDynamicModel(BaseDynamicModel):
 
     def _define_new_field_by_value(self, name, value):
         field_type = self._get_field_type(name, value)
+
         if not field_type:
             return False
         self.__field_types__[name] = field_type

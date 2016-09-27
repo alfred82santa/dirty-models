@@ -875,6 +875,24 @@ class TestModelReadOnly(TestCase):
 
         self.assertTrue(model.is_locked())
 
+    def test_import_delete_fields_readonly(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelReadOnly(data)
+        model.flat_data()
+
+        model.testFieldModel.import_deleted_fields(['testField1'])
+        self.assertEqual(model.testFieldModel.testField1, 61)
+
     def test_documentation_default(self):
         class TestModel(BaseModel):
             field_1 = IntegerField()
@@ -1027,6 +1045,10 @@ class TestDynamicModel(TestCase):
         self.assertEqual(self._get_field_type('test3'), field_type)
         self.assertTrue(self.model.is_modified())
         self.assertTrue(self.model.is_modified_field('test3'))
+
+    def test_import_none(self):
+        self.model.import_data({'test': None})
+        self.assertIsNone(self.model.test)
 
 
 class TestFastDynamicModel(TestDynamicModel):
@@ -1262,6 +1284,12 @@ class TestHashMapModel(TestCase):
         model.field1 = 'sdsd'
         self.assertEqual(model.field1, 'sdsd')
 
+    def test_import_model(self):
+
+        model = FastDynamicModel(data={'test1': 'test_string'})
+        self.model.import_data(model)
+        self.assertEqual(model.test1, 'test_string')
+
 
 class SecondaryModel(BaseModel):
 
@@ -1406,7 +1434,7 @@ class TestGeneralDefaultValues(TestCase):
                                                         'field_time': time(13, 56, 59)})
 
 
-class CamelCaseMetaclassTest(TestCase):
+class CamelCaseMetaclassTests(TestCase):
 
     def test_camelcase_fields(self):
 
@@ -1435,9 +1463,9 @@ class CamelCaseMetaclassTest(TestCase):
                                                'test_field_4': 'pir'})
 
 
-class AliasTest(TestCase):
+class AliasTests(TestCase):
 
-    def tests_field_alias(self):
+    def test_field_alias(self):
 
         class Model(BaseModel):
 
@@ -1448,9 +1476,9 @@ class AliasTest(TestCase):
         self.assertEqual(Model.get_structure()['text_field'].alias, ['string_field'])
 
 
-class StructureTest(TestCase):
+class StructureTests(TestCase):
 
-    def tests_simple_structure(self):
+    def test_simple_structure(self):
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
             string_field = StringField(name='text_field')
@@ -1461,7 +1489,7 @@ class StructureTest(TestCase):
         self.assertIn('text_field', Model.get_structure())
         self.assertIsInstance(Model.get_structure()['text_field'], StringField)
 
-    def tests_inherit_structure(self):
+    def test_inherit_structure(self):
 
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
@@ -1478,3 +1506,216 @@ class StructureTest(TestCase):
         self.assertIsInstance(InheritModel.get_structure()['text_field'], StringField)
         self.assertIn('float_field', InheritModel.get_structure())
         self.assertIsInstance(InheritModel.get_structure()['float_field'], FloatField)
+
+
+class FieldInconsistenceTests(TestCase):
+
+    def test_override_field(self):
+
+        with self.assertRaises(RuntimeError):
+            class Model(BaseModel):
+                test_field_1 = StringField(alias=['text_field'])
+                test_field_2 = IntegerField(alias=['test_field_1'])
+
+
+class GetAttributeByPathTests(TestCase):
+
+    def setUp(self):
+
+        class InnerModel(BaseModel):
+            test_field_1 = IntegerField()
+            test_field_2 = StringField()
+
+        class Model(BaseModel):
+            test_field_1 = IntegerField()
+            test_list = ArrayField(field_type=ModelField(model_class=InnerModel))
+            test_model = ModelField(model_class=InnerModel)
+            test_list_int = ArrayField(field_type=IntegerField())
+
+        self.model = Model(data={'test_field_1': 1,
+                                 'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
+                                               {'test_field_1': 3}],
+                                 'test_model': {'test_field_1': 4, 'test_field_2': 'string2'},
+                                 'test_list_int': [1, 2, 3]})
+
+    def test_simple(self):
+        self.assertEqual(self.model.get_attrs_by_path('test_field_1'), [1])
+
+    def test_simple_path(self):
+        self.assertEqual(self.model.get_attrs_by_path('test_model.test_field_1'), [4])
+        self.assertEqual(self.model.get_attrs_by_path('test_model.test_field_2'), ['string2'])
+
+    def test_simple_path_no_field(self):
+        self.assertIsNone(self.model.get_attrs_by_path('test_model.test_field_3'))
+
+    def test_simple_path_no_struct(self):
+        self.assertIsNone(self.model.get_attrs_by_path('test_field_1.test_field_3'))
+
+    def test_simple_path_no_value(self):
+        self.assertIsNone(self.model.get_attrs_by_path('test_list.1.test_field_2'))
+
+    def test_simple_path_list(self):
+        self.assertEqual(self.model.get_attrs_by_path('test_list.0.test_field_1'), [2])
+        self.assertEqual(self.model.get_attrs_by_path('test_list.0.test_field_2'), ['string'])
+
+    def test_wildcard_path_list(self):
+        self.assertEqual(self.model.get_attrs_by_path('test_list.*.test_field_1'), [2, 3])
+        self.assertEqual(self.model.get_attrs_by_path('test_list.*.test_field_2'), ['string'])
+
+    def test_wildcard_path_all(self):
+        self.assertEqual(set(self.model.get_attrs_by_path('*')), set([1, self.model.test_list,
+                                                                      self.model.test_model,
+                                                                      self.model.test_list_int]))
+
+    def test_wildcard_path_list(self):
+        self.assertEqual(set(self.model.get_attrs_by_path('test_list.*')), set([self.model.test_list[0],
+                                                                                self.model.test_list[1]]))
+
+    def test_first_simple(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_field_1'), 1)
+
+    def test_first_simple_path(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_model.test_field_1'), 4)
+        self.assertEqual(self.model.get_1st_attr_by_path('test_model.test_field_2'), 'string2')
+
+    def test_first_simple_path_no_field(self):
+        with self.assertRaises(AttributeError):
+            self.model.get_1st_attr_by_path('test_model.test_field_3')
+
+    def test_first_simple_path_no_field_with_default(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_model.test_field_3', default=4), 4)
+
+    def test_first_simple_path_no_value(self):
+        with self.assertRaises(AttributeError):
+            self.model.get_1st_attr_by_path('test_list.1.test_field_2')
+
+    def test_first_simple_path_no_value_with_default(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_list.1.test_field_2', default=4), 4)
+
+    def test_first_simple_path_list(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_list.0.test_field_1'), 2)
+        self.assertEqual(self.model.get_1st_attr_by_path('test_list.0.test_field_2'), 'string')
+
+    def test_first_wildcard_path_list(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_list.*.test_field_1'), 2)
+        self.assertEqual(self.model.get_1st_attr_by_path('test_list.*.test_field_2'), 'string')
+
+    def test_first_wildcard_path_all(self):
+        self.assertIn(self.model.get_1st_attr_by_path('*'), [1, self.model.test_list, self.model.test_model])
+
+    def test_first_wildcard_path_list(self):
+        self.assertEqual(self.model.get_1st_attr_by_path('test_list.*'), self.model.test_list[0])
+
+    def test_list_first_simple_path_list(self):
+        self.assertEqual(self.model.test_list.get_1st_attr_by_path('0.test_field_1'), 2)
+        self.assertEqual(self.model.test_list.get_1st_attr_by_path('0.test_field_2'), 'string')
+
+    def test_list_first_simple_path_list_no_field(self):
+        with self.assertRaises(AttributeError):
+            self.model.test_list.get_1st_attr_by_path('0.test_field_3')
+
+    def test_list_first_simple_path_list_no_field_default(self):
+        self.assertEqual(self.model.test_list.get_1st_attr_by_path('0.test_field_3', default=2), 2)
+
+    def test_list_first_simple_path_list_no_value(self):
+        with self.assertRaises(AttributeError):
+            self.model.test_list.get_1st_attr_by_path('1.test_field_2')
+
+    def test_list_first_simple_path_list_no_value_default(self):
+        self.assertEqual(self.model.test_list.get_1st_attr_by_path('1.test_field_2', default=2), 2)
+
+    def test_list_first_wildcard_path_list(self):
+        self.assertEqual(self.model.test_list.get_1st_attr_by_path('*.test_field_1'), 2)
+        self.assertEqual(self.model.test_list.get_1st_attr_by_path('*.test_field_2'), 'string')
+
+    def test_dict_like_simple(self):
+        self.assertEqual(self.model['test_field_1'], 1)
+
+    def test_dict_like_simple_path(self):
+        self.assertEqual(self.model['test_model.test_field_1'], 4)
+        self.assertEqual(self.model['test_model.test_field_2'], 'string2')
+
+    def test_dict_like_simple_path_no_field(self):
+        with self.assertRaises(KeyError):
+            self.model['test_model.test_field_3']
+
+    def test_dict_like_simple_path_no_value(self):
+        with self.assertRaises(KeyError):
+            self.model['test_list.1.test_field_2']
+
+    def test_dict_like_simple_path_list(self):
+        self.assertEqual(self.model['test_list.0.test_field_1'], 2)
+        self.assertEqual(self.model['test_list.0.test_field_2'], 'string')
+
+    def test_dict_like_wildcard_path_list(self):
+        self.assertEqual(self.model['test_list.*.test_field_1'], 2)
+        self.assertEqual(self.model['test_list.*.test_field_2'], 'string')
+
+    def test_dict_like_wildcard_path_all(self):
+        self.assertIn(self.model['*'], [1, self.model.test_list, self.model.test_model])
+
+    def test_dict_like_wildcard_path_list(self):
+        self.assertEqual(self.model['test_list.*'], self.model.test_list[0])
+
+    def test_list_dict_like_simple_path_list(self):
+        self.assertEqual(self.model.test_list['0.test_field_1'], 2)
+        self.assertEqual(self.model.test_list['0.test_field_2'], 'string')
+
+    def test_list_dict_like_simple_path_list_no_field(self):
+        with self.assertRaises(KeyError):
+            self.model.test_list['0.test_field_3']
+
+    def test_list_dict_like_simple_path_list_no_value(self):
+        with self.assertRaises(KeyError):
+            self.model.test_list['1.test_field_2']
+
+    def test_list_dict_like_wildcard_path_list(self):
+        self.assertEqual(self.model.test_list['*.test_field_1'], 2)
+        self.assertEqual(self.model.test_list['*.test_field_2'], 'string')
+
+    def test_list_invalid_path_list(self):
+        self.assertIsNone(self.model.get_attrs_by_path('test_list_int.*.test'))
+
+
+class GetAttributeByPathDynamicModelTests(GetAttributeByPathTests):
+
+    def setUp(self):
+        self.model = DynamicModel(data={'test_field_1': 1,
+                                        'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
+                                                      {'test_field_1': 3}],
+                                        'test_model': {'test_field_1': 4, 'test_field_2': 'string2'},
+                                        'test_list_int': [1, 2, 3]})
+
+
+class GetAttributeByPathFastDynamicModelTests(GetAttributeByPathTests):
+
+    def setUp(self):
+        self.model = FastDynamicModel(data={'test_field_1': 1,
+                                            'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
+                                                          {'test_field_1': 3}],
+                                            'test_model': {'test_field_1': 4, 'test_field_2': 'string2'},
+                                            'test_list_int': [1, 2, 3]})
+
+
+class AvoidInternalAttributesTests(TestCase):
+
+    def test_hashmap_import_double_underscore(self):
+
+        class Model(HashMapModel):
+            test_field = IntegerField()
+
+        model = Model(field_type=ModelField(model_class=FastDynamicModel))
+        model.import_data({'__structure__': {}})
+        self.assertNotEqual(model.__structure__, {})
+
+    def test_dynmodel_import_double_underscore(self):
+
+        model = DynamicModel()
+        model.import_data({'__class__': 'test_class'})
+        self.assertNotEqual(model.__class__, 'test_class')
+
+    def test_fastdynmodel_import_double_underscore(self):
+
+        model = FastDynamicModel()
+        model.import_data({'__class__': 'test_class'})
+        self.assertNotEqual(model.__class__, 'test_class')
