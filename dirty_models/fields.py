@@ -161,8 +161,6 @@ class BooleanField(BaseField):
 
     * :class:`int` ``0`` become ``False``, anything else ``True``
 
-    * :class:`float` ``0`` become ``False``, anything else ``True``
-
     * :class:`str` ``true`` and ``yes`` become ``True``, anything else ``False``. It is case-insensitive.
     """
 
@@ -179,7 +177,7 @@ class BooleanField(BaseField):
         return isinstance(value, bool)
 
     def can_use_value(self, value):
-        return isinstance(value, (int, str, float))
+        return isinstance(value, (int, str))
 
 
 class StringField(BaseField):
