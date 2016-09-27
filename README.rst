@@ -298,6 +298,6 @@ Basic usage
     assert fb.alias2 is fb.alias_field
     assert fb['alias_field'] is 3
 
-.. note::b
+.. note::
 
     More examples and documentation on http://dirty-models.readthedocs.io/
