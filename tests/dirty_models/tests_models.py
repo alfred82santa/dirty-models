@@ -1558,7 +1558,7 @@ class GetAttributeByPathTests(TestCase):
         self.assertEqual(self.model.get_attrs_by_path('test_list.0.test_field_1'), [2])
         self.assertEqual(self.model.get_attrs_by_path('test_list.0.test_field_2'), ['string'])
 
-    def test_wildcard_path_list(self):
+    def test_wildcard_path_list_inner(self):
         self.assertEqual(self.model.get_attrs_by_path('test_list.*.test_field_1'), [2, 3])
         self.assertEqual(self.model.get_attrs_by_path('test_list.*.test_field_2'), ['string'])
 
@@ -1596,7 +1596,7 @@ class GetAttributeByPathTests(TestCase):
         self.assertEqual(self.model.get_1st_attr_by_path('test_list.0.test_field_1'), 2)
         self.assertEqual(self.model.get_1st_attr_by_path('test_list.0.test_field_2'), 'string')
 
-    def test_first_wildcard_path_list(self):
+    def test_first_wildcard_path_list_inner(self):
         self.assertEqual(self.model.get_1st_attr_by_path('test_list.*.test_field_1'), 2)
         self.assertEqual(self.model.get_1st_attr_by_path('test_list.*.test_field_2'), 'string')
 
@@ -1647,7 +1647,7 @@ class GetAttributeByPathTests(TestCase):
         self.assertEqual(self.model['test_list.0.test_field_1'], 2)
         self.assertEqual(self.model['test_list.0.test_field_2'], 'string')
 
-    def test_dict_like_wildcard_path_list(self):
+    def test_dict_like_wildcard_path_list_inner(self):
         self.assertEqual(self.model['test_list.*.test_field_1'], 2)
         self.assertEqual(self.model['test_list.*.test_field_2'], 'string')
 
