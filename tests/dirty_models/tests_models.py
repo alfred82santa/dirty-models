@@ -1,5 +1,6 @@
 import pickle
 from datetime import datetime, date, time, timedelta
+from functools import partial
 from unittest import TestCase
 
 from dirty_models.base import Unlocker
@@ -1285,20 +1286,17 @@ class TestHashMapModel(TestCase):
         self.assertEqual(model.field1, 'sdsd')
 
     def test_import_model(self):
-
         model = FastDynamicModel(data={'test1': 'test_string'})
         self.model.import_data(model)
         self.assertEqual(model.test1, 'test_string')
 
 
 class SecondaryModel(BaseModel):
-
     field_integer = IntegerField(default=2)
     field_string = StringField(default='test')
 
 
 class ModelDefaultValues(BaseModel):
-
     field_integer = IntegerField(default=1)
     field_string = StringField(default='foobar')
     field_boolean = BooleanField(default=True)
@@ -1315,7 +1313,6 @@ class ModelDefaultValues(BaseModel):
 class TestDefaultValues(TestCase):
 
     def test_field_default_value(self):
-
         model = ModelDefaultValues()
 
         self.assertEqual(model.field_integer, 1)
@@ -1367,7 +1364,6 @@ class TestDefaultValues(TestCase):
 
 
 class ModelGeneralDefault(ModelDefaultValues):
-
     __default_data__ = {'field_array_integer': [20, 30, 40],
                         'field_boolean': False,
                         'field_datetime': datetime(2017, 11, 23, 23, 56, 59),
@@ -1382,7 +1378,6 @@ class ModelGeneralDefault(ModelDefaultValues):
 class TestGeneralDefaultValues(TestCase):
 
     def test_field_default_value(self):
-
         model = ModelGeneralDefault()
 
         self.assertEqual(model.field_integer, 9)
@@ -1437,9 +1432,7 @@ class TestGeneralDefaultValues(TestCase):
 class CamelCaseMetaclassTests(TestCase):
 
     def test_camelcase_fields(self):
-
         class TestModel(BaseModel, metaclass=CamelCaseMeta):
-
             test_field_1 = StringField()
             test_field2 = StringField()
             testField_3 = StringField()
@@ -1466,9 +1459,7 @@ class CamelCaseMetaclassTests(TestCase):
 class AliasTests(TestCase):
 
     def test_field_alias(self):
-
         class Model(BaseModel):
-
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
             string_field = StringField(name='text_field')
 
@@ -1484,13 +1475,12 @@ class StructureTests(TestCase):
             string_field = StringField(name='text_field')
 
         self.assertEqual(len(Model.get_structure()), 2)
-        self.assertIn('scalar_field',  Model.get_structure())
+        self.assertIn('scalar_field', Model.get_structure())
         self.assertIsInstance(Model.get_structure()['scalar_field'], IntegerField)
         self.assertIn('text_field', Model.get_structure())
         self.assertIsInstance(Model.get_structure()['text_field'], StringField)
 
     def test_inherit_structure(self):
-
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
             string_field = StringField(name='text_field')
@@ -1500,7 +1490,7 @@ class StructureTests(TestCase):
             float_field = FloatField()
 
         self.assertEqual(len(InheritModel.get_structure()), 3)
-        self.assertIn('scalar_field',  InheritModel.get_structure())
+        self.assertIn('scalar_field', InheritModel.get_structure())
         self.assertIsInstance(InheritModel.get_structure()['scalar_field'], IntegerField)
         self.assertIn('text_field', InheritModel.get_structure())
         self.assertIsInstance(InheritModel.get_structure()['text_field'], StringField)
@@ -1511,7 +1501,6 @@ class StructureTests(TestCase):
 class FieldInconsistenceTests(TestCase):
 
     def test_override_field(self):
-
         with self.assertRaises(RuntimeError):
             class Model(BaseModel):
                 test_field_1 = StringField(alias=['text_field'])
@@ -1521,7 +1510,6 @@ class FieldInconsistenceTests(TestCase):
 class GetAttributeByPathTests(TestCase):
 
     def setUp(self):
-
         class InnerModel(BaseModel):
             test_field_1 = IntegerField()
             test_field_2 = StringField()
@@ -1702,7 +1690,6 @@ class GetAttributeByPathFastDynamicModelTests(GetAttributeByPathTests):
 class AvoidInternalAttributesTests(TestCase):
 
     def test_hashmap_import_double_underscore(self):
-
         class Model(HashMapModel):
             test_field = IntegerField()
 
@@ -1711,13 +1698,56 @@ class AvoidInternalAttributesTests(TestCase):
         self.assertNotEqual(model.__structure__, {})
 
     def test_dynmodel_import_double_underscore(self):
-
         model = DynamicModel()
         model.import_data({'__class__': 'test_class'})
         self.assertNotEqual(model.__class__, 'test_class')
 
     def test_fastdynmodel_import_double_underscore(self):
-
         model = FastDynamicModel()
         model.import_data({'__class__': 'test_class'})
         self.assertNotEqual(model.__class__, 'test_class')
+
+
+class ContainsAttributeRegularModelTests(TestCase):
+
+    class Model(HashMapModel):
+        test_field = IntegerField()
+
+    def test_contains_attribute_original_data(self):
+        model = self.Model(test_field=1, flat=True)
+        self.assertTrue('test_field' in model)
+
+    def test_not_contains_attribute(self):
+        model = self.Model()
+
+        self.assertFalse('test_field' in model)
+
+    def test_not_contains_attribute_original_deleted(self):
+        model = self.Model(test_field=1, flat=True)
+
+        del model.test_field
+
+        self.assertFalse('test_field' in model)
+
+    def test_contains_attribute_modified_data(self):
+        model = self.Model(test_field=1)
+        self.assertTrue('test_field' in model)
+
+    def test_contains_attribute_modified_deleted(self):
+        model = self.Model(test_field=1)
+
+        del model.test_field
+
+        self.assertFalse('test_field' in model)
+
+
+class ContainsAttributeDynamicModelTests(ContainsAttributeRegularModelTests):
+    Model = DynamicModel
+
+
+class ContainsAttributeFastDynamicModelTests(ContainsAttributeRegularModelTests):
+    Model = FastDynamicModel
+
+
+class ContainsAttributeHashMapModelTests(ContainsAttributeRegularModelTests):
+    Model = partial(HashMapModel, field_type=IntegerField())

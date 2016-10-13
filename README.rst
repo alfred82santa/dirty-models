@@ -85,6 +85,11 @@ Features
 Changelog
 ---------
 
+Version 0.8.1
+-------------
+
+- Added __contains__ function to models and lists. It allows to use ``in`` operator.
+
 Version 0.8.0
 -------------
 
