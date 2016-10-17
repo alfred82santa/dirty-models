@@ -156,17 +156,14 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     Base model with dirty feature. It stores original data and saves
     modifications in other side.
     """
-    __original_data__ = None
-    __modified_data__ = None
-    __deleted_fields__ = None
 
     __default_data__ = {}
 
     def __init__(self, data=None, flat=False, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
-        self.__original_data__ = {}
-        self.__modified_data__ = {}
-        self.__deleted_fields__ = []
+        BaseModel.__setattr__(self, '__original_data__', {})
+        BaseModel.__setattr__(self, '__modified_data__', {})
+        BaseModel.__setattr__(self, '__deleted_fields__', [])
 
         self.unlock()
         self.import_data(self.__default_data__)
@@ -510,6 +507,10 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
     def __repr__(self):
         return str(self)
+
+    def __contains__(self, item):
+        return item in self.__modified_data__ or (item in self.__original_data__ and
+                                                  item not in self.__deleted_fields__)
 
     @classmethod
     def get_field_obj(cls, name):

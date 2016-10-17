@@ -30,9 +30,6 @@ class ListModel(InnerFieldTypeMixin, BaseData):
     to work also as a model, having the old and the modified values.
     """
 
-    __original_data__ = None
-    __modified_data__ = None
-
     def __init__(self, seq=None, *args, **kwargs):
         super(ListModel, self).__init__(*args, **kwargs)
         self.__original_data__ = []
@@ -465,3 +462,6 @@ class ListModel(InnerFieldTypeMixin, BaseData):
 
     def __str__(self):
         return str([item for item in self])
+
+    def __contains__(self, item):
+        return item in self.__modified_data__ if self.__modified_data__ is not None else item in self.__original_data__

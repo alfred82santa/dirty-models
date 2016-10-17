@@ -85,6 +85,15 @@ Features
 Changelog
 ---------
 
+Version 0.8.1
+-------------
+
+- Added __contains__ function to models and lists. It allows to use ``in`` operator.
+- Added ``default_timezone`` parameter to DateTimeFields and TimeFields. If value entered has no a timezone
+  defined, default one will be set.
+- Added ``force_timezone`` parameter to DateTimeFields in order to convert values to a specific timezone.
+- More cleanups.
+
 Version 0.8.0
 -------------
 

@@ -195,3 +195,30 @@ class TestTypes(TestCase):
 
         with self.assertRaises(IndexError):
             test_list[23]
+
+
+class ContainsItemTests(TestCase):
+
+    def test_contains_item_original_data(self):
+
+        list_model = ListModel([1])
+        list_model.flat_data()
+
+        self.assertTrue(1 in list_model)
+
+    def test_contains_item_modified_data(self):
+        list_model = ListModel([1])
+
+        self.assertTrue(1 in list_model)
+
+    def test_not_contains_item_original_data(self):
+        list_model = ListModel([2])
+        list_model.flat_data()
+
+        self.assertFalse(1 in list_model)
+
+    def test_not_contains_item_modified_data(self):
+        list_model = ListModel([1, 2])
+        list_model.flat_data()
+        list_model.pop(0)
+        self.assertFalse(1 in list_model)

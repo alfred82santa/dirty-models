@@ -3,10 +3,11 @@ Fields to be used with dirty models.
 """
 
 from datetime import datetime, date, time, timedelta
-from dateutil.parser import parse as dateutil_parse
-from .model_types import ListModel
-from collections import Mapping
 
+from collections import Mapping
+from dateutil.parser import parse as dateutil_parse
+
+from .model_types import ListModel
 
 __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField',
            'TimeField', 'DateField', 'DateTimeField', 'TimedeltaField', 'ModelField', 'ArrayField',
@@ -14,7 +15,6 @@ __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringI
 
 
 class BaseField:
-
     """Base field descriptor."""
 
     def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, default=None, doc=None):
@@ -105,7 +105,6 @@ class BaseField:
 
 
 class IntegerField(BaseField):
-
     """
     It allows to use an integer as value in a field.
 
@@ -125,11 +124,10 @@ class IntegerField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, float) \
-            or (isinstance(value, str) and value.isdigit())
+               or (isinstance(value, str) and value.isdigit())
 
 
 class FloatField(BaseField):
-
     """
     It allows to use a float as value in a field.
 
@@ -148,12 +146,11 @@ class FloatField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, int) or \
-            (isinstance(value, str) and
+               (isinstance(value, str) and
                 value.replace('.', '', 1).isnumeric())
 
 
 class BooleanField(BaseField):
-
     """
     It allows to use a boolean as value in a field.
 
@@ -181,7 +178,6 @@ class BooleanField(BaseField):
 
 
 class StringField(BaseField):
-
     """
     It allows to use a string as value in a field.
 
@@ -204,7 +200,6 @@ class StringField(BaseField):
 
 
 class StringIdField(StringField):
-
     """
     It allows to use a string as value in a field, but not allows empty strings. Empty string are like ``None``
     and they will remove data of field.
@@ -225,7 +220,6 @@ class StringIdField(StringField):
 
 
 class DateTimeBaseField(BaseField):
-
     """Base field for time or/and date fields."""
 
     date_parsers = {}
@@ -242,23 +236,12 @@ class DateTimeBaseField(BaseField):
         :type parse_format: str or dict
         """
         super(DateTimeBaseField, self).__init__(**kwargs)
-        self._parse_format = None
         self.parse_format = parse_format
 
     def export_definition(self):
         result = super(DateTimeBaseField, self).export_definition()
         result['parse_format'] = self.parse_format
         return result
-
-    @property
-    def parse_format(self):
-        """Parse_format getter: datetime format used on field"""
-        return self._parse_format
-
-    @parse_format.setter
-    def parse_format(self, value):
-        """Parse_format setter: datetime format used on field"""
-        self._parse_format = value
 
     def get_parsed_value(self, value):
         """
@@ -300,6 +283,7 @@ class DateTimeBaseField(BaseField):
         :type value: datetime
         :return: str
         """
+
         def get_formatter(parser_desc):
             try:
                 return parser_desc['formatter']
@@ -330,7 +314,6 @@ class DateTimeBaseField(BaseField):
 
 
 class TimeField(DateTimeBaseField):
-
     """
     It allows to use a time as value in a field.
 
@@ -346,6 +329,24 @@ class TimeField(DateTimeBaseField):
 
     * :class:`~datetime.datetime` will get time part.
     """
+
+    def __init__(self, parse_format=None, default_timezone=None, **kwargs):
+        """
+
+        :param parse_format: String format to cast string to datetime. It could be
+            an string format or a :class:`dict` with two keys:
+
+                * ``parser`` key to set how string must be parsed. It could be a callable.
+                * ``formatter`` key to set how datetime must be formatted. It could be a callable.
+
+        :type parse_format: str or dict
+
+        :param default_timezone: Default timezone to use when value does not have one.
+
+        :type default_timezone: datetime.tzinfo
+        """
+        super(TimeField, self).__init__(parse_format=parse_format, **kwargs)
+        self.default_timezone = default_timezone
 
     def convert_value(self, value):
         if isinstance(value, list):
@@ -372,9 +373,21 @@ class TimeField(DateTimeBaseField):
     def can_use_value(self, value):
         return isinstance(value, (int, str, datetime, list, dict))
 
+    def set_value(self, obj, value: time):
+        if self.default_timezone and value.tzinfo is None:
+            value = time(hour=value.hour, minute=value.minute, second=value.microsecond,
+                         microsecond=value.microsecond, tzinfo=self.default_timezone)
+
+        super(TimeField, self).set_value(obj, value)
+
+    def export_definition(self):
+        result = super(TimeField, self).export_definition()
+        if self.default_timezone:
+            result['default_timezone'] = self.default_timezone
+        return result
+
 
 class DateField(DateTimeBaseField):
-
     """
     It allows to use a date as value in a field.
 
@@ -418,7 +431,6 @@ class DateField(DateTimeBaseField):
 
 
 class DateTimeField(DateTimeBaseField):
-
     """
     It allows to use a datetime as value in a field.
 
@@ -434,6 +446,30 @@ class DateTimeField(DateTimeBaseField):
 
     * :class:`~datetime.date` will set date part.
     """
+
+    def __init__(self, parse_format=None, default_timezone=None, force_timezone=False, **kwargs):
+        """
+
+        :param parse_format: String format to cast string to datetime. It could be
+            an string format or a :class:`dict` with two keys:
+
+                * ``parser`` key to set how string must be parsed. It could be a callable.
+                * ``formatter`` key to set how datetime must be formatted. It could be a callable.
+
+        :type parse_format: str or dict
+
+        :param default_timezone: Default timezone to use when value does not have one.
+
+        :type default_timezone: datetime.tzinfo
+
+        :param force_timezone: If it is True value will be converted to timezone defined on ``default_timezone``
+                               parameter. It ``default_timezone`` is not defined it is ignored.
+
+        :type: bool
+        """
+        super(DateTimeField, self).__init__(parse_format=parse_format, **kwargs)
+        self.default_timezone = default_timezone
+        self.force_timezone = force_timezone
 
     def convert_value(self, value):
         if isinstance(value, list):
@@ -460,6 +496,22 @@ class DateTimeField(DateTimeBaseField):
     def can_use_value(self, value):
         return isinstance(value, (int, str, date, dict, list))
 
+    def set_value(self, obj, value):
+        if self.default_timezone:
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=self.default_timezone)
+            elif self.force_timezone and value.tzinfo != self.default_timezone:
+                value = value.astimezone(tz=self.default_timezone)
+
+        super(DateTimeField, self).set_value(obj, value)
+
+    def export_definition(self):
+        result = super(DateTimeField, self).export_definition()
+        if self.default_timezone:
+            result['default_timezone'] = self.default_timezone
+            result['force_timezone'] = self.force_timezone
+        return result
+
 
 class TimedeltaField(BaseField):
     """
@@ -485,7 +537,6 @@ class TimedeltaField(BaseField):
 
 
 class ModelField(BaseField):
-
     """
     It allows to use a model as value in a field. Model type must be
     defined on constructor using param model_class. If it is not defined
@@ -505,7 +556,7 @@ class ModelField(BaseField):
         self._model_setter = None
         if 'setter' in kwargs:
             self._model_setter = kwargs['setter']
-            del(kwargs['setter'])
+            del (kwargs['setter'])
         super(ModelField, self).__init__(**kwargs)
 
     def export_definition(self):
@@ -556,7 +607,6 @@ class ModelField(BaseField):
 
 
 class InnerFieldTypeMixin:
-
     def __init__(self, field_type=None, **kwargs):
         self._field_type = None
         if isinstance(field_type, tuple):
@@ -581,7 +631,6 @@ class InnerFieldTypeMixin:
 
 
 class ArrayField(InnerFieldTypeMixin, BaseField):
-
     """
     It allows to create a ListModel (iterable in :mod:`dirty_models.types`) of different elements according
     to the specified field_type. So it is possible to have a list of Integers, Strings, Models, etc.
@@ -652,7 +701,6 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
 
 
 class HashMapField(InnerFieldTypeMixin, ModelField):
-
     """
     It allows to create a field which contains a hash map.
 
@@ -675,7 +723,6 @@ class HashMapField(InnerFieldTypeMixin, ModelField):
 
 
 class BlobField(BaseField):
-
     """
     It allows any type of data.
     """
@@ -683,7 +730,6 @@ class BlobField(BaseField):
 
 
 class MultiTypeField(BaseField):
-
     """
     It allows to define multiple type for a field. So, it is possible to define a field as
     a integer and as a model field, for example.
@@ -703,7 +749,7 @@ class MultiTypeField(BaseField):
     def get_field_docstring(self):
         if len(self._field_types):
             return 'Multiple type values are allowed:\n\n{0}'.format(
-                "\n\n".join(["* {0}".format(field.get_field_docstring())for field in self._field_types]))
+                "\n\n".join(["* {0}".format(field.get_field_docstring()) for field in self._field_types]))
 
     def export_definition(self):
         result = super(MultiTypeField, self).export_definition()
