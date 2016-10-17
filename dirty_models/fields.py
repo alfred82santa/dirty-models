@@ -11,7 +11,7 @@ from .model_types import ListModel
 
 __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField',
            'TimeField', 'DateField', 'DateTimeField', 'TimedeltaField', 'ModelField', 'ArrayField',
-           'HashMapField', 'BlobField', 'MultiTypeField']
+           'HashMapField', 'BlobField', 'MultiTypeField', 'EnumField']
 
 
 class BaseField:
@@ -124,7 +124,7 @@ class IntegerField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, float) \
-               or (isinstance(value, str) and value.isdigit())
+            or (isinstance(value, str) and value.isdigit())
 
 
 class FloatField(BaseField):
@@ -146,7 +146,7 @@ class FloatField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, int) or \
-               (isinstance(value, str) and
+            (isinstance(value, str) and
                 value.replace('.', '', 1).isnumeric())
 
 
@@ -607,6 +607,7 @@ class ModelField(BaseField):
 
 
 class InnerFieldTypeMixin:
+
     def __init__(self, field_type=None, **kwargs):
         self._field_type = None
         if isinstance(field_type, tuple):
@@ -787,3 +788,55 @@ class MultiTypeField(BaseField):
     @property
     def field_types(self):
         return self._field_types.copy()
+
+
+class EnumField(BaseField):
+    """
+    It allows to create a field which contains a member of an enumeration.
+
+    **Automatic cast from:**
+
+    * Any value of enumeration.
+
+    * Any member name of enumeration.
+    """
+
+    def __init__(self, enum_class, *args, **kwargs):
+        """
+
+        :param enum_class: Enumeration class
+        :type enum_class: enum.Enum
+        """
+        self.enum_class = enum_class
+        super(EnumField, self).__init__(*args, **kwargs)
+
+    def export_definition(self):
+        result = super(EnumField, self).export_definition()
+        result['enum_class'] = self.enum_class
+
+        return result
+
+    def get_field_docstring(self):
+        dcstr = super(EnumField, self).get_field_docstring()
+
+        if self.enum_class:
+            dcstr += ' (:class:`{0}`)'.format('.'.join([self.enum_class.__module__, self.enum_class.__name__]))
+        return dcstr
+
+    def convert_value(self, value):
+        try:
+            return self.enum_class(value)
+        except ValueError:
+            return getattr(self.enum_class, value)
+
+    def check_value(self, value):
+        return isinstance(value, self.enum_class)
+
+    def can_use_value(self, value):
+        try:
+            self.enum_class(value)
+            return True
+        except ValueError:
+            pass
+
+        return value in self.enum_class.__members__.keys()
