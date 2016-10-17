@@ -1518,6 +1518,18 @@ class DateTimeFieldWithTimezoneTests(TestCase):
                                   tzinfo=tz.gettz('Europe/Amsterdam')).astimezone(timezone.utc))
         self.assertEqual(model.date_time_field.tzinfo, timezone.utc)
 
+    def test_export_definition(self):
+
+        field = DateTimeField(name='test_field', alias=[], default_timezone=timezone.utc, force_timezone=True)
+
+        self.assertEqual(field.export_definition(),
+                         {'alias': [], 'parse_format': None,
+                          'doc': 'DateTimeField field',
+                          'force_timezone': True,
+                          'default_timezone': timezone.utc,
+                          'name': 'test_field', 'read_only': False},
+                         field.export_definition())
+
 
 class TimeFieldWithTimezone(TestCase):
 
@@ -1558,3 +1570,14 @@ class TimeFieldWithTimezone(TestCase):
 
         self.assertEqual(model.time_field, time(hour=12, minute=23, tzinfo=tz.gettz('Europe/Amsterdam')))
         self.assertEqual(model.time_field.tzinfo, tz.gettz('Europe/Amsterdam'))
+
+    def test_export_definition(self):
+
+        field = TimeField(name='test_field', alias=[], default_timezone=timezone.utc)
+
+        self.assertEqual(field.export_definition(),
+                         {'alias': [], 'parse_format': None,
+                          'doc': 'TimeField field',
+                          'default_timezone': timezone.utc,
+                          'name': 'test_field', 'read_only': False},
+                         field.export_definition())

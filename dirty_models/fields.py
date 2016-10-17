@@ -124,7 +124,7 @@ class IntegerField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, float) \
-            or (isinstance(value, str) and value.isdigit())
+               or (isinstance(value, str) and value.isdigit())
 
 
 class FloatField(BaseField):
@@ -146,7 +146,7 @@ class FloatField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, int) or \
-            (isinstance(value, str) and
+               (isinstance(value, str) and
                 value.replace('.', '', 1).isnumeric())
 
 
@@ -380,6 +380,12 @@ class TimeField(DateTimeBaseField):
 
         super(TimeField, self).set_value(obj, value)
 
+    def export_definition(self):
+        result = super(TimeField, self).export_definition()
+        if self.default_timezone:
+            result['default_timezone'] = self.default_timezone
+        return result
+
 
 class DateField(DateTimeBaseField):
     """
@@ -499,6 +505,13 @@ class DateTimeField(DateTimeBaseField):
 
         super(DateTimeField, self).set_value(obj, value)
 
+    def export_definition(self):
+        result = super(DateTimeField, self).export_definition()
+        if self.default_timezone:
+            result['default_timezone'] = self.default_timezone
+            result['force_timezone'] = self.force_timezone
+        return result
+
 
 class TimedeltaField(BaseField):
     """
@@ -594,7 +607,6 @@ class ModelField(BaseField):
 
 
 class InnerFieldTypeMixin:
-
     def __init__(self, field_type=None, **kwargs):
         self._field_type = None
         if isinstance(field_type, tuple):
