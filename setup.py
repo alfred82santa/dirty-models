@@ -1,5 +1,4 @@
 import sys
-
 import os
 import re
 from setuptools import setup
@@ -33,7 +32,7 @@ setup(
         'Development Status :: 4 - Beta'],
     packages=['dirty_models'],
     include_package_data=False,
-    install_requires=['python-dateutil'],
+    install_requires=install_requires,
     description="Dirty models for python 3",
     long_description=long_desc,
     test_suite="nose.collector",
