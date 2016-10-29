@@ -4,11 +4,12 @@ Base models for dirty_models.
 
 import itertools
 from datetime import datetime, date, time, timedelta
+from enum import Enum
 
 from collections import Mapping
 from copy import deepcopy
 
-from dirty_models.fields import DateField, TimeField, TimedeltaField
+from dirty_models.fields import DateField, TimeField, TimedeltaField, EnumField
 from .base import BaseData, InnerFieldTypeMixin
 from .fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField, \
     BaseField, ModelField, ArrayField
@@ -165,14 +166,15 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         BaseModel.__setattr__(self, '__modified_data__', {})
         BaseModel.__setattr__(self, '__deleted_fields__', [])
 
-        self.unlock()
-        self.import_data(self.__default_data__)
-        if isinstance(data, (dict, Mapping)):
-            self.import_data(data)
-        self.import_data(kwargs)
+        from .base import Unlocker
+        with Unlocker(self):
+            self.import_data(self.__default_data__)
+            if isinstance(data, (dict, Mapping)):
+                self.import_data(data)
+            self.import_data(kwargs)
+
         if flat:
             self.flat_data()
-        self.lock()
 
     def __reduce__(self):
         """
@@ -684,6 +686,8 @@ class BaseDynamicModel(BaseModel):
             return DateField(name=key)
         elif isinstance(value, timedelta):
             return TimedeltaField(name=key)
+        elif isinstance(value, Enum):
+            return EnumField(enum_class=type(value))
         elif isinstance(value, (dict, BaseDynamicModel, Mapping)):
             return ModelField(name=key, model_class=self._dynamic_model or self.__class__)
         elif isinstance(value, BaseModel):

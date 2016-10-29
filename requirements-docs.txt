@@ -1,3 +1,2 @@
 sphinx
-python-dateutil
 iso8601

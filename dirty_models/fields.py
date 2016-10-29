@@ -3,6 +3,7 @@ Fields to be used with dirty models.
 """
 
 from datetime import datetime, date, time, timedelta
+from enum import Enum
 
 from collections import Mapping
 from dateutil.parser import parse as dateutil_parse
@@ -79,28 +80,33 @@ class BaseField:
         """Removes field value from model"""
         obj.delete_field_value(self.name)
 
+    def _check_name(self):
+        if self._name is None:
+            raise AttributeError("Field name must be set")
+
     def __get__(self, obj, cls=None):
         if obj is None:
             return self
+
+        self._check_name()
+
         if self._getter:
             return self._getter(self, obj, cls)
-        if self._name is None:
-            raise AttributeError("Field name must be set")
+
         return self.get_value(obj)
 
     def __set__(self, obj, value):
+        self._check_name()
+
         if self._setter:
             self._setter(self, obj, value)
             return
-        if self._name is None:
-            raise AttributeError("Field name must be set")
 
         if self.check_value(value) or self.can_use_value(value):
             self.set_value(obj, self.use_value(value))
 
     def __delete__(self, obj):
-        if self._name is None:
-            raise AttributeError("Field name must be set")
+        self._check_name()
         self.delete_value(obj)
 
 
@@ -124,7 +130,7 @@ class IntegerField(BaseField):
 
     def can_use_value(self, value):
         return isinstance(value, float) \
-            or (isinstance(value, str) and value.isdigit())
+               or (isinstance(value, str) and value.isdigit())
 
 
 class FloatField(BaseField):
@@ -145,9 +151,9 @@ class FloatField(BaseField):
         return isinstance(value, float)
 
     def can_use_value(self, value):
-        return isinstance(value, int) or \
-            (isinstance(value, str) and
-                value.replace('.', '', 1).isnumeric())
+        return isinstance(value, int) \
+               or (isinstance(value, str) and
+                   value.replace('.', '', 1).isnumeric())
 
 
 class BooleanField(BaseField):
@@ -607,7 +613,6 @@ class ModelField(BaseField):
 
 
 class InnerFieldTypeMixin:
-
     def __init__(self, field_type=None, **kwargs):
         self._field_type = None
         if isinstance(field_type, tuple):

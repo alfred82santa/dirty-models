@@ -85,6 +85,14 @@ Features
 Changelog
 ---------
 
+Version 0.9.0
+-------------
+
+- New EnumField.
+- Fixes on setup.py.
+- Fixes on requirements.
+
+
 Version 0.8.1
 -------------
 
@@ -101,10 +109,10 @@ Version 0.8.0
 - Raise a RunTimeError exception if two fields use same alias in a model.
 - Fixed default docstrings.
 - Cleanup default data. Only real name fields are allowed to use as key.
-- Added :meth:`~dirty_models.models.get_attrs_by_path` in order to get all values using path.
-- Added :meth:`~dirty_models.models.get_1st_attr_by_path` in order to get first value using path.
+- Added :meth:`~dirty_models.models.BaseModel.get_attrs_by_path` in order to get all values using path.
+- Added :meth:`~dirty_models.models.BaseModel.get_1st_attr_by_path` in order to get first value using path.
 - Added option to access fields like in a dictionary, but using wildcards. Only for getters.
-  See: :meth:`~dirty_models.models.get_1st_attr_by_path`.
+  See: :meth:`~dirty_models.models.BaseModel.get_1st_attr_by_path`.
 - Added some documentation.
 
 Version 0.7.2
