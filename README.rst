@@ -91,6 +91,8 @@ Version 0.9.0
 - New EnumField.
 - Fixes on setup.py.
 - Fixes on requirements.
+- Fixes on formatter iters.
+- Fixes on code.
 
 
 Version 0.8.1

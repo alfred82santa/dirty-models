@@ -184,7 +184,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         return recover_model_from_data, (self.__class__, self.export_original_data(),
                                          self.export_modified_data(), self.export_deleted_fields(),)
 
-    def _get_real_name(self, name):
+    def get_real_name(self, name):
         obj = self.get_field_obj(name)
         try:
             return obj.name
@@ -195,7 +195,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Set the value to the field modified_data
         """
-        name = self._get_real_name(name)
+        name = self.get_real_name(name)
 
         if name and self._can_write_field(name):
             if name in self.__deleted_fields__:
@@ -216,7 +216,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Get the field value from the modified data or the original one
         """
-        name = self._get_real_name(name)
+        name = self.get_real_name(name)
 
         if not name or name in self.__deleted_fields__:
             return None
@@ -229,7 +229,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Mark this field to be deleted
         """
-        name = self._get_real_name(name)
+        name = self.get_real_name(name)
 
         if name and self._can_write_field(name):
             if name in self.__modified_data__:
@@ -242,7 +242,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Resets value of a field
         """
-        name = self._get_real_name(name)
+        name = self.get_real_name(name)
 
         if name and self._can_write_field(name):
             if name in self.__modified_data__:
@@ -260,7 +260,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Returns whether a field is modified or not
         """
-        name = self._get_real_name(name)
+        name = self.get_real_name(name)
 
         if name in self.__modified_data__ or name in self.__deleted_fields__:
             return True
@@ -359,7 +359,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Returns original field value or None
         """
-        name = self._get_real_name(name)
+        name = self.get_real_name(name)
 
         try:
             value = self.__original_data__[name]
@@ -517,9 +517,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     @classmethod
     def get_field_obj(cls, name):
         obj_field = getattr(cls, name, None)
-        if not isinstance(obj_field, BaseField):
-            return None
-        return obj_field
+        return obj_field if isinstance(obj_field, BaseField) else None
 
     def _get_fields_by_path(self, field):
 
@@ -687,7 +685,7 @@ class BaseDynamicModel(BaseModel):
         elif isinstance(value, timedelta):
             return TimedeltaField(name=key)
         elif isinstance(value, Enum):
-            return EnumField(enum_class=type(value))
+            return EnumField(name=key, enum_class=type(value))
         elif isinstance(value, (dict, BaseDynamicModel, Mapping)):
             return ModelField(name=key, model_class=self._dynamic_model or self.__class__)
         elif isinstance(value, BaseModel):
@@ -807,11 +805,12 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
                                                  (self.get_field_type().__class__,
                                                   self.get_field_type().export_definition()))
 
-    def _get_real_name(self, name):
-        new_name = super(HashMapModel, self)._get_real_name(name)
-        if not new_name:
-            return name
-        return new_name
+    def get_real_name(self, name):
+        new_name = super(HashMapModel, self).get_real_name(name)
+        return new_name if new_name else name
+
+    def get_field_obj(self, name):
+        return super(HashMapModel, self).get_field_obj(name) or self._field_type
 
     def copy(self):
         """
@@ -899,11 +898,8 @@ class FastDynamicModel(BaseDynamicModel):
         self._dynamic_model = FastDynamicModel
         super(FastDynamicModel, self).__init__(*args, **kwargs)
 
-    def _get_real_name(self, name):
-        new_name = super(FastDynamicModel, self)._get_real_name(name)
-        if not new_name:
-            return name
-        return new_name
+    def get_real_name(self, name):
+        return super(FastDynamicModel, self).get_real_name(name) or name
 
     def get_validated_object(self, field_type, value):
         """
