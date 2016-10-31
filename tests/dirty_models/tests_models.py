@@ -1,12 +1,15 @@
 import pickle
 from datetime import datetime, date, time, timedelta
+from enum import Enum
+
 from functools import partial
 from unittest import TestCase
 
 from dirty_models.base import Unlocker
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
-                                 ArrayField, BooleanField, DateField, TimeField, HashMapField, TimedeltaField)
+                                 ArrayField, BooleanField, DateField, TimeField, HashMapField, TimedeltaField,
+                                 EnumField)
 from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel, CamelCaseMeta
 
 INITIAL_DATA = {
@@ -917,7 +920,7 @@ class TestDynamicModel(TestCase):
 
     def _get_field_type(self, name):
         try:
-            return self.model.__class__.__dict__[name]
+            return self.model.get_field_obj(name)
         except KeyError:
             return None
 
@@ -994,6 +997,15 @@ class TestDynamicModel(TestCase):
         self.assertEqual(self.model.export_data(), {"test1": ["aa", "aaaaaa"]})
         self.assertIsInstance(self._get_field_type('test1'), ArrayField)
         self.assertIsInstance(self._get_field_type('test1').field_type, StringField)
+
+    def test_set_enum_value(self):
+        class TestEnum(Enum):
+            value_1 = 1
+
+        self.model.test1 = TestEnum.value_1
+        self.assertEqual(self.model.export_data(), {"test1": TestEnum.value_1})
+        self.assertIsInstance(self._get_field_type('test1'), EnumField)
+        self.assertEqual(self._get_field_type('test1').enum_class, TestEnum)
 
     def test_set_empty_list_value(self):
         self.model.test1 = []

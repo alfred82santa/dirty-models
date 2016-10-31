@@ -3,9 +3,11 @@ Fields to be used with dirty models.
 """
 
 from datetime import datetime, date, time, timedelta
+from enum import Enum
 
 from collections import Mapping
 from dateutil.parser import parse as dateutil_parse
+from functools import wraps
 
 from .model_types import ListModel
 
@@ -79,29 +81,68 @@ class BaseField:
         """Removes field value from model"""
         obj.delete_field_value(self.name)
 
+    def _check_name(self):
+        if self._name is None:
+            raise AttributeError("Field name must be set")
+
     def __get__(self, obj, cls=None):
         if obj is None:
             return self
+
+        self._check_name()
+
         if self._getter:
             return self._getter(self, obj, cls)
-        if self._name is None:
-            raise AttributeError("Field name must be set")
+
         return self.get_value(obj)
 
     def __set__(self, obj, value):
+        self._check_name()
+
         if self._setter:
             self._setter(self, obj, value)
             return
-        if self._name is None:
-            raise AttributeError("Field name must be set")
 
         if self.check_value(value) or self.can_use_value(value):
             self.set_value(obj, self.use_value(value))
 
     def __delete__(self, obj):
-        if self._name is None:
-            raise AttributeError("Field name must be set")
+        self._check_name()
         self.delete_value(obj)
+
+
+def can_use_enum(func):
+    """
+    Decorator to use Enum value on type checks.
+    """
+
+    @wraps(func)
+    def inner(self, value):
+        if isinstance(value, Enum):
+            return self.check_value(value.value) or func(self, value.value)
+
+        return func(self, value)
+
+    return inner
+
+
+def convert_enum(func):
+    """
+    Decorator to use Enum value on type casts.
+    """
+
+    @wraps(func)
+    def inner(self, value):
+        try:
+            if self.check_value(value.value):
+                return value.value
+            return func(self, value.value)
+        except AttributeError:
+            pass
+
+        return func(self, value)
+
+    return inner
 
 
 class IntegerField(BaseField):
@@ -114,17 +155,21 @@ class IntegerField(BaseField):
 
     * :class:`str` if all characters are digits
 
+    * :class:`~enum.Enum` if value of enum can be cast.
+
     """
 
+    @convert_enum
     def convert_value(self, value):
         return int(value)
 
     def check_value(self, value):
         return isinstance(value, int)
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, float) \
-            or (isinstance(value, str) and value.isdigit())
+               or (isinstance(value, str) and value.isdigit())
 
 
 class FloatField(BaseField):
@@ -136,18 +181,22 @@ class FloatField(BaseField):
     * :class:`int`
 
     * :class:`str` if all characters are digits and there is only one dot (``.``).
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
+    @convert_enum
     def convert_value(self, value):
         return float(value)
 
     def check_value(self, value):
         return isinstance(value, float)
 
+    @can_use_enum
     def can_use_value(self, value):
-        return isinstance(value, int) or \
-            (isinstance(value, str) and
-                value.replace('.', '', 1).isnumeric())
+        return isinstance(value, int) \
+               or (isinstance(value, str) and
+                   value.replace('.', '', 1).isnumeric())
 
 
 class BooleanField(BaseField):
@@ -159,8 +208,11 @@ class BooleanField(BaseField):
     * :class:`int` ``0`` become ``False``, anything else ``True``
 
     * :class:`str` ``true`` and ``yes`` become ``True``, anything else ``False``. It is case-insensitive.
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
+    @convert_enum
     def convert_value(self, value):
         if isinstance(value, str):
             if value.lower().strip() in ['true', 'yes']:
@@ -173,6 +225,7 @@ class BooleanField(BaseField):
     def check_value(self, value):
         return isinstance(value, bool)
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, (int, str))
 
@@ -187,14 +240,18 @@ class StringField(BaseField):
     * :class:`int`
 
     * :class:`float`
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
+    @convert_enum
     def convert_value(self, value):
         return str(value)
 
     def check_value(self, value):
         return isinstance(value, str)
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, (int, float))
 
@@ -209,6 +266,8 @@ class StringIdField(StringField):
     * :class:`int`
 
     * :class:`float`
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
     def set_value(self, obj, value):
@@ -328,6 +387,8 @@ class TimeField(DateTimeBaseField):
     * :class:`int` will be used as timestamp.
 
     * :class:`~datetime.datetime` will get time part.
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
     def __init__(self, parse_format=None, default_timezone=None, **kwargs):
@@ -348,6 +409,7 @@ class TimeField(DateTimeBaseField):
         super(TimeField, self).__init__(parse_format=parse_format, **kwargs)
         self.default_timezone = default_timezone
 
+    @convert_enum
     def convert_value(self, value):
         if isinstance(value, list):
             return time(*value)
@@ -370,6 +432,7 @@ class TimeField(DateTimeBaseField):
     def check_value(self, value):
         return isinstance(value, time)
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, (int, str, datetime, list, dict))
 
@@ -402,8 +465,11 @@ class DateField(DateTimeBaseField):
     * :class:`int` will be used as timestamp.
 
     * :class:`~datetime.datetime` will get date part.
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
+    @convert_enum
     def convert_value(self, value):
         if isinstance(value, list):
             return date(*value)
@@ -426,6 +492,7 @@ class DateField(DateTimeBaseField):
     def check_value(self, value):
         return type(value) is date
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, (int, str, datetime, list, dict))
 
@@ -445,6 +512,8 @@ class DateTimeField(DateTimeBaseField):
     * :class:`int` will be used as timestamp.
 
     * :class:`~datetime.date` will set date part.
+
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
     def __init__(self, parse_format=None, default_timezone=None, force_timezone=False, **kwargs):
@@ -471,6 +540,7 @@ class DateTimeField(DateTimeBaseField):
         self.default_timezone = default_timezone
         self.force_timezone = force_timezone
 
+    @convert_enum
     def convert_value(self, value):
         if isinstance(value, list):
             return datetime(*value)
@@ -493,6 +563,7 @@ class DateTimeField(DateTimeBaseField):
     def check_value(self, value):
         return type(value) is datetime
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, (int, str, date, dict, list))
 
@@ -523,8 +594,10 @@ class TimedeltaField(BaseField):
 
     * :class:`int` as seconds.
 
+    * :class:`~enum.Enum` if value of enum can be cast.
     """
 
+    @convert_enum
     def convert_value(self, value):
         if isinstance(value, (int, float)):
             return timedelta(seconds=value)
@@ -532,6 +605,7 @@ class TimedeltaField(BaseField):
     def check_value(self, value):
         return type(value) is timedelta
 
+    @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, (int, float))
 
@@ -607,7 +681,6 @@ class ModelField(BaseField):
 
 
 class InnerFieldTypeMixin:
-
     def __init__(self, field_type=None, **kwargs):
         self._field_type = None
         if isinstance(field_type, tuple):

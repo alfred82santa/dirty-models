@@ -15,35 +15,6 @@ from dirty_models.models import BaseModel, HashMapModel
 
 class TestFields(TestCase):
 
-    def test_int_field_using_int(self):
-        field = IntegerField()
-        self.assertTrue(field.check_value(3))
-        self.assertEqual(field.use_value(3), 3)
-
-    def test_int_field_desc(self):
-        field = IntegerField()
-        self.assertEqual(field.export_definition(), {'alias': None,
-                                                     'doc': 'IntegerField field',
-                                                     'name': None,
-                                                     'read_only': False})
-
-    def test_int_field_using_float(self):
-        field = IntegerField()
-        self.assertFalse(field.check_value(3.0))
-        self.assertTrue(field.can_use_value(3.0))
-        self.assertEqual(field.use_value(3.0), 3)
-
-    def test_int_field_using_str(self):
-        field = IntegerField()
-        self.assertFalse(field.check_value("3"))
-        self.assertTrue(field.can_use_value("3"))
-        self.assertEqual(field.use_value("3"), 3)
-
-    def test_int_field_using_dict(self):
-        field = IntegerField()
-        self.assertFalse(field.check_value({}))
-        self.assertFalse(field.can_use_value({}))
-
     def test_float_field_using_int(self):
         field = FloatField()
         self.assertFalse(field.check_value(3))
@@ -1298,6 +1269,72 @@ class ArrayOfStringFieldTests(TestCase):
         self.assertEqual(self.model.export_data(), {})
 
 
+class IntegerFieldFieldTests(TestCase):
+
+    class TestEnum(Enum):
+        value_1 = 1
+        value_2 = '2'
+        value_3 = 3.2
+        value_4 = 'value'
+
+    def test_using_int(self):
+        field = IntegerField()
+        self.assertTrue(field.check_value(3))
+        self.assertEqual(field.use_value(3), 3)
+
+    def test_desc(self):
+        field = IntegerField()
+        self.assertEqual(field.export_definition(), {'alias': None,
+                                                     'doc': 'IntegerField field',
+                                                     'name': None,
+                                                     'read_only': False})
+
+    def test_using_float(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(3.0))
+        self.assertTrue(field.can_use_value(3.0))
+        self.assertEqual(field.use_value(3.0), 3)
+
+    def test_using_str(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value("3"))
+        self.assertTrue(field.can_use_value("3"))
+        self.assertEqual(field.use_value("3"), 3)
+
+    def test_using_dict(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value({}))
+        self.assertFalse(field.can_use_value({}))
+
+    def test_using_int_enum(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_1))
+        self.assertTrue(field.can_use_value(self.TestEnum.value_1))
+        self.assertEqual(field.use_value(self.TestEnum.value_1), 1)
+
+    def test_using_str_enum(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_2))
+        self.assertTrue(field.can_use_value(self.TestEnum.value_2))
+        self.assertEqual(field.use_value(self.TestEnum.value_2), 2)
+
+    def test_using_float_enum(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_3))
+        self.assertTrue(field.can_use_value(self.TestEnum.value_3))
+        self.assertEqual(field.use_value(self.TestEnum.value_3), 3)
+
+    def test_using_str_enum_fail(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_4))
+        self.assertFalse(field.can_use_value(self.TestEnum.value_4))
+
+    def test_using_enum_fail(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum))
+        self.assertFalse(field.can_use_value(self.TestEnum))
+
+
 class MultiTypeFieldSimpleTypesTests(TestCase):
 
     def setUp(self):
@@ -1407,10 +1444,10 @@ class MultiTypeFieldComplexTypesTests(TestCase):
             multi_field.get_field_type_by_value({})
 
 
-class AutoreferenceModelTests(TestCase):
+class AutoreferenceModelFieldTests(TestCase):
 
     def setUp(self):
-        super(AutoreferenceModelTests, self).setUp()
+        super(AutoreferenceModelFieldTests, self).setUp()
 
         class AutoreferenceModel(BaseModel):
             multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": ModelField()})])
