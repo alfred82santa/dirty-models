@@ -6,7 +6,7 @@ import re
 
 from .fields import MultiTypeField
 from .model_types import ListModel
-from .models import BaseModel, HashMapModel
+from .models import BaseModel
 
 
 def underscore_to_camel(string):
