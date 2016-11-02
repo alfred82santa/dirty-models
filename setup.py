@@ -1,7 +1,10 @@
 import sys
+
 import os
 import re
 from setuptools import setup
+
+import dirty_models
 
 install_requires = ['python-dateutil']
 
@@ -19,7 +22,7 @@ setup(
     name='dirty-models',
     url='https://github.com/alfred82santa/dirty-models',
     author='alfred82santa',
-    version='0.9.0',
+    version=dirty_models.__version__,
     author_email='alfred82santa@gmail.com',
     license='BSD',
     classifiers=[

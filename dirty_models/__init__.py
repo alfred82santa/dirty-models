@@ -6,3 +6,5 @@ Dirty Models package.
 
 from .models import *
 from .fields import *
+
+__version__ = '0.9.0'
