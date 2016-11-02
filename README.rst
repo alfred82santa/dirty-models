@@ -93,6 +93,8 @@ Version 0.9.0
 - Fixes on requirements.
 - Fixes on formatter iters.
 - Fixes on code.
+- Added ``__version__`` to main package file.
+- Synchronized version between main packege file, ``setup.py`` and docs.
 
 
 Version 0.8.1
