@@ -1,7 +1,8 @@
 from unittest import TestCase
 from dirty_models.model_types import ListModel
-from dirty_models.fields import StringField
+from dirty_models.fields import StringField, ArrayField, ModelField, MultiTypeField
 from dirty_models.fields import IntegerField
+from dirty_models.models import BaseModel
 
 
 class TestTypes(TestCase):
@@ -222,3 +223,23 @@ class ContainsItemTests(TestCase):
         list_model.flat_data()
         list_model.pop(0)
         self.assertFalse(1 in list_model)
+
+
+class ExportDeletedFieldsTests(TestCase):
+
+    class Model(BaseModel):
+        test_int = IntegerField()
+        test_array = ArrayField(field_type=MultiTypeField(field_types=[IntegerField(),
+                                                                       ModelField()]))
+
+    def test_inner_model_deleted_field(self):
+
+        model = self.Model({'test_array': [{'test_int': 1},
+                                           {'test_int': 2},
+                                           3]})
+
+        model.flat_data()
+
+        del model.test_array[1].test_int
+        self.assertEqual(model.export_deleted_fields(), ['test_array.1.test_int'])
+

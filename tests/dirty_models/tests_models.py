@@ -1,15 +1,15 @@
 import pickle
 from datetime import datetime, date, time, timedelta
 from enum import Enum
+from unittest import TestCase
 
 from functools import partial
-from unittest import TestCase
 
 from dirty_models.base import Unlocker
 from dirty_models.fields import (BaseField, IntegerField, FloatField,
                                  StringField, DateTimeField, ModelField,
                                  ArrayField, BooleanField, DateField, TimeField, HashMapField, TimedeltaField,
-                                 EnumField)
+                                 EnumField, MultiTypeField)
 from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel, CamelCaseMeta
 
 INITIAL_DATA = {
@@ -24,7 +24,6 @@ class PicklableModel(BaseModel):
 
 
 class TestModels(TestCase):
-
     def setUp(self):
         class FakeModel(BaseModel):
             testField1 = BaseField()
@@ -154,7 +153,7 @@ class TestModels(TestCase):
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField4':
                                              {'testField2':
-                                              'Field Value2 Modified',
+                                                  'Field Value2 Modified',
                                               'testField1': 'Field Value1'}})
 
     def test_export_modified(self):
@@ -753,7 +752,6 @@ class ModelReadOnly(BaseModel):
 
 
 class TestModelReadOnly(TestCase):
-
     def test_no_writing(self):
         data = {
             'testField1': 1, 'testField2': 2, 'testField3': 3,
@@ -910,7 +908,6 @@ class TestModelReadOnly(TestCase):
 
 
 class TestDynamicModel(TestCase):
-
     def setUp(self):
         self.model = DynamicModel()
         self.dict_model = DynamicModel
@@ -1065,7 +1062,6 @@ class TestDynamicModel(TestCase):
 
 
 class TestFastDynamicModel(TestDynamicModel):
-
     def setUp(self):
         self.model = FastDynamicModel()
         self.dict_model = FastDynamicModel
@@ -1082,7 +1078,6 @@ class FastDynamicModelExtraFields(FastDynamicModel):
 
 
 class TestFastDynamicModelExtraFields(TestDynamicModel):
-
     def setUp(self):
         self.model = FastDynamicModelExtraFields()
         self.dict_model = FastDynamicModel
@@ -1184,7 +1179,6 @@ class PickableHashMapModel(HashMapModel):
 
 
 class TestHashMapModel(TestCase):
-
     def setUp(self):
         self.model = PickableHashMapModel(field_type=IntegerField())
 
@@ -1323,7 +1317,6 @@ class ModelDefaultValues(BaseModel):
 
 
 class TestDefaultValues(TestCase):
-
     def test_field_default_value(self):
         model = ModelDefaultValues()
 
@@ -1388,7 +1381,6 @@ class ModelGeneralDefault(ModelDefaultValues):
 
 
 class TestGeneralDefaultValues(TestCase):
-
     def test_field_default_value(self):
         model = ModelGeneralDefault()
 
@@ -1442,7 +1434,6 @@ class TestGeneralDefaultValues(TestCase):
 
 
 class CamelCaseMetaclassTests(TestCase):
-
     def test_camelcase_fields(self):
         class TestModel(BaseModel, metaclass=CamelCaseMeta):
             test_field_1 = StringField()
@@ -1469,7 +1460,6 @@ class CamelCaseMetaclassTests(TestCase):
 
 
 class AliasTests(TestCase):
-
     def test_field_alias(self):
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
@@ -1480,7 +1470,6 @@ class AliasTests(TestCase):
 
 
 class StructureTests(TestCase):
-
     def test_simple_structure(self):
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
@@ -1511,7 +1500,6 @@ class StructureTests(TestCase):
 
 
 class FieldInconsistenceTests(TestCase):
-
     def test_override_field(self):
         with self.assertRaises(RuntimeError):
             class Model(BaseModel):
@@ -1520,7 +1508,6 @@ class FieldInconsistenceTests(TestCase):
 
 
 class GetAttributeByPathTests(TestCase):
-
     def setUp(self):
         class InnerModel(BaseModel):
             test_field_1 = IntegerField()
@@ -1680,7 +1667,6 @@ class GetAttributeByPathTests(TestCase):
 
 
 class GetAttributeByPathDynamicModelTests(GetAttributeByPathTests):
-
     def setUp(self):
         self.model = DynamicModel(data={'test_field_1': 1,
                                         'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
@@ -1690,7 +1676,6 @@ class GetAttributeByPathDynamicModelTests(GetAttributeByPathTests):
 
 
 class GetAttributeByPathFastDynamicModelTests(GetAttributeByPathTests):
-
     def setUp(self):
         self.model = FastDynamicModel(data={'test_field_1': 1,
                                             'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
@@ -1700,7 +1685,6 @@ class GetAttributeByPathFastDynamicModelTests(GetAttributeByPathTests):
 
 
 class AvoidInternalAttributesTests(TestCase):
-
     def test_hashmap_import_double_underscore(self):
         class Model(HashMapModel):
             test_field = IntegerField()
@@ -1721,7 +1705,6 @@ class AvoidInternalAttributesTests(TestCase):
 
 
 class ContainsAttributeRegularModelTests(TestCase):
-
     class Model(HashMapModel):
         test_field = IntegerField()
 
@@ -1763,3 +1746,156 @@ class ContainsAttributeFastDynamicModelTests(ContainsAttributeRegularModelTests)
 
 class ContainsAttributeHashMapModelTests(ContainsAttributeRegularModelTests):
     Model = partial(HashMapModel, field_type=IntegerField())
+
+
+class ExportModificationsTests(TestCase):
+    class Model(BaseModel):
+        test_field_int = IntegerField()
+        test_array_int = ArrayField(field_type=IntegerField())
+        test_array_model = ArrayField(field_type=MultiTypeField(field_types=[IntegerField(),
+                                                                             ModelField()]))
+        test_array_array_model = ArrayField(field_type=ArrayField(field_type=ModelField()))
+        test_model = ModelField()
+
+    def test_simple_modified_value(self):
+        model = self.Model()
+        model.test_field_int = 3
+
+        self.assertEqual(model.export_modifications(), {'test_field_int': 3})
+
+    def test_simple_value(self):
+        model = self.Model()
+        model.test_field_int = 3
+
+        model.flat_data()
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_simple_deleted_value(self):
+        model = self.Model()
+        model.test_field_int = 3
+
+        model.flat_data()
+        del model.test_field_int
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_inner_model_modified_model(self):
+        model = self.Model()
+        model.test_model = {'test_field_int': 3}
+
+        self.assertEqual(model.export_modifications(), {'test_model': {'test_field_int': 3}})
+
+    def test_inner_model_modified_value(self):
+        model = self.Model()
+        model.test_model = {'test_field_int': 3}
+        model.flat_data()
+        model.test_model.test_field_int = 4
+
+        self.assertEqual(model.export_modifications(), {'test_model.test_field_int': 4})
+
+    def test_inner_model_value(self):
+        model = self.Model()
+        model.test_model = {'test_field_int': 3}
+        model.flat_data()
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_inner_model_deleted_value(self):
+        model = self.Model()
+        model.test_model = {'test_field_int': 3}
+        model.flat_data()
+        del model.test_model.test_field_int
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_list_int_modified(self):
+        model = self.Model({'test_array_int': [3, 4]})
+
+        self.assertEqual(model.export_modifications(), {'test_array_int': [3, 4]})
+
+    def test_list_int_original(self):
+        model = self.Model({'test_array_int': [3, 4]})
+        model.flat_data()
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_list_int_append_item(self):
+        model = self.Model({'test_array_int': [3, 4]})
+        model.flat_data()
+        model.test_array_int.append(5)
+
+        self.assertEqual(model.export_modifications(), {'test_array_int': [3, 4, 5]})
+
+    def test_list_model_modified(self):
+        model = self.Model({'test_array_model': [{'test_field_int': 3},
+                                                 {'test_field_int': 4}]})
+
+        self.assertEqual(model.export_modifications(), {'test_array_model': [{'test_field_int': 3},
+                                                                             {'test_field_int': 4}]})
+
+    def test_list_model_original(self):
+        model = self.Model({'test_array_model': [{'test_field_int': 3},
+                                                 {'test_field_int': 4}]})
+
+        model.flat_data()
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_list_model_inner_modified(self):
+        model = self.Model({'test_array_model': [{'test_field_int': 3},
+                                                 {'test_field_int': 4},
+                                                 6]})
+
+        model.flat_data()
+        model.test_array_model[1].test_field_int = 5
+
+        self.assertEqual(model.export_modifications(), {'test_array_model.1.test_field_int': 5})
+
+    def test_list_model_append_item(self):
+        model = self.Model({'test_array_model': [{'test_field_int': 3},
+                                                 {'test_field_int': 4}]})
+
+        model.flat_data()
+        model.test_array_model[0].test_field_int = 2
+        model.test_array_model[1].test_field_int = 5
+        model.test_array_model.append({'test_field_int': 6})
+
+        self.assertEqual(model.export_modifications(), {'test_array_model': [{'test_field_int': 2},
+                                                                             {'test_field_int': 5},
+                                                                             {'test_field_int': 6}]})
+
+    def test_list_inner_list_model_modified(self):
+        model = self.Model({'test_array_array_model': [[{'test_field_int': 3},
+                                                        {'test_field_int': 4}]]})
+
+        self.assertEqual(model.export_modifications(), {'test_array_array_model': [[{'test_field_int': 3},
+                                                                                    {'test_field_int': 4}]]})
+
+    def test_list_inner_list_model_original(self):
+        model = self.Model({'test_array_array_model': [[{'test_field_int': 3},
+                                                        {'test_field_int': 4}]]})
+
+        model.flat_data()
+
+        self.assertEqual(model.export_modifications(), {})
+
+    def test_list_inner_list_model_inner_modified(self):
+        model = self.Model({'test_array_array_model': [[{'test_field_int': 3},
+                                                        {'test_field_int': 4}]]})
+
+        model.flat_data()
+        model.test_array_array_model[0][1].test_field_int = 5
+
+        self.assertEqual(model.export_modifications(), {'test_array_array_model.0.1.test_field_int': 5})
+
+    def test_list_inner_list_model_inner_modified(self):
+        model = self.Model({'test_array_array_model': [[{'test_field_int': 3},
+                                                        {'test_field_int': 4}]]})
+
+        model.flat_data()
+        model.test_array_array_model[0].append({'test_field_int': 6})
+
+        self.assertEqual(model.export_modifications(), {'test_array_array_model.0': [{'test_field_int': 3},
+                                                                                     {'test_field_int': 4},
+                                                                                     {'test_field_int': 6}]})
