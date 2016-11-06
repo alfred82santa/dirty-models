@@ -2,8 +2,10 @@
 Internal types for dirty models
 """
 import itertools
-from .base import BaseData, InnerFieldTypeMixin
+
 from functools import wraps
+
+from .base import BaseData, InnerFieldTypeMixin
 
 
 def modified_data_decorator(function):
@@ -19,15 +21,15 @@ def modified_data_decorator(function):
             self.initialise_modified_data()
             return function(self, *args, **kwargs)
         return lambda: None
+
     return func
 
 
 class ListModel(InnerFieldTypeMixin, BaseData):
-
     """
     Dirty model for a list. It has the behavior to work as a list implementing its methods
     and has also the methods export_data, export_modified_data, import_data and flat_data
-    to work also as a model, having the old and the modified values.
+    to work also as a model, storing original and modified values.
     """
 
     def __init__(self, seq=None, *args, **kwargs):
@@ -241,6 +243,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         Retrieves the modified data in a jsoned form
         """
+
         def export_modfield(value, is_modified_seq=True):
             """
             Export modified item
@@ -255,10 +258,35 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             return [export_modfield(value) for value in self.__modified_data__]
         return list(x for x in [export_modfield(value) for value in self.__original_data__] if x is not None)
 
+    def export_modifications(self):
+        """
+        Returns list modifications.
+        """
+        if self.__modified_data__ is not None:
+            return self.export_data()
+
+        result = {}
+
+        for key, value in enumerate(self.__original_data__):
+            try:
+                if not value.is_modified():
+                    continue
+                modifications = value.export_modifications()
+            except AttributeError:
+                continue
+
+            try:
+                result.update({'{}.{}'.format(key, f): v for f, v in modifications.items()})
+            except AttributeError:
+                result[key] = modifications
+
+        return result
+
     def export_original_data(self):
         """
         Retrieves the original_data
         """
+
         def export_field(value):
             """
             Export item
@@ -267,6 +295,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
                 return value.export_original_data()
             except AttributeError:
                 return value
+
         return [export_field(val) for val in self.__original_data__]
 
     def import_data(self, data):
@@ -302,12 +331,13 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         In tree models, deleted fields on children will be appended.
         """
         result = []
-        for item in self:
+        if self.__modified_data__ is not None:
+            return result
+
+        for index, item in enumerate(self):
             try:
                 deleted_fields = item.export_deleted_fields()
-                index = str(self.index(item))
-                for key in deleted_fields:
-                    result.append(index + '.' + key)
+                result.extend(['{}.{}'.format(index, key) for key in deleted_fields])
             except AttributeError:
                 pass
         return result
