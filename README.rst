@@ -95,6 +95,7 @@ Version 0.9.0
 - Fixes on code.
 - Added ``__version__`` to main package file.
 - Synchronized version between main packege file, ``setup.py`` and docs.
+- Export only modifications.
 
 
 Version 0.8.1
