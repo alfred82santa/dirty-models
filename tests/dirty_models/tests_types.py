@@ -242,4 +242,3 @@ class ExportDeletedFieldsTests(TestCase):
 
         del model.test_array[1].test_int
         self.assertEqual(model.export_deleted_fields(), ['test_array.1.test_int'])
-

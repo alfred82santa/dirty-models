@@ -21,6 +21,7 @@ class BaseFormatterIter:
 
 
 class BaseFieldtypeFormatterIter(BaseFormatterIter):
+
     def __init__(self, obj, field, parent_formatter):
         self.obj = obj
         self.field = field
@@ -28,6 +29,7 @@ class BaseFieldtypeFormatterIter(BaseFormatterIter):
 
 
 class ListFormatterIter(BaseFieldtypeFormatterIter):
+
     def __iter__(self):
         for item in self.obj:
             yield self.parent_formatter.format_field(self.field, item)

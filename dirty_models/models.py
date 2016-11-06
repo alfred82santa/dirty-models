@@ -385,7 +385,6 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         return result
 
-
     def get_original_field_value(self, name):
         """
         Returns original field value or None

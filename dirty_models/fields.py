@@ -169,7 +169,7 @@ class IntegerField(BaseField):
     @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, float) \
-               or (isinstance(value, str) and value.isdigit())
+            or (isinstance(value, str) and value.isdigit())
 
 
 class FloatField(BaseField):
@@ -195,8 +195,8 @@ class FloatField(BaseField):
     @can_use_enum
     def can_use_value(self, value):
         return isinstance(value, int) \
-               or (isinstance(value, str) and
-                   value.replace('.', '', 1).isnumeric())
+            or (isinstance(value, str) and
+                value.replace('.', '', 1).isnumeric())
 
 
 class BooleanField(BaseField):
@@ -681,6 +681,7 @@ class ModelField(BaseField):
 
 
 class InnerFieldTypeMixin:
+
     def __init__(self, field_type=None, **kwargs):
         self._field_type = None
         if isinstance(field_type, tuple):

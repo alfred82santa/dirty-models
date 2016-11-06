@@ -24,6 +24,7 @@ class PicklableModel(BaseModel):
 
 
 class TestModels(TestCase):
+
     def setUp(self):
         class FakeModel(BaseModel):
             testField1 = BaseField()
@@ -153,7 +154,7 @@ class TestModels(TestCase):
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField4':
                                              {'testField2':
-                                                  'Field Value2 Modified',
+                                              'Field Value2 Modified',
                                               'testField1': 'Field Value1'}})
 
     def test_export_modified(self):
@@ -752,6 +753,7 @@ class ModelReadOnly(BaseModel):
 
 
 class TestModelReadOnly(TestCase):
+
     def test_no_writing(self):
         data = {
             'testField1': 1, 'testField2': 2, 'testField3': 3,
@@ -908,6 +910,7 @@ class TestModelReadOnly(TestCase):
 
 
 class TestDynamicModel(TestCase):
+
     def setUp(self):
         self.model = DynamicModel()
         self.dict_model = DynamicModel
@@ -1062,6 +1065,7 @@ class TestDynamicModel(TestCase):
 
 
 class TestFastDynamicModel(TestDynamicModel):
+
     def setUp(self):
         self.model = FastDynamicModel()
         self.dict_model = FastDynamicModel
@@ -1078,6 +1082,7 @@ class FastDynamicModelExtraFields(FastDynamicModel):
 
 
 class TestFastDynamicModelExtraFields(TestDynamicModel):
+
     def setUp(self):
         self.model = FastDynamicModelExtraFields()
         self.dict_model = FastDynamicModel
@@ -1179,6 +1184,7 @@ class PickableHashMapModel(HashMapModel):
 
 
 class TestHashMapModel(TestCase):
+
     def setUp(self):
         self.model = PickableHashMapModel(field_type=IntegerField())
 
@@ -1317,6 +1323,7 @@ class ModelDefaultValues(BaseModel):
 
 
 class TestDefaultValues(TestCase):
+
     def test_field_default_value(self):
         model = ModelDefaultValues()
 
@@ -1381,6 +1388,7 @@ class ModelGeneralDefault(ModelDefaultValues):
 
 
 class TestGeneralDefaultValues(TestCase):
+
     def test_field_default_value(self):
         model = ModelGeneralDefault()
 
@@ -1434,6 +1442,7 @@ class TestGeneralDefaultValues(TestCase):
 
 
 class CamelCaseMetaclassTests(TestCase):
+
     def test_camelcase_fields(self):
         class TestModel(BaseModel, metaclass=CamelCaseMeta):
             test_field_1 = StringField()
@@ -1460,6 +1469,7 @@ class CamelCaseMetaclassTests(TestCase):
 
 
 class AliasTests(TestCase):
+
     def test_field_alias(self):
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
@@ -1470,6 +1480,7 @@ class AliasTests(TestCase):
 
 
 class StructureTests(TestCase):
+
     def test_simple_structure(self):
         class Model(BaseModel):
             integer_field = IntegerField(name='scalar_field', alias=['int_field', 'number_field'])
@@ -1500,6 +1511,7 @@ class StructureTests(TestCase):
 
 
 class FieldInconsistenceTests(TestCase):
+
     def test_override_field(self):
         with self.assertRaises(RuntimeError):
             class Model(BaseModel):
@@ -1508,6 +1520,7 @@ class FieldInconsistenceTests(TestCase):
 
 
 class GetAttributeByPathTests(TestCase):
+
     def setUp(self):
         class InnerModel(BaseModel):
             test_field_1 = IntegerField()
@@ -1667,6 +1680,7 @@ class GetAttributeByPathTests(TestCase):
 
 
 class GetAttributeByPathDynamicModelTests(GetAttributeByPathTests):
+
     def setUp(self):
         self.model = DynamicModel(data={'test_field_1': 1,
                                         'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
@@ -1676,6 +1690,7 @@ class GetAttributeByPathDynamicModelTests(GetAttributeByPathTests):
 
 
 class GetAttributeByPathFastDynamicModelTests(GetAttributeByPathTests):
+
     def setUp(self):
         self.model = FastDynamicModel(data={'test_field_1': 1,
                                             'test_list': [{'test_field_1': 2, 'test_field_2': 'string'},
@@ -1685,6 +1700,7 @@ class GetAttributeByPathFastDynamicModelTests(GetAttributeByPathTests):
 
 
 class AvoidInternalAttributesTests(TestCase):
+
     def test_hashmap_import_double_underscore(self):
         class Model(HashMapModel):
             test_field = IntegerField()
@@ -1705,6 +1721,7 @@ class AvoidInternalAttributesTests(TestCase):
 
 
 class ContainsAttributeRegularModelTests(TestCase):
+
     class Model(HashMapModel):
         test_field = IntegerField()
 
@@ -1749,6 +1766,7 @@ class ContainsAttributeHashMapModelTests(ContainsAttributeRegularModelTests):
 
 
 class ExportModificationsTests(TestCase):
+
     class Model(BaseModel):
         test_field_int = IntegerField()
         test_array_int = ArrayField(field_type=IntegerField())

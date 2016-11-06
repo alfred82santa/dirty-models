@@ -10,6 +10,7 @@ from dirty_models.utils import underscore_to_camel, ModelFormatterIter, ListForm
 
 
 class UnderscoreToCamelTests(TestCase):
+
     def test_no_underscore(self):
         self.assertEqual(underscore_to_camel('foobar'), 'foobar')
 
@@ -27,6 +28,7 @@ class UnderscoreToCamelTests(TestCase):
 
 
 class TestModel(BaseModel):
+
     class TestEnum(Enum):
         value_1 = 1
         value_2 = '2'
@@ -39,7 +41,7 @@ class TestModel(BaseModel):
     test_array_multitype = ArrayField(field_type=MultiTypeField(field_types=[IntegerField(),
                                                                              DateTimeField(
                                                                                  parse_format="%Y-%m-%dT%H:%M:%S"
-                                                                             )]))
+    )]))
     test_model_field_1 = ArrayField(field_type=ArrayField(field_type=ModelField()))
     test_hash_map = HashMapField(field_type=DateField(parse_format="%Y-%m-%d date"))
     test_timedelta = TimedeltaField()
@@ -49,6 +51,7 @@ class TestModel(BaseModel):
 
 
 class ModelFormatterIterTests(TestCase):
+
     def test_model_formatter(self):
         model = TestModel(data={'test_string_field_1': 'foo',
                                 'test_int_field_1': 4,
@@ -152,6 +155,7 @@ class ModelFormatterIterTests(TestCase):
 
 
 class JSONEncoderTests(TestCase):
+
     def test_model_json(self):
         model = TestModel(data={'test_string_field_1': 'foo',
                                 'test_int_field_1': 4,
