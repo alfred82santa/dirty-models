@@ -1907,7 +1907,7 @@ class ExportModificationsTests(TestCase):
 
         self.assertEqual(model.export_modifications(), {'test_array_array_model.0.1.test_field_int': 5})
 
-    def test_list_inner_list_model_inner_modified(self):
+    def test_list_inner_list_model_append_item(self):
         model = self.Model({'test_array_array_model': [[{'test_field_int': 3},
                                                         {'test_field_int': 4}]]})
 
