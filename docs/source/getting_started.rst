@@ -212,3 +212,48 @@ Some time you want to set data to whole model, but model already exists, so you 
 
     assert model.my_int_field == 3 # True
     assert model.my_string_field == 'string' # True
+
+
+---------------
+How to get data
+---------------
+
+In the same way, there are several methods to get data from model.
+
+Use data from field
+===================
+
+It is the simplest way to get data. Just use field.
+
+.. code-block:: python
+
+    class MyModel(BaseModel):
+
+        my_int_field = IntegerField()
+        my_string_field = StringField()
+
+    model = MyModel()
+
+    model.my_int_field = 3
+
+    assert model.my_int_field == 3 # True
+
+
+Export data
+===========
+
+It is possible to export data to a dict.
+
+.. code-block:: python
+
+    class MyModel(BaseModel):
+
+        my_int_field = IntegerField()
+        my_string_field = StringField()
+
+    model = MyModel()
+
+    model.my_int_field = 3
+
+    print(model.export_data())
+    # {'my_int_field': 3}

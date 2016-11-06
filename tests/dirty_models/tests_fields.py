@@ -1,4 +1,5 @@
 from datetime import time, date, datetime, timezone, timedelta
+from enum import Enum
 from unittest import TestCase
 
 import iso8601
@@ -6,41 +7,13 @@ from dateutil import tz
 
 from dirty_models.fields import (IntegerField, StringField, BooleanField,
                                  FloatField, ModelField, TimeField, DateField,
-                                 DateTimeField, ArrayField, StringIdField, HashMapField, MultiTypeField, TimedeltaField)
+                                 DateTimeField, ArrayField, StringIdField, HashMapField, MultiTypeField, TimedeltaField,
+                                 EnumField)
 from dirty_models.model_types import ListModel
 from dirty_models.models import BaseModel, HashMapModel
 
 
 class TestFields(TestCase):
-
-    def test_int_field_using_int(self):
-        field = IntegerField()
-        self.assertTrue(field.check_value(3))
-        self.assertEqual(field.use_value(3), 3)
-
-    def test_int_field_desc(self):
-        field = IntegerField()
-        self.assertEqual(field.export_definition(), {'alias': None,
-                                                     'doc': 'IntegerField field',
-                                                     'name': None,
-                                                     'read_only': False})
-
-    def test_int_field_using_float(self):
-        field = IntegerField()
-        self.assertFalse(field.check_value(3.0))
-        self.assertTrue(field.can_use_value(3.0))
-        self.assertEqual(field.use_value(3.0), 3)
-
-    def test_int_field_using_str(self):
-        field = IntegerField()
-        self.assertFalse(field.check_value("3"))
-        self.assertTrue(field.can_use_value("3"))
-        self.assertEqual(field.use_value("3"), 3)
-
-    def test_int_field_using_dict(self):
-        field = IntegerField()
-        self.assertFalse(field.check_value({}))
-        self.assertFalse(field.can_use_value({}))
 
     def test_float_field_using_int(self):
         field = FloatField()
@@ -1296,6 +1269,72 @@ class ArrayOfStringFieldTests(TestCase):
         self.assertEqual(self.model.export_data(), {})
 
 
+class IntegerFieldFieldTests(TestCase):
+
+    class TestEnum(Enum):
+        value_1 = 1
+        value_2 = '2'
+        value_3 = 3.2
+        value_4 = 'value'
+
+    def test_using_int(self):
+        field = IntegerField()
+        self.assertTrue(field.check_value(3))
+        self.assertEqual(field.use_value(3), 3)
+
+    def test_desc(self):
+        field = IntegerField()
+        self.assertEqual(field.export_definition(), {'alias': None,
+                                                     'doc': 'IntegerField field',
+                                                     'name': None,
+                                                     'read_only': False})
+
+    def test_using_float(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(3.0))
+        self.assertTrue(field.can_use_value(3.0))
+        self.assertEqual(field.use_value(3.0), 3)
+
+    def test_using_str(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value("3"))
+        self.assertTrue(field.can_use_value("3"))
+        self.assertEqual(field.use_value("3"), 3)
+
+    def test_using_dict(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value({}))
+        self.assertFalse(field.can_use_value({}))
+
+    def test_using_int_enum(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_1))
+        self.assertTrue(field.can_use_value(self.TestEnum.value_1))
+        self.assertEqual(field.use_value(self.TestEnum.value_1), 1)
+
+    def test_using_str_enum(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_2))
+        self.assertTrue(field.can_use_value(self.TestEnum.value_2))
+        self.assertEqual(field.use_value(self.TestEnum.value_2), 2)
+
+    def test_using_float_enum(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_3))
+        self.assertTrue(field.can_use_value(self.TestEnum.value_3))
+        self.assertEqual(field.use_value(self.TestEnum.value_3), 3)
+
+    def test_using_str_enum_fail(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum.value_4))
+        self.assertFalse(field.can_use_value(self.TestEnum.value_4))
+
+    def test_using_enum_fail(self):
+        field = IntegerField()
+        self.assertFalse(field.check_value(self.TestEnum))
+        self.assertFalse(field.can_use_value(self.TestEnum))
+
+
 class MultiTypeFieldSimpleTypesTests(TestCase):
 
     def setUp(self):
@@ -1405,10 +1444,10 @@ class MultiTypeFieldComplexTypesTests(TestCase):
             multi_field.get_field_type_by_value({})
 
 
-class AutoreferenceModelTests(TestCase):
+class AutoreferenceModelFieldTests(TestCase):
 
     def setUp(self):
-        super(AutoreferenceModelTests, self).setUp()
+        super(AutoreferenceModelFieldTests, self).setUp()
 
         class AutoreferenceModel(BaseModel):
             multi_field = MultiTypeField(field_types=[IntegerField(), (ArrayField, {"field_type": ModelField()})])
@@ -1531,7 +1570,7 @@ class DateTimeFieldWithTimezoneTests(TestCase):
                          field.export_definition())
 
 
-class TimeFieldWithTimezone(TestCase):
+class TimeFieldWithTimezoneTests(TestCase):
 
     def test_no_timezone_none(self):
         class Model(BaseModel):
@@ -1581,3 +1620,51 @@ class TimeFieldWithTimezone(TestCase):
                           'default_timezone': timezone.utc,
                           'name': 'test_field', 'read_only': False},
                          field.export_definition())
+
+
+class EnumFieldTests(TestCase):
+
+    class TestEnum(Enum):
+
+        value_1 = 'value1'
+        value_2 = 2
+
+    def setUp(self):
+        self.field = EnumField(name='test_field', alias=[], enum_class=self.TestEnum)
+
+    def test_check_value(self):
+        self.assertTrue(self.field.check_value(self.TestEnum.value_1))
+        self.assertTrue(self.field.check_value(self.TestEnum.value_2))
+
+    def test_check_value_fail(self):
+        self.assertFalse(self.field.check_value('value_1'))
+        self.assertFalse(self.field.check_value(2))
+
+    def test_can_use_value_check_values(self):
+        self.assertTrue(self.field.can_use_value('value1'))
+        self.assertTrue(self.field.can_use_value(2))
+
+    def test_can_use_value_check_member_names(self):
+        self.assertTrue(self.field.can_use_value('value_1'))
+        self.assertTrue(self.field.can_use_value('value_2'))
+
+    def test_can_use_value_check_values_fail(self):
+        self.assertFalse(self.field.can_use_value('value2'))
+        self.assertFalse(self.field.can_use_value(3))
+
+    def test_convert_value_from_values(self):
+        self.assertEqual(self.field.convert_value('value1'), self.TestEnum.value_1)
+        self.assertEqual(self.field.convert_value(2), self.TestEnum.value_2)
+
+    def test_convert_value_from_member_names(self):
+        self.assertEqual(self.field.convert_value('value_1'), self.TestEnum.value_1)
+        self.assertEqual(self.field.convert_value('value_2'), self.TestEnum.value_2)
+
+    def test_export_definition(self):
+        self.assertEqual(self.field.export_definition(),
+                         {'alias': [],
+                          'doc': 'EnumField field (:class:`{0}`)'.format('.'.join([self.TestEnum.__module__,
+                                                                                   self.TestEnum.__name__])),
+                          'enum_class': self.TestEnum,
+                          'name': 'test_field', 'read_only': False},
+                         self.field.export_definition())

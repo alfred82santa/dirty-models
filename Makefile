@@ -31,7 +31,7 @@ requirements-docs:
 
 run-tests:
 	@echo "Running tests..."
-	nosetests --with-coverage -d --cover-package=dirty_models --cover-erase
+	nosetests --with-coverage -d --cover-package=dirty_models --cover-erase -x
 
 publish:
 	@echo "Publishing new version on Pypi..."
