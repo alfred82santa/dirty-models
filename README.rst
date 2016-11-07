@@ -85,6 +85,11 @@ Features
 Changelog
 ---------
 
+Version 0.9.1
+-------------
+
+- Fix installation.
+
 Version 0.9.0
 -------------
 
