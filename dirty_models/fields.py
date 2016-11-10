@@ -416,7 +416,7 @@ class TimeField(DateTimeBaseField):
         elif isinstance(value, dict):
             return time(**value)
         elif isinstance(value, int):
-            return self.convert_value(datetime.fromtimestamp(value))
+            return self.convert_value(datetime.fromtimestamp(value, tz=self.default_timezone))
         elif isinstance(value, str):
             try:
                 if not self.parse_format:
@@ -547,7 +547,7 @@ class DateTimeField(DateTimeBaseField):
         elif isinstance(value, dict):
             return datetime(**value)
         elif isinstance(value, int):
-            return datetime.fromtimestamp(value)
+            return datetime.fromtimestamp(value, tz=self.default_timezone)
         elif isinstance(value, str):
             try:
                 if not self.parse_format:

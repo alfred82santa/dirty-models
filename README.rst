@@ -85,6 +85,11 @@ Features
 Changelog
 ---------
 
+Version 0.9.2
+-------------
+
+- Fix timezone when convert timestamp to datetime.
+
 Version 0.9.1
 -------------
 
