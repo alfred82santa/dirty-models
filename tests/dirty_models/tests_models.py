@@ -102,6 +102,17 @@ class TestModels(TestCase):
         self.assertTrue(hasattr(self.model, 'testField1'))
         self.assertFalse(hasattr(self.model, 'testField2'))
 
+    def test_import_nulled_data(self):
+        self.model.import_data(INITIAL_DATA)
+        self.assertTrue(hasattr(self.model, 'testField1'))
+
+        self.model.import_data({'testField1': None})
+        self.assertIsNone(self.model.testField1)
+
+    def test_import_invalid_data(self):
+        with self.assertRaises(TypeError):
+            self.model.import_data('invalid data')
+
     def test_import_data_from_model(self):
         class FakeModel(BaseModel):
             testField1 = BaseField()
@@ -232,7 +243,7 @@ class TestModels(TestCase):
         model.import_data({'field_1': '23', 'field_2': [{'field_2': 12, 'field_1': {'field_2': 122}}],
                            'field_3': [12, '23']})
 
-        deleted_fields = ['field_1', 'field_2.0.field_2']
+        deleted_fields = ['field_1', 'field_fake', 'field_2.0.field_2']
         model.import_deleted_fields(deleted_fields)
         self.assertEqual(model.export_data(), {'field_2': [{'field_1': {'field_2': 122}}], 'field_3': [12, 23]})
 
@@ -406,6 +417,18 @@ class TestModels(TestCase):
         model.flat_data()
 
         del model.testField2
+
+        self.assertEqual(sorted(model.get_fields()), ['testField1', 'testField3'])
+
+    def test_fields_nulled_data(self):
+        model = self._get_test_model_instance()
+        model.testField1 = 'a'
+        model.testField2 = 'b'
+        model.testField3 = 'c'
+
+        model.flat_data()
+
+        model.testField2 = None
 
         self.assertEqual(sorted(model.get_fields()), ['testField1', 'testField3'])
 
@@ -908,6 +931,24 @@ class TestModelReadOnly(TestCase):
         self.assertEqual(TestModel.field_3.__doc__,
                          'Array of ModelField field (:class:`dirty_models.fields.IntegerField`)')
 
+    def test_import_data_readonly(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelReadOnly(data)
+        model.flat_data()
+
+        model.testFieldModel.import_data({'testField1': 2})
+        self.assertEqual(model.testFieldModel.testField1, 61)
+
 
 class TestDynamicModel(TestCase):
 
@@ -1022,6 +1063,14 @@ class TestDynamicModel(TestCase):
         self.assertIsInstance(self._get_field_type('test1'), IntegerField)
 
         del self.model.test1
+        self.assertIsNone(self.model.test1)
+
+    def test_nulled_field(self):
+        self.model.test1 = 1
+        self.assertEqual(self.model.test1, 1)
+        self.assertIsInstance(self._get_field_type('test1'), IntegerField)
+
+        self.model.test1 = None
         self.assertIsNone(self.model.test1)
 
     def test_delete_protected_field(self):
@@ -1249,6 +1298,28 @@ class TestHashMapModel(TestCase):
         self.assertFalse(self.model.is_modified())
         del self.model.testField1
         del self.model.testField4
+        self.assertTrue(self.model.is_modified())
+        self.assertTrue(self.model.is_modified_field('testField4'))
+        self.assertIsNone(self.model.testField1)
+        self.assertEqual(self.model.testField2, 1)
+        self.assertEqual(self.model.testField3, 1)
+        self.assertIsNone(self.model.testField4)
+        self.assertEqual(self.model.testField5, 212)
+
+    def test_nulled_fields(self):
+        self.model.testField1 = 'aaaa'
+        self.model.testField2 = '1'
+        self.model.testField3 = 1
+        self.model.testField4 = 21
+        self.model.testField5 = '212'
+
+        self.assertTrue(self.model.is_modified())
+        self.model.flat_data()
+        self.assertFalse(self.model.is_modified())
+        self.model.testField4 = 21
+        self.assertFalse(self.model.is_modified())
+        self.model.testField1 = None
+        self.model.testField4 = None
         self.assertTrue(self.model.is_modified())
         self.assertTrue(self.model.is_modified_field('testField4'))
         self.assertIsNone(self.model.testField1)

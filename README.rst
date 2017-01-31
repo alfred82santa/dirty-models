@@ -1,4 +1,4 @@
-|travis-master| |coverall-master| |doc-master| |pypi-downloads| |pypi-lastrelease| |python-versions|
+|travis-master| |coverall-master| |doc-master| |pypi-lastrelease| |python-versions|
 |project-status| |project-license| |project-format| |project-implementation|
 
 .. |travis-master| image:: https://travis-ci.org/alfred82santa/dirty-models.svg?branch=master
@@ -84,6 +84,15 @@ Features
 ---------
 Changelog
 ---------
+
+Version 0.10.0
+--------------
+
+- Pickable lists.
+- Improved pickle performance.
+- Setting ``None`` to a field remove content.
+- More tests.
+- Some code improvements.
 
 Version 0.9.2
 -------------

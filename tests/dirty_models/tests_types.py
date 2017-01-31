@@ -1,3 +1,4 @@
+import pickle
 from unittest import TestCase
 from dirty_models.model_types import ListModel
 from dirty_models.fields import StringField, ArrayField, ModelField, MultiTypeField
@@ -242,3 +243,74 @@ class ExportDeletedFieldsTests(TestCase):
 
         del model.test_array[1].test_int
         self.assertEqual(model.export_deleted_fields(), ['test_array.1.test_int'])
+
+
+class PicklableModel(BaseModel):
+    int_field = IntegerField()
+
+
+class PicklableListTests(TestCase):
+
+    def _assert_equal_after_pickle(self, list_model):
+
+        list_model_unpickled = pickle.loads(pickle.dumps(list_model))
+
+        self.assertNotEqual(id(list_model),
+                            id(list_model_unpickled))
+        self.assertEqual(list_model_unpickled.__original_data__,
+                         list_model.__original_data__)
+        self.assertEqual(list_model_unpickled.__modified_data__,
+                         list_model.__modified_data__)
+        self.assertEqual(list_model_unpickled.get_field_type().__class__,
+                         list_model.get_field_type().__class__)
+        self.assertEqual(list_model_unpickled.get_field_type().export_definition(),
+                         list_model.get_field_type().export_definition())
+
+    def test_integer_field(self):
+        list_model = ListModel([1, 2], field_type=IntegerField())
+        list_model.flat_data()
+
+        self._assert_equal_after_pickle(list_model)
+
+    def test_integer_field_modified(self):
+        list_model = ListModel([1, 2], field_type=IntegerField())
+        list_model.flat_data()
+
+        list_model.append(3)
+
+        self._assert_equal_after_pickle(list_model)
+
+    def test_string_field(self):
+        list_model = ListModel(['aaaa', 'bbbb', 'cccc'], field_type=StringField())
+        list_model.flat_data()
+
+        list_model.pop()
+
+        self._assert_equal_after_pickle(list_model)
+
+    def test_model_field(self):
+
+        list_model = ListModel([{'int_field': 1}, {'int_field': 2}, {'int_field': 3}],
+                               field_type=ModelField(model_class=PicklableModel))
+        list_model.flat_data()
+
+        list_model.pop()
+
+        list_model_unpickled = pickle.loads(pickle.dumps(list_model))
+
+        self.assertNotEqual(id(list_model),
+                            id(list_model_unpickled))
+        self.assertEqual([i.export_data() for i in list_model_unpickled.__original_data__],
+                         [i.export_data() for i in list_model.__original_data__])
+        self.assertEqual([i.export_data() for i in list_model_unpickled.__modified_data__],
+                         [i.export_data() for i in list_model.__modified_data__])
+        self.assertEqual(list_model_unpickled.get_field_type().__class__,
+                         list_model.get_field_type().__class__)
+        self.assertEqual(list_model_unpickled.get_field_type().export_definition(),
+                         list_model.get_field_type().export_definition())
+
+        original_list = [i for i in list_model_unpickled.__original_data__]
+        original_list.pop()
+
+        self.assertEqual(original_list,
+                         list_model_unpickled.__modified_data__)

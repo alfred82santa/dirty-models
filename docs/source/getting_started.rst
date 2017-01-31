@@ -257,3 +257,47 @@ It is possible to export data to a dict.
 
     print(model.export_data())
     # {'my_int_field': 3}
+
+------------------
+How to remove data
+------------------
+
+Once more, there are two way to remove data.
+
+Using ``del`` keyword
+=====================
+
+Simplest way to remove data from field is to use ``del`` python keyword.
+
+.. code-block:: python
+
+    class MyModel(BaseModel):
+
+        my_int_field = IntegerField()
+        my_string_field = StringField()
+
+    model = MyModel()
+
+    model.my_int_field = 3
+    del model.my_int_field
+
+    assert model.my_int_field is None # True
+
+Use ``None`` as value
+=====================
+
+Other way is to set ``None`` to field.
+
+.. code-block:: python
+
+    class MyModel(BaseModel):
+
+        my_int_field = IntegerField()
+        my_string_field = StringField()
+
+    model = MyModel()
+
+    model.my_int_field = 3
+    model.my_int_field = None
+
+    assert model.my_int_field is None # True

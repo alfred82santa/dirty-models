@@ -103,7 +103,9 @@ class BaseField:
             self._setter(self, obj, value)
             return
 
-        if self.check_value(value) or self.can_use_value(value):
+        if value is None:
+            self.delete_value(obj)
+        elif self.check_value(value) or self.can_use_value(value):
             self.set_value(obj, self.use_value(value))
 
     def __delete__(self, obj):

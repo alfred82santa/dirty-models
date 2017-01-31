@@ -1269,7 +1269,7 @@ class ArrayOfStringFieldTests(TestCase):
         self.assertEqual(self.model.export_data(), {})
 
 
-class IntegerFieldFieldTests(TestCase):
+class IntegerFieldTests(TestCase):
 
     class TestEnum(Enum):
         value_1 = 1
