@@ -15,7 +15,6 @@ from .fields import IntegerField, FloatField, BooleanField, StringField, DateTim
     BaseField, ModelField, ArrayField
 from .model_types import ListModel
 
-
 __all__ = ['BaseModel', 'DynamicModel', 'FastDynamicModel', 'HashMapModel']
 
 
@@ -125,7 +124,6 @@ class DirtyModelMeta(type):
 
 
 class CamelCaseMeta(DirtyModelMeta):
-
     """
     Metaclass for dirty_models. Sets camel case version of field's name as default field name.
     """
@@ -138,18 +136,29 @@ class CamelCaseMeta(DirtyModelMeta):
         super(CamelCaseMeta, self).process_base_field(field, key)
 
 
+def set_model_internal_data(model, original_data, modified_data, deleted_data):
+    """
+    Set internal data to model.
+    """
+    model.__original_data__ = original_data
+    list(map(model._prepare_child, model.__original_data__))
+
+    model.__modified_data__ = modified_data
+    list(map(model._prepare_child, model.__modified_data__))
+
+    model.__deleted_fields__ = deleted_data
+
+    return model
+
+
 def recover_model_from_data(model_class, original_data, modified_data, deleted_data):
     """
     Function to reconstruct a model from DirtyModel basic information: original data, the modified and deleted
     fields.
     Necessary for pickle an object
     """
-    model = model_class(original_data, True)
-    model.unlock()
-    model.import_data(modified_data)
-    model.import_deleted_fields(deleted_data)
-    model.lock()
-    return model
+    model = model_class()
+    return set_model_internal_data(model, original_data, modified_data, deleted_data)
 
 
 class BaseModel(BaseData, metaclass=DirtyModelMeta):
@@ -181,8 +190,8 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         Reduce function to allow dumpable by pickle
         """
 
-        return recover_model_from_data, (self.__class__, self.export_original_data(),
-                                         self.export_modified_data(), self.export_deleted_fields(),)
+        return recover_model_from_data, (self.__class__, self.__original_data__,
+                                         self.__modified_data__, self.__deleted_fields__,)
 
     def get_real_name(self, name):
         obj = self.get_field_obj(name)
@@ -197,20 +206,26 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         name = self.get_real_name(name)
 
-        if name and self._can_write_field(name):
-            if name in self.__deleted_fields__:
-                self.__deleted_fields__.remove(name)
-            if self.__original_data__.get(name) == value:
-                if self.__modified_data__.get(name):
-                    self.__modified_data__.pop(name)
-            else:
-                self.__modified_data__[name] = value
-                self._prepare_child(value)
-                if name in self.__structure__ and self.__structure__[name].read_only:
-                    try:
-                        value.set_read_only(True)
-                    except AttributeError:
-                        pass
+        if not name or not self._can_write_field(name):
+            return
+
+        if name in self.__deleted_fields__:
+            self.__deleted_fields__.remove(name)
+        if self.__original_data__.get(name) == value:
+            try:
+                self.__modified_data__.pop(name)
+            except KeyError:
+                pass
+        else:
+            self.__modified_data__[name] = value
+            self._prepare_child(value)
+            if name not in self.__structure__ or not self.__structure__[name].read_only:
+                return
+
+            try:
+                value.set_read_only(True)
+            except AttributeError:
+                pass
 
     def get_field_value(self, name):
         """
@@ -274,15 +289,23 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Set the fields established in data to the instance
         """
-        if not self.get_read_only() or not self.is_locked():
-            if isinstance(data, BaseModel):
-                data = data.export_data()
-            if isinstance(data, (dict, Mapping)):
-                for key, value in data.items():
-                    if not self.get_field_obj(key):
-                        self._not_allowed_field(key)
-                        continue
-                    setattr(self, key, value)
+        if self.get_read_only() and self.is_locked():
+            return
+
+        if isinstance(data, BaseModel):
+            data = data.export_data()
+
+        if not isinstance(data, (dict, Mapping)):
+            raise TypeError('Impossible to import data')
+
+        self._import_data(data)
+
+    def _import_data(self, data):
+        for key, value in data.items():
+            if not self.get_field_obj(key):
+                self._not_allowed_field(key)
+                continue
+            setattr(self, key, value)
 
     def _not_allowed_field(self, name):
         pass
@@ -297,8 +320,6 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Set data fields to deleted
         """
-        if not data:
-            return
 
         if self.get_read_only() and self.is_locked():
             return
@@ -309,11 +330,15 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         for key in data:
             if hasattr(self, key):
                 delattr(self, key)
-            else:
-                keys = key.split('.', 1)
-                if len(keys) == 2:
-                    child = getattr(self, keys[0])
-                    child.import_deleted_fields(keys[1])
+                continue
+
+            keys = key.split('.', 1)
+
+            if len(keys) != 2:
+                continue
+
+            child = getattr(self, keys[0])
+            child.import_deleted_fields(keys[1])
 
     def export_data(self):
         """
@@ -323,11 +348,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         data = self.__original_data__.copy()
         data.update(self.__modified_data__)
         for key, value in data.items():
-            if key not in self.__deleted_fields__:
-                try:
-                    result[key] = value.export_data()
-                except AttributeError:
-                    result[key] = value
+            if key in self.__deleted_fields__:
+                continue
+
+            try:
+                result[key] = value.export_data()
+            except AttributeError:
+                result[key] = value
 
         return result
 
@@ -339,19 +366,21 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         result = {key: None for key in self.__deleted_fields__}
 
         for key, value in self.__modified_data__.items():
-            if key not in result.keys():
-                try:
-                    result[key] = value.export_modified_data()
-                except AttributeError:
-                    result[key] = value
+            if key in result.keys():
+                continue
+            try:
+                result[key] = value.export_modified_data()
+            except AttributeError:
+                result[key] = value
 
         for key, value in self.__original_data__.items():
-            if key not in result.keys():
-                try:
-                    if value.is_modified():
-                        result[key] = value.export_modified_data()
-                except AttributeError:
-                    pass
+            if key in result.keys():
+                continue
+            try:
+                if value.is_modified():
+                    result[key] = value.export_modified_data()
+            except AttributeError:
+                pass
 
         return result
 
@@ -416,13 +445,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         result = self.__deleted_fields__.copy()
 
         for key, value in self.__original_data__.items():
-            if key not in result:
-                try:
-                    partial = value.export_deleted_fields()
-                    for key2 in partial:
-                        result.append(key + '.' + key2)
-                except AttributeError:
-                    pass
+            if key in result:
+                continue
+            try:
+                partial = value.export_deleted_fields()
+                result.extend(['.'.join([key, key2]) for key2 in partial])
+            except AttributeError:
+                pass
 
         return result
 
@@ -443,9 +472,9 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         modified_dict = self.__original_data__
         modified_dict.update(self.__modified_data__)
-        self.__original_data__ = dict((k, flat_field(v))
-                                      for k, v in modified_dict.items()
-                                      if k not in self.__deleted_fields__)
+        self.__original_data__ = {k: flat_field(v)
+                                  for k, v in modified_dict.items()
+                                  if k not in self.__deleted_fields__}
 
         self.clear_modified_data()
 
@@ -730,21 +759,34 @@ class BaseDynamicModel(BaseModel):
         else:
             raise TypeError("Invalid parameter: %s. Type not supported." % (key,))
 
-    def import_data(self, data):
+    def _import_data(self, data):
         """
         Set the fields established in data to the instance
         """
-        if isinstance(data, (dict, Mapping)):
-            for key, value in data.items():
-                if key.startswith('__'):
-                    self._not_allowed_field(key)
-                    continue
-                if not self.get_field_obj(key):
-                    if not self._define_new_field_by_value(key, value):
-                        self._not_allowed_value(key, value)
-                        continue
 
-                setattr(self, key, value)
+        for key, value in data.items():
+            if key.startswith('__'):
+                self._not_allowed_field(key)
+                continue
+
+            if not self.get_field_obj(key) and not self._define_new_field_by_value(key, value):
+                self._not_allowed_value(key, value)
+                continue
+
+            setattr(self, key, value)
+
+
+def recover_dynamic_model_from_data(model_class, original_data, modified_data, deleted_data, structure):
+    """
+    Function to reconstruct a model from DirtyModel basic information: original data, the modified and deleted
+    fields.
+    Necessary for pickle an object
+    """
+    model = model_class()
+
+    model.__structure__ = {k: d[0](**d[1]) for k, d in structure.items()}
+
+    return set_model_internal_data(model, original_data, modified_data, deleted_data)
 
 
 class DynamicModel(BaseDynamicModel):
@@ -802,8 +844,10 @@ class DynamicModel(BaseDynamicModel):
         """
         Reduce function to allow dumpable by pickle
         """
-        return recover_model_from_data, (DynamicModel, self.export_original_data(),
-                                         self.export_modified_data(), self.export_deleted_fields(),)
+        return recover_dynamic_model_from_data, (DynamicModel, self.__original_data__,
+                                                 self.__modified_data__, self.__deleted_fields__,
+                                                 {field.name: (field.__class__, field.export_definition())
+                                                  for field in self.__structure__.values()})
 
 
 def recover_hashmap_model_from_data(model_class, original_data, modified_data, deleted_data, field_type):
@@ -812,12 +856,8 @@ def recover_hashmap_model_from_data(model_class, original_data, modified_data, d
     fields.
     Necessary for pickle an object
     """
-    model = model_class(original_data, True, field_type=field_type[0](**field_type[1]))
-    model.unlock()
-    model.import_data(modified_data)
-    model.import_deleted_fields(deleted_data)
-    model.lock()
-    return model
+    model = model_class(field_type=field_type[0](**field_type[1]))
+    return set_model_internal_data(model, original_data, modified_data, deleted_data)
 
 
 class HashMapModel(InnerFieldTypeMixin, BaseModel):
@@ -830,8 +870,8 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
         """
         Reduce function to allow dumpable by pickle
         """
-        return recover_hashmap_model_from_data, (self.__class__, self.export_original_data(),
-                                                 self.export_modified_data(), self.export_deleted_fields(),
+        return recover_hashmap_model_from_data, (self.__class__, self.__original_data__,
+                                                 self.__modified_data__, self.__deleted_fields__,
                                                  (self.get_field_type().__class__,
                                                   self.get_field_type().export_definition()))
 
@@ -862,19 +902,16 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
         except AttributeError:
             return value
 
-    def import_data(self, data):
+    def _import_data(self, data):
         """
         Set the fields in data to the hashmap instance.
         """
-        if not self.get_read_only() or not self.is_locked():
-            if isinstance(data, BaseModel):
-                data = data.export_data()
-            if isinstance(data, (dict, Mapping)):
-                for key, value in data.items():
-                    if key.startswith('__'):
-                        self._not_allowed_field(key)
-                        continue
-                    setattr(self, key, value)
+
+        for key, value in data.items():
+            if key.startswith('__'):
+                self._not_allowed_field(key)
+                continue
+            setattr(self, key, value)
 
     def __setattr__(self, name, value):
         if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
@@ -914,6 +951,19 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
             self.delete_field_value(name)
             return
         super(HashMapModel, self).__delattr__(name)
+
+
+def recover_fast_dynamic_model_from_data(model_class, original_data, modified_data, deleted_data, field_types):
+    """
+    Function to reconstruct a model from DirtyModel basic information: original data, the modified and deleted
+    fields.
+    Necessary for pickle an object
+    """
+    model = model_class()
+
+    model.__field_types__ = {k: d[0](**d[1]) for k, d in field_types.items()}
+
+    return set_model_internal_data(model, original_data, modified_data, deleted_data)
 
 
 class FastDynamicModel(BaseDynamicModel):
@@ -1008,3 +1058,12 @@ class FastDynamicModel(BaseDynamicModel):
             return self.__field_types__[name]
         except KeyError:
             return super(FastDynamicModel, self).get_field_obj(name)
+
+    def __reduce__(self):
+        """
+        Reduce function to allow dumpable by pickle
+        """
+        return recover_fast_dynamic_model_from_data, (self.__class__, self.__original_data__,
+                                                      self.__modified_data__, self.__deleted_fields__,
+                                                      {field.name: (field.__class__, field.export_definition())
+                                                       for field in self.__field_types__.values()})

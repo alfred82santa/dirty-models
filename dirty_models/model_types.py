@@ -25,6 +25,21 @@ def modified_data_decorator(function):
     return func
 
 
+def restore_list_model_from_data(list_class, field, common_data, original_list, modified_list):
+
+    model = list_class(field_type=field[0](**field[1]))
+
+    if original_list is not None:
+        model.__original_data__ = [common_data[i] for i in original_list]
+        list(map(model._prepare_child, model.__original_data__))
+
+    if modified_list is not None:
+        model.__modified_data__ = [common_data[i] for i in modified_list]
+        list(map(model._prepare_child, model.__modified_data__))
+
+    return model
+
+
 class ListModel(InnerFieldTypeMixin, BaseData):
     """
     Dirty model for a list. It has the behavior to work as a list implementing its methods
@@ -162,12 +177,12 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             self.append(value)
 
     @modified_data_decorator
-    def pop(self, index=None):
+    def pop(self, *args):
         """
         Obtains and delete the element from the list
         """
         if self.__modified_data__ is not None:
-            return self.__modified_data__.pop(index)
+            return self.__modified_data__.pop(*args)
 
     def count(self, value):
         """
@@ -495,3 +510,20 @@ class ListModel(InnerFieldTypeMixin, BaseData):
 
     def __contains__(self, item):
         return item in self.__modified_data__ if self.__modified_data__ is not None else item in self.__original_data__
+
+    def __reduce__(self):
+        orginal_list = [id(i) for i in self.__original_data__]
+        common_data = {id(i): i for i in self.__original_data__}
+
+        try:
+            modified_list = [id(i) for i in self.__modified_data__]
+            common_data.update({id(i): i for i in self.__modified_data__ if id(i) not in common_data})
+        except TypeError:
+            modified_list = None
+
+        return restore_list_model_from_data, (self.__class__,
+                                              (self.get_field_type().__class__,
+                                               self.get_field_type().export_definition()),
+                                              common_data,
+                                              orginal_list,
+                                              modified_list)

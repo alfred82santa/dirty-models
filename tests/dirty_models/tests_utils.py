@@ -108,7 +108,7 @@ class ModelFormatterIterTests(TestCase):
 
         formatter = ModelFormatterIter(model)
         data = {k: v for k, v in formatter}
-        print(data)
+
         self.assertEqual(data['test_int_field_1'], 4)
         self.assertEqual(data['test_datetime'], '2016-05-30 22:22:22')
         self.assertIsInstance(data['test_array_datetime'], ListFormatterIter)
