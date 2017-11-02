@@ -282,7 +282,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         try:
             return self.get_field_value(name).is_modified()
-        except:
+        except Exception:
             return False
 
     def import_data(self, data):
