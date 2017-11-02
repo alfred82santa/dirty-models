@@ -2019,3 +2019,19 @@ class DefaultValueFactoryTests(TestCase):
         self.assertEquals(model.test_field_int, 2)
         self.assertEquals(model.test_field_string, '2')
         self.assertEquals(model.test_field_float, 2.0)
+
+
+class DefaultValueFactoryDateTimeTests(TestCase):
+
+    class Model(BaseModel):
+        __default_data__ = {'test_field_2': factory(datetime.now)}
+
+        test_field_1 = DateTimeField(default=factory(datetime.now))
+        test_field_2 = DateTimeField()
+        test_field_float = FloatField()
+
+    def test_default_value_factory(self):
+        model = self.Model()
+
+        self.assertIsInstance(model.test_field_1, datetime)
+        self.assertIsInstance(model.test_field_2, datetime)

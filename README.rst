@@ -85,6 +85,29 @@ Features
 Changelog
 ---------
 
+Version 0.10.1
+--------------
+
+- :class:`Factory<dirty_models.utils>` feature. It allows to define a factory as
+  default value in order to be executed each time model is instanced. (Issue #100)
+
+  .. code-block:: python
+
+     from dirty_models.utils import factory
+     from datetime import datetime
+
+     class Model(BaseModel):
+
+        field_1 = DateTimeField(default=factory(datetime.now))
+
+     model = Model()
+     print(model.field_1)
+
+     # 2017-11-02 21:52:46.339040
+
+- Makefile fixes.
+- Python 3.6 is supported officially. It works since first day, but now tests run on Travis for Python 3.6.
+
 Version 0.10.0
 --------------
 

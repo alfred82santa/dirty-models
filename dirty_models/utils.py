@@ -9,7 +9,7 @@ from .model_types import ListModel
 from .models import BaseModel
 
 
-__all__ = ['factory', 'JSONEncoder']
+__all__ = ['factory', 'JSONEncoder', 'Factory']
 
 
 def underscore_to_camel(string):
@@ -102,8 +102,8 @@ class JSONEncoder(BaseJSONEncoder):
 
 class Factory:
     """
-    Factory decorator could be used to define a default value as result of a function. It could
-    be useful to define a :class:`~dirty_models.field.DateTimeField` with :meth:`datetime.datetime.now`
+    Factory decorator could be used to define result of a function as default value. It could
+    be useful to define a :class:`~dirty_models.fields.DateTimeField` with :meth:`datetime.datetime.now`
     in order to set the current datetime.
     """
 

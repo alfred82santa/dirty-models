@@ -19,14 +19,12 @@ requirements:
 	@echo "Installing dirty-models requirements..."
 	pip install -r requirements.txt
 
-requirements-test:
+requirements-test: requirements
 	@echo "Installing dirty-models tests requirements..."
-	@make requirements
 	pip install -r requirements-test.txt
 
-requirements-docs:
+requirements-docs: requirements
 	@echo "Installing dirty-models docs requirements..."
-	@make requirements
 	pip install -r requirements-docs.txt
 
 run-tests:
@@ -49,7 +47,6 @@ flake:
 autopep:
 	autopep8 --max-line-length 120 -r -j 8 -i .
 
-prepush:
-	@make flake
-	@make run-tests
+prepush: flake run-tests
+
 
