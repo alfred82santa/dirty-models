@@ -1,16 +1,15 @@
 import pickle
-from datetime import datetime, date, time, timedelta
-from enum import Enum
+from datetime import date, datetime, time, timedelta
 from unittest import TestCase
 
+from enum import Enum
 from functools import partial
 
 from dirty_models.base import Unlocker
-from dirty_models.fields import (BaseField, IntegerField, FloatField,
-                                 StringField, DateTimeField, ModelField,
-                                 ArrayField, BooleanField, DateField, TimeField, HashMapField, TimedeltaField,
-                                 EnumField, MultiTypeField)
-from dirty_models.models import BaseModel, DynamicModel, HashMapModel, FastDynamicModel, CamelCaseMeta
+from dirty_models.fields import ArrayField, BaseField, BooleanField, DateField, DateTimeField, EnumField, FloatField, \
+    HashMapField, IntegerField, ModelField, MultiTypeField, StringField, TimeField, TimedeltaField
+from dirty_models.models import BaseModel, CamelCaseMeta, DynamicModel, FastDynamicModel, HashMapModel
+from dirty_models.utils import factory
 
 INITIAL_DATA = {
     'testField1': 'testValue1',
@@ -164,8 +163,7 @@ class TestModels(TestCase):
         exported_data = self.model.export_data()
         self.assertEqual(exported_data, {'testField1': 'Value1Modified',
                                          'testField4':
-                                             {'testField2':
-                                              'Field Value2 Modified',
+                                             {'testField2': 'Field Value2 Modified',
                                               'testField1': 'Field Value1'}})
 
     def test_export_modified(self):
@@ -1634,13 +1632,13 @@ class GetAttributeByPathTests(TestCase):
         self.assertEqual(self.model.get_attrs_by_path('test_list.*.test_field_2'), ['string'])
 
     def test_wildcard_path_all(self):
-        self.assertEqual(set(self.model.get_attrs_by_path('*')), set([1, self.model.test_list,
-                                                                      self.model.test_model,
-                                                                      self.model.test_list_int]))
+        self.assertEqual(set(self.model.get_attrs_by_path('*')), {1, self.model.test_list,
+                                                                  self.model.test_model,
+                                                                  self.model.test_list_int})
 
     def test_wildcard_path_list(self):
-        self.assertEqual(set(self.model.get_attrs_by_path('test_list.*')), set([self.model.test_list[0],
-                                                                                self.model.test_list[1]]))
+        self.assertEqual(set(self.model.get_attrs_by_path('test_list.*')), {self.model.test_list[0],
+                                                                            self.model.test_list[1]})
 
     def test_first_simple(self):
         self.assertEqual(self.model.get_1st_attr_by_path('test_field_1'), 1)
@@ -1988,3 +1986,36 @@ class ExportModificationsTests(TestCase):
         self.assertEqual(model.export_modifications(), {'test_array_array_model.0': [{'test_field_int': 3},
                                                                                      {'test_field_int': 4},
                                                                                      {'test_field_int': 6}]})
+
+
+class IterFactory:
+
+    def __init__(self):
+        self.i = 0
+
+    def __call__(self):
+        self.i += 1
+        return self.i
+
+
+class DefaultValueFactoryTests(TestCase):
+
+    class Model(BaseModel):
+        __default_data__ = {'test_field_float': factory(IterFactory())}
+
+        test_field_int = IntegerField(default=factory(IterFactory()))
+        test_field_string = StringField(default=factory(IterFactory()))
+        test_field_float = FloatField()
+
+    def test_default_value_factory(self):
+        model = self.Model()
+
+        self.assertEquals(model.test_field_int, 1)
+        self.assertEquals(model.test_field_string, '1')
+        self.assertEquals(model.test_field_float, 1.0)
+
+        model = self.Model()
+
+        self.assertEquals(model.test_field_int, 2)
+        self.assertEquals(model.test_field_string, '2')
+        self.assertEquals(model.test_field_float, 2.0)

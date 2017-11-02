@@ -2,11 +2,11 @@
 Fields to be used with dirty models.
 """
 
-from datetime import datetime, date, time, timedelta
-from enum import Enum
+from datetime import date, datetime, time, timedelta
 
 from collections import Mapping
 from dateutil.parser import parse as dateutil_parse
+from enum import Enum
 from functools import wraps
 
 from .model_types import ListModel
@@ -103,10 +103,17 @@ class BaseField:
             self._setter(self, obj, value)
             return
 
-        if value is None:
-            self.delete_value(obj)
-        elif self.check_value(value) or self.can_use_value(value):
-            self.set_value(obj, self.use_value(value))
+        from dirty_models.utils import Factory
+
+        def set_value(v):
+            if value is None:
+                self.delete_value(obj)
+            elif self.check_value(v) or self.can_use_value(v):
+                self.set_value(obj, self.use_value(v))
+            elif isinstance(value, Factory):
+                set_value(v())
+
+        set_value(value)
 
     def __delete__(self, obj):
         self._check_name()
@@ -426,7 +433,7 @@ class TimeField(DateTimeBaseField):
                     return value.time()
 
                 return self.convert_value(self.get_parsed_value(value))
-            except:
+            except Exception:
                 return None
         elif isinstance(value, datetime):
             return value.timetz()
@@ -486,7 +493,7 @@ class DateField(DateTimeBaseField):
                     return value.date()
 
                 return self.convert_value(self.get_parsed_value(value))
-            except:
+            except Exception:
                 return None
         elif isinstance(value, datetime):
             return value.date()
@@ -556,7 +563,7 @@ class DateTimeField(DateTimeBaseField):
                     return dateutil_parse(value)
 
                 return self.get_parsed_value(value)
-            except:
+            except Exception:
                 return None
         elif isinstance(value, date):
             return datetime(year=value.year, month=value.month,
