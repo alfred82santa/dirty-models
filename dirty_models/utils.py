@@ -1,12 +1,15 @@
 from datetime import date, datetime, time, timedelta
-from enum import Enum
 from json.encoder import JSONEncoder as BaseJSONEncoder
 
 import re
+from enum import Enum
 
 from .fields import MultiTypeField
 from .model_types import ListModel
 from .models import BaseModel
+
+
+__all__ = ['factory', 'JSONEncoder', 'Factory']
 
 
 def underscore_to_camel(string):
@@ -95,3 +98,20 @@ class JSONEncoder(BaseJSONEncoder):
             return {k: v for k, v in obj}
         elif isinstance(obj, ListFormatterIter):
             return list(obj)
+
+
+class Factory:
+    """
+    Factory decorator could be used to define result of a function as default value. It could
+    be useful to define a :class:`~dirty_models.fields.DateTimeField` with :meth:`datetime.datetime.now`
+    in order to set the current datetime.
+    """
+
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self):
+        return self.func()
+
+
+factory = Factory
