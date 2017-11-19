@@ -2,6 +2,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from unittest import TestCase
 
 import iso8601
+import sys
 from dateutil import tz
 from enum import Enum
 
@@ -12,6 +13,7 @@ from dirty_models.models import BaseModel, HashMapModel
 
 
 class TestFields(TestCase):
+
     def test_float_field_using_int(self):
         field = FloatField()
         self.assertFalse(field.check_value(3))
@@ -187,13 +189,14 @@ class TestFields(TestCase):
         model.field_name = "0o13"
         self.assertEqual(model.field_name, 11)
 
-    def test_int_field_on_class_using_str_undescore(self):
-        class TestModel(BaseModel):
-            field_name = IntegerField()
+    if sys.version_info >= (3, 6):
+        def test_int_field_on_class_using_str_undescore(self):
+            class TestModel(BaseModel):
+                field_name = IntegerField()
 
-        model = TestModel()
-        model.field_name = "1_345_232"
-        self.assertEqual(model.field_name, 1345232)
+            model = TestModel()
+            model.field_name = "1_345_232"
+            self.assertEqual(model.field_name, 1345232)
 
     def test_int_field_on_class_using_dict(self):
         class TestModel(BaseModel):
@@ -1263,6 +1266,7 @@ class TestFields(TestCase):
 
 
 class ArrayOfStringFieldTests(TestCase):
+
     def setUp(self):
         super(ArrayOfStringFieldTests, self).setUp()
 
@@ -1290,6 +1294,7 @@ class ArrayOfStringFieldTests(TestCase):
 
 
 class IntegerFieldTests(TestCase):
+
     class TestEnum(Enum):
         value_1 = 1
         value_2 = '2'
@@ -1355,6 +1360,7 @@ class IntegerFieldTests(TestCase):
 
 
 class MultiTypeFieldSimpleTypesTests(TestCase):
+
     def setUp(self):
         super(MultiTypeFieldSimpleTypesTests, self).setUp()
 
@@ -1420,6 +1426,7 @@ class MultiTypeFieldSimpleTypesTests(TestCase):
 
 
 class MultiTypeFieldComplexTypesTests(TestCase):
+
     def setUp(self):
         super(MultiTypeFieldComplexTypesTests, self).setUp()
 
@@ -1462,6 +1469,7 @@ class MultiTypeFieldComplexTypesTests(TestCase):
 
 
 class AutoreferenceModelFieldTests(TestCase):
+
     def setUp(self):
         super(AutoreferenceModelFieldTests, self).setUp()
 
@@ -1481,6 +1489,7 @@ class AutoreferenceModelFieldTests(TestCase):
 
 
 class TimedeltaFieldTests(TestCase):
+
     def setUp(self):
         self.field = TimedeltaField()
 
@@ -1507,6 +1516,7 @@ class TimedeltaFieldTests(TestCase):
 
 
 class DateTimeFieldWithTimezoneTests(TestCase):
+
     def test_no_timezone_none(self):
         class Model(BaseModel):
             date_time_field = DateTimeField()
@@ -1584,6 +1594,7 @@ class DateTimeFieldWithTimezoneTests(TestCase):
 
 
 class TimeFieldWithTimezoneTests(TestCase):
+
     def test_no_timezone_none(self):
         class Model(BaseModel):
             time_field = TimeField()
@@ -1634,6 +1645,7 @@ class TimeFieldWithTimezoneTests(TestCase):
 
 
 class EnumFieldTests(TestCase):
+
     class TestEnum(Enum):
         value_1 = 'value1'
         value_2 = 2
@@ -1680,6 +1692,7 @@ class EnumFieldTests(TestCase):
 
 
 class BytesFieldTests(TestCase):
+
     def setUp(self):
         self.field = BytesField(name='test_field', alias=[])
 

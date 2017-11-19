@@ -92,7 +92,7 @@ Version 0.11.0
 - New field type :class:`~dirty_models.fields.BytesField`.
 
 - String to integer casting could use any format allowed by Python: HEX (`0x23`), OCT (`0o43`) or
-  no-meaning underscores (`1_232_232`).
+  no-meaning underscores (`1_232_232`, only since Python 3.6).
 
 Version 0.10.1
 --------------
