@@ -1,20 +1,17 @@
-from datetime import time, date, datetime, timezone, timedelta
-from enum import Enum
+from datetime import date, datetime, time, timedelta, timezone
 from unittest import TestCase
 
 import iso8601
 from dateutil import tz
+from enum import Enum
 
-from dirty_models.fields import (IntegerField, StringField, BooleanField,
-                                 FloatField, ModelField, TimeField, DateField,
-                                 DateTimeField, ArrayField, StringIdField, HashMapField, MultiTypeField, TimedeltaField,
-                                 EnumField)
+from dirty_models.fields import ArrayField, BooleanField, BytesField, DateField, DateTimeField, EnumField, FloatField, \
+    HashMapField, IntegerField, ModelField, MultiTypeField, StringField, StringIdField, TimeField, TimedeltaField
 from dirty_models.model_types import ListModel
 from dirty_models.models import BaseModel, HashMapModel
 
 
 class TestFields(TestCase):
-
     def test_float_field_using_int(self):
         field = FloatField()
         self.assertFalse(field.check_value(3))
@@ -173,6 +170,30 @@ class TestFields(TestCase):
         model = TestModel()
         model.field_name = "3"
         self.assertEqual(model.field_name, 3)
+
+    def test_int_field_on_class_using_str_hex(self):
+        class TestModel(BaseModel):
+            field_name = IntegerField()
+
+        model = TestModel()
+        model.field_name = "0x13"
+        self.assertEqual(model.field_name, 19)
+
+    def test_int_field_on_class_using_str_oct(self):
+        class TestModel(BaseModel):
+            field_name = IntegerField()
+
+        model = TestModel()
+        model.field_name = "0o13"
+        self.assertEqual(model.field_name, 11)
+
+    def test_int_field_on_class_using_str_undescore(self):
+        class TestModel(BaseModel):
+            field_name = IntegerField()
+
+        model = TestModel()
+        model.field_name = "1_345_232"
+        self.assertEqual(model.field_name, 1345232)
 
     def test_int_field_on_class_using_dict(self):
         class TestModel(BaseModel):
@@ -1242,7 +1263,6 @@ class TestFields(TestCase):
 
 
 class ArrayOfStringFieldTests(TestCase):
-
     def setUp(self):
         super(ArrayOfStringFieldTests, self).setUp()
 
@@ -1270,7 +1290,6 @@ class ArrayOfStringFieldTests(TestCase):
 
 
 class IntegerFieldTests(TestCase):
-
     class TestEnum(Enum):
         value_1 = 1
         value_2 = '2'
@@ -1336,7 +1355,6 @@ class IntegerFieldTests(TestCase):
 
 
 class MultiTypeFieldSimpleTypesTests(TestCase):
-
     def setUp(self):
         super(MultiTypeFieldSimpleTypesTests, self).setUp()
 
@@ -1402,7 +1420,6 @@ class MultiTypeFieldSimpleTypesTests(TestCase):
 
 
 class MultiTypeFieldComplexTypesTests(TestCase):
-
     def setUp(self):
         super(MultiTypeFieldComplexTypesTests, self).setUp()
 
@@ -1445,7 +1462,6 @@ class MultiTypeFieldComplexTypesTests(TestCase):
 
 
 class AutoreferenceModelFieldTests(TestCase):
-
     def setUp(self):
         super(AutoreferenceModelFieldTests, self).setUp()
 
@@ -1465,7 +1481,6 @@ class AutoreferenceModelFieldTests(TestCase):
 
 
 class TimedeltaFieldTests(TestCase):
-
     def setUp(self):
         self.field = TimedeltaField()
 
@@ -1492,7 +1507,6 @@ class TimedeltaFieldTests(TestCase):
 
 
 class DateTimeFieldWithTimezoneTests(TestCase):
-
     def test_no_timezone_none(self):
         class Model(BaseModel):
             date_time_field = DateTimeField()
@@ -1558,7 +1572,6 @@ class DateTimeFieldWithTimezoneTests(TestCase):
         self.assertEqual(model.date_time_field.tzinfo, timezone.utc)
 
     def test_export_definition(self):
-
         field = DateTimeField(name='test_field', alias=[], default_timezone=timezone.utc, force_timezone=True)
 
         self.assertEqual(field.export_definition(),
@@ -1571,7 +1584,6 @@ class DateTimeFieldWithTimezoneTests(TestCase):
 
 
 class TimeFieldWithTimezoneTests(TestCase):
-
     def test_no_timezone_none(self):
         class Model(BaseModel):
             time_field = TimeField()
@@ -1611,7 +1623,6 @@ class TimeFieldWithTimezoneTests(TestCase):
         self.assertEqual(model.time_field.tzinfo, tz.gettz('Europe/Amsterdam'))
 
     def test_export_definition(self):
-
         field = TimeField(name='test_field', alias=[], default_timezone=timezone.utc)
 
         self.assertEqual(field.export_definition(),
@@ -1623,9 +1634,7 @@ class TimeFieldWithTimezoneTests(TestCase):
 
 
 class EnumFieldTests(TestCase):
-
     class TestEnum(Enum):
-
         value_1 = 'value1'
         value_2 = 2
 
@@ -1666,5 +1675,49 @@ class EnumFieldTests(TestCase):
                           'doc': 'EnumField field (:class:`{0}`)'.format('.'.join([self.TestEnum.__module__,
                                                                                    self.TestEnum.__name__])),
                           'enum_class': self.TestEnum,
+                          'name': 'test_field', 'read_only': False},
+                         self.field.export_definition())
+
+
+class BytesFieldTests(TestCase):
+    def setUp(self):
+        self.field = BytesField(name='test_field', alias=[])
+
+    def test_check_value(self):
+        self.assertTrue(self.field.check_value(b'2332345as'))
+
+    def test_check_value_fail(self):
+        self.assertFalse(self.field.check_value('2332345as'))
+        self.assertFalse(self.field.check_value(12))
+        self.assertFalse(self.field.check_value(12.3))
+        self.assertFalse(self.field.check_value(bytearray([12, 43, 52])))
+        self.assertFalse(self.field.check_value([12, 43, 52]))
+        self.assertFalse(self.field.check_value({'sasa': 'asasas'}))
+
+    def test_can_use_value_check_values(self):
+        self.assertTrue(self.field.can_use_value('2332345as'))
+        self.assertTrue(self.field.can_use_value(12))
+        self.assertTrue(self.field.can_use_value(bytearray([12, 43, 52])))
+        self.assertTrue(self.field.can_use_value([12, 43, 52]))
+        self.assertTrue(self.field.can_use_value(ListModel([12, 43, 52])))
+
+    def test_can_use_value_check_values_fail(self):
+        self.assertFalse(self.field.can_use_value(12.3))
+        self.assertFalse(self.field.can_use_value({'sasa': 'asasas'}))
+
+    def test_convert_value_from_values(self):
+        self.assertEqual(self.field.convert_value('2332345as'), b'2332345as')
+        self.assertEqual(self.field.convert_value(12), b'\x0c')
+        self.assertEqual(self.field.convert_value(bytearray([12, 43, 52])), b'\x0c+4')
+        self.assertEqual(self.field.convert_value([12, 43, 52]), b'\x0c+4')
+        self.assertEqual(self.field.convert_value(ListModel([12, 43, 52])), b'\x0c+4')
+
+    def test_convert_value_from_invalid_values(self):
+        self.assertIsNone(self.field.convert_value(ListModel([{'ass': 'as'}])))
+
+    def test_export_definition(self):
+        self.assertEqual(self.field.export_definition(),
+                         {'alias': [],
+                          'doc': 'BytesField field',
                           'name': 'test_field', 'read_only': False},
                          self.field.export_definition())
