@@ -33,11 +33,22 @@ run-tests:
 
 publish:
 	@echo "Publishing new version on Pypi..."
-	python setup.py sdist upload
+	python setup.py bdist_wheel upload
 
 clean:
 	@echo "Cleaning compiled files..."
 	find . | grep -E "(__pycache__|\.pyc|\.pyo)$ " | xargs rm -rf
+	@echo "Cleaning distribution files..."
+	rm -rf dist
+	@echo "Cleaning build files..."
+	rm -rf build
+	@echo "Cleaning egg info files..."
+	rm -rf ${PACKAGE_NAME}.egg-info
+	@echo "Cleaning coverage files..."
+	rm -f .coverage
+
+build:
+	python3 setup.py bdist_wheel
 
 flake:
 	@echo "Running flake8 tests..."
