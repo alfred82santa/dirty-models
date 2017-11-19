@@ -43,7 +43,7 @@ clean:
 	@echo "Cleaning build files..."
 	rm -rf build
 	@echo "Cleaning egg info files..."
-	rm -rf ${PACKAGE_NAME}.egg-info
+	rm -rf dirty_models.egg-info
 	@echo "Cleaning coverage files..."
 	rm -f .coverage
 

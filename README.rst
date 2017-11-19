@@ -85,6 +85,11 @@ Features
 Changelog
 ---------
 
+Version 0.11.1
+--------------
+
+- Distribution fixes.
+
 
 Version 0.11.0
 --------------
