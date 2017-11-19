@@ -170,6 +170,8 @@ class IntegerField(BaseField):
 
     @convert_enum
     def convert_value(self, value):
+        if isinstance(value, str):
+            return int(value, 0)
         return int(value)
 
     def check_value(self, value):
@@ -177,8 +179,15 @@ class IntegerField(BaseField):
 
     @can_use_enum
     def can_use_value(self, value):
-        return isinstance(value, float) \
-            or (isinstance(value, str) and value.isdigit())
+        if isinstance(value, float):
+            return True
+        elif isinstance(value, str):
+            try:
+                int(value, 0)
+                return True
+            except ValueError:
+                pass
+        return False
 
 
 class FloatField(BaseField):
@@ -923,3 +932,45 @@ class EnumField(BaseField):
             pass
 
         return value in self.enum_class.__members__.keys()
+
+
+class BytesField(BaseField):
+    """
+    It allows to use a bytes as value in a field.
+
+
+    **Automatic cast from:**
+
+    * :class:`str`
+
+    * :class:`int`
+
+    * :class:`bytearray`
+
+    * :class:`list` of :class:`int` in range(0, 256)
+
+    * :class:`~enum.Enum` if value of enum can be cast.
+    """
+
+    @convert_enum
+    def convert_value(self, value):
+        if isinstance(value, str):
+            return value.encode()
+        elif isinstance(value, (list, ListModel, bytearray, int)):
+            if isinstance(value, int):
+                value = bytes([value, ])
+            elif isinstance(value, ListModel):
+                value = value.export_data()
+            try:
+                return bytes(value)
+            except TypeError:
+                pass
+
+        return None
+
+    def check_value(self, value):
+        return isinstance(value, bytes)
+
+    @can_use_enum
+    def can_use_value(self, value):
+        return isinstance(value, (int, str, list, ListModel, bytearray))
