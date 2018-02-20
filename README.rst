@@ -85,6 +85,26 @@ Features
 Changelog
 ---------
 
+
+Version 0.11.2
+--------------
+
+- Fix bug #107.
+
+- Added :class:`~dirty_models.utils.ModelIterator` class in order to be able to iterate over model fields.
+
+  .. code-block:: python
+
+     from dirty_models.utils import ModelIterator
+
+     for fieldname, field_obj, value in ModelIterator(my_model):
+         print('Field name: {}'.format(fieldname))
+         print('Field alias: {}'.format(field_obj.alias))
+         print('Field value: {}'.format(value))
+
+- Some fixes about read only data.
+
+
 Version 0.11.1
 --------------
 

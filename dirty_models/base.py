@@ -11,8 +11,6 @@ class BaseData:
     Base class for data inside dirty model.
     """
 
-    __slots__ = []
-
     __locked__ = None
     __read_only__ = None
     __parent__ = None
@@ -86,15 +84,15 @@ class BaseData:
 
 class InnerFieldTypeMixin:
 
-    _field_type = None
+    __field_type__ = None
 
     def __init__(self, *args, **kwargs):
         if 'field_type' in kwargs:
-            self._field_type = kwargs.pop('field_type')
+            self.__field_type__ = kwargs.pop('field_type')
         super(InnerFieldTypeMixin, self).__init__(*args, **kwargs)
 
     def get_field_type(self):
-        return self._field_type
+        return self.__field_type__
 
 
 class Unlocker():

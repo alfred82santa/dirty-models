@@ -456,8 +456,7 @@ class TimeField(DateTimeBaseField):
 
     def set_value(self, obj, value: time):
         if self.default_timezone and value.tzinfo is None:
-            value = time(hour=value.hour, minute=value.minute, second=value.microsecond,
-                         microsecond=value.microsecond, tzinfo=self.default_timezone)
+            value = value.replace(tzinfo=self.default_timezone)
 
         super(TimeField, self).set_value(obj, value)
 

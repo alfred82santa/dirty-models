@@ -715,7 +715,7 @@ class BaseDynamicModel(BaseModel):
     """
 
     """
-    _dynamic_model = None
+    __dynamic_model__ = None
 
     def __getattr__(self, name):
         try:
@@ -746,7 +746,7 @@ class BaseDynamicModel(BaseModel):
         elif isinstance(value, Enum):
             return EnumField(name=key, enum_class=type(value))
         elif isinstance(value, (dict, BaseDynamicModel, Mapping)):
-            return ModelField(name=key, model_class=self._dynamic_model or self.__class__)
+            return ModelField(name=key, model_class=self.__dynamic_model__ or self.__class__)
         elif isinstance(value, BaseModel):
             return ModelField(name=key, model_class=value.__class__)
         elif isinstance(value, (list, set, ListModel)):
@@ -802,7 +802,7 @@ class DynamicModel(BaseDynamicModel):
         self.__structure__ = {}
 
     def __new__(cls, *args, **kwargs):
-        new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {'_dynamic_model': DynamicModel})
+        new_class = type('DynamicModel_' + str(cls._next_id), (cls,), {'__dynamic_model__': DynamicModel})
         cls._next_id = id(new_class)
         return super(DynamicModel, new_class).__new__(new_class)
 
@@ -880,7 +880,7 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
         return new_name if new_name else name
 
     def get_field_obj(self, name):
-        return super(HashMapModel, self).get_field_obj(name) or self._field_type
+        return super(HashMapModel, self).get_field_obj(name) or self.__field_type__
 
     def copy(self):
         """
@@ -975,7 +975,7 @@ class FastDynamicModel(BaseDynamicModel):
 
     def __init__(self, *args, **kwargs):
         self.__field_types__ = {}
-        self._dynamic_model = FastDynamicModel
+        self.__dynamic_model__ = FastDynamicModel
         super(FastDynamicModel, self).__init__(*args, **kwargs)
 
     def get_real_name(self, name):
