@@ -8,7 +8,6 @@ from .fields import MultiTypeField
 from .model_types import ListModel
 from .models import BaseModel
 
-
 __all__ = ['factory', 'JSONEncoder', 'Factory']
 
 
@@ -17,6 +16,39 @@ def underscore_to_camel(string):
     Converts underscored string to camel case.
     """
     return re.sub('_([a-z])', lambda x: x.group(1).upper(), string)
+
+
+class BaseModelIterator:
+
+    def __init__(self, model):
+        self.model = model
+
+    def __iter__(self):
+        fields = self.model.get_fields()
+        for fieldname in fields:
+            field = self.model.get_field_obj(fieldname)
+            name = self.model.get_real_name(fieldname)
+            yield name, field, self.model.get_field_value(fieldname)
+
+
+class ModelIterator(BaseModelIterator):
+    """
+    Helper in order to iterate over model fields.
+    """
+
+    def __iter__(self):
+        for name, field, value in super(ModelIterator, self).__iter__():
+            yield name, value
+
+    items = __iter__
+
+    def values(self):
+        for _, value in self:
+            yield value
+
+    def keys(self):
+        for name, _ in self:
+            yield name
 
 
 class BaseFormatterIter:
@@ -38,21 +70,15 @@ class ListFormatterIter(BaseFieldtypeFormatterIter):
             yield self.parent_formatter.format_field(self.field, item)
 
 
-class BaseModelFormatterIter(BaseFormatterIter):
+class BaseModelFormatterIter(BaseModelIterator, BaseFormatterIter):
     """
     Base formatter iterator for Dirty Models.
     """
 
-    def __init__(self, model):
-        self.model = model
-
     def __iter__(self):
-        fields = self.model.get_fields()
-        for fieldname in fields:
-            field = self.model.get_field_obj(fieldname)
-            name = self.model.get_real_name(fieldname)
+        for name, field, value in super(BaseModelFormatterIter, self).__iter__():
             yield name, self.format_field(field,
-                                          self.model.get_field_value(fieldname))
+                                          self.model.get_field_value(name))
 
     def format_field(self, field, value):
         if isinstance(field, MultiTypeField):

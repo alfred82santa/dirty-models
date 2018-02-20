@@ -1,12 +1,13 @@
-from datetime import datetime, date, timedelta
-from enum import Enum
+from datetime import date, datetime, timedelta
 from json import dumps, loads
 from unittest.case import TestCase
 
-from dirty_models.fields import StringIdField, IntegerField, DateTimeField, ArrayField, MultiTypeField, ModelField, \
-    HashMapField, DateField, TimedeltaField, EnumField
+from enum import Enum
+
+from dirty_models.fields import ArrayField, DateField, DateTimeField, EnumField, HashMapField, IntegerField, \
+    ModelField, MultiTypeField, StringIdField, TimedeltaField
 from dirty_models.models import BaseModel, DynamicModel, FastDynamicModel
-from dirty_models.utils import underscore_to_camel, ModelFormatterIter, ListFormatterIter, JSONEncoder
+from dirty_models.utils import JSONEncoder, ListFormatterIter, ModelFormatterIter, ModelIterator, underscore_to_camel
 
 
 class UnderscoreToCamelTests(TestCase):
@@ -28,7 +29,6 @@ class UnderscoreToCamelTests(TestCase):
 
 
 class TestModel(BaseModel):
-
     class TestEnum(Enum):
         value_1 = 1
         value_2 = '2'
@@ -41,7 +41,7 @@ class TestModel(BaseModel):
     test_array_multitype = ArrayField(field_type=MultiTypeField(field_types=[IntegerField(),
                                                                              DateTimeField(
                                                                                  parse_format="%Y-%m-%dT%H:%M:%S"
-    )]))
+                                                                             )]))
     test_model_field_1 = ArrayField(field_type=ArrayField(field_type=ModelField()))
     test_hash_map = HashMapField(field_type=DateField(parse_format="%Y-%m-%d date"))
     test_timedelta = TimedeltaField()
@@ -195,3 +195,108 @@ class JSONEncoderTests(TestCase):
         data = {'foo': 3, 'bar': 'str'}
         json_str = dumps(data, cls=JSONEncoder)
         self.assertEqual(loads(json_str), data)
+
+
+class ModelIteratorTests(TestCase):
+
+    def test_model_iterator(self):
+        data = {'other_field': 'foo',
+                'test_int_field_1': 4,
+                'test_datetime': datetime(year=2016, month=5, day=30,
+                                          hour=22, minute=22, second=22),
+                'test_array_datetime': [datetime(year=2015, month=5, day=30,
+                                                 hour=22, minute=22, second=22),
+                                        datetime(year=2015, month=6, day=30,
+                                                 hour=22, minute=22, second=22)],
+                'test_array_multitype': [datetime(year=2015, month=5, day=30,
+                                                  hour=22, minute=22, second=22),
+                                         4, 5],
+                'test_model_field_1': [[{'test_datetime': datetime(year=2015, month=7, day=30,
+                                                                   hour=22, minute=22, second=22)}]],
+                'test_hash_map': {'foo': date(year=2015, month=7, day=30)},
+                'test_timedelta': timedelta(seconds=32.1122),
+                'test_enum': TestModel.TestEnum.value_3,
+                'test_multi_field': date(year=2015, month=7, day=30)}
+
+        model = TestModel(data=data)
+
+        result = {k: v for k, v in ModelIterator(model)}
+
+        self.assertEqual(set(result.keys()), set(data.keys()))
+        self.assertIsInstance(result['test_hash_map'], BaseModel)
+
+    def test_model_iterator_items(self):
+        data = {'other_field': 'foo',
+                'test_int_field_1': 4,
+                'test_datetime': datetime(year=2016, month=5, day=30,
+                                          hour=22, minute=22, second=22),
+                'test_array_datetime': [datetime(year=2015, month=5, day=30,
+                                                 hour=22, minute=22, second=22),
+                                        datetime(year=2015, month=6, day=30,
+                                                 hour=22, minute=22, second=22)],
+                'test_array_multitype': [datetime(year=2015, month=5, day=30,
+                                                  hour=22, minute=22, second=22),
+                                         4, 5],
+                'test_model_field_1': [[{'test_datetime': datetime(year=2015, month=7, day=30,
+                                                                   hour=22, minute=22, second=22)}]],
+                'test_hash_map': {'foo': date(year=2015, month=7, day=30)},
+                'test_timedelta': timedelta(seconds=32.1122),
+                'test_enum': TestModel.TestEnum.value_3,
+                'test_multi_field': date(year=2015, month=7, day=30)}
+
+        model = TestModel(data=data)
+
+        result = {k: v for k, v in ModelIterator(model).items()}
+
+        self.assertEqual(set(result.keys()), set(data.keys()))
+        self.assertIsInstance(result['test_hash_map'], BaseModel)
+
+    def test_model_iterator_keys(self):
+        data = {'other_field': 'foo',
+                'test_int_field_1': 4,
+                'test_datetime': datetime(year=2016, month=5, day=30,
+                                          hour=22, minute=22, second=22),
+                'test_array_datetime': [datetime(year=2015, month=5, day=30,
+                                                 hour=22, minute=22, second=22),
+                                        datetime(year=2015, month=6, day=30,
+                                                 hour=22, minute=22, second=22)],
+                'test_array_multitype': [datetime(year=2015, month=5, day=30,
+                                                  hour=22, minute=22, second=22),
+                                         4, 5],
+                'test_model_field_1': [[{'test_datetime': datetime(year=2015, month=7, day=30,
+                                                                   hour=22, minute=22, second=22)}]],
+                'test_hash_map': {'foo': date(year=2015, month=7, day=30)},
+                'test_timedelta': timedelta(seconds=32.1122),
+                'test_enum': TestModel.TestEnum.value_3,
+                'test_multi_field': date(year=2015, month=7, day=30)}
+
+        model = TestModel(data=data)
+
+        result = [v for v in ModelIterator(model).keys()]
+
+        self.assertEqual(set(data.keys()), set(result))
+
+    def test_model_iterator_values(self):
+        data = {'other_field': 'foo',
+                'test_int_field_1': 4,
+                'test_datetime': datetime(year=2016, month=5, day=30,
+                                          hour=22, minute=22, second=22),
+                'test_array_datetime': [datetime(year=2015, month=5, day=30,
+                                                 hour=22, minute=22, second=22),
+                                        datetime(year=2015, month=6, day=30,
+                                                 hour=22, minute=22, second=22)],
+                'test_array_multitype': [datetime(year=2015, month=5, day=30,
+                                                  hour=22, minute=22, second=22),
+                                         4, 5],
+                'test_model_field_1': [[{'test_datetime': datetime(year=2015, month=7, day=30,
+                                                                   hour=22, minute=22, second=22)}]],
+                'test_hash_map': {'foo': date(year=2015, month=7, day=30)},
+                'test_timedelta': timedelta(seconds=32.1122),
+                'test_enum': TestModel.TestEnum.value_3,
+                'test_multi_field': date(year=2015, month=7, day=30)}
+
+        model = TestModel(data=data)
+
+        result = [v for v in ModelIterator(model).values()]
+
+        self.assertIn(model.test_hash_map, result)
