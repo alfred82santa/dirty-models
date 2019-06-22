@@ -1,8 +1,9 @@
-from datetime import date, datetime, time, timedelta
+from abc import abstractmethod
+from enum import Enum
 from json.encoder import JSONEncoder as BaseJSONEncoder
 
 import re
-from enum import Enum
+from datetime import date, datetime, time, timedelta
 
 from .fields import MultiTypeField
 from .model_types import ListModel
@@ -52,7 +53,10 @@ class ModelIterator(BaseModelIterator):
 
 
 class BaseFormatterIter:
-    pass
+
+    @abstractmethod
+    def format(self):  # pragma: no cover
+        pass
 
 
 class BaseFieldtypeFormatterIter(BaseFormatterIter):
@@ -68,6 +72,9 @@ class ListFormatterIter(BaseFieldtypeFormatterIter):
     def __iter__(self):
         for item in self.obj:
             yield self.parent_formatter.format_field(self.field, item)
+
+    def format(self):
+        return list(self)
 
 
 class BaseModelFormatterIter(BaseModelIterator, BaseFormatterIter):
@@ -91,6 +98,9 @@ class BaseModelFormatterIter(BaseModelIterator, BaseFormatterIter):
             return self.format_field(field, value.value)
 
         return value
+
+    def format(self):
+        return {k: v.format() if isinstance(v, BaseFormatterIter) else v for k, v in self}
 
 
 class ModelFormatterIter(BaseModelFormatterIter):
@@ -119,11 +129,11 @@ class JSONEncoder(BaseJSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, BaseModel):
-            return {k: v for k, v in self.default_model_iter(obj)}
-        elif isinstance(obj, (BaseModelFormatterIter)):
-            return {k: v for k, v in obj}
-        elif isinstance(obj, ListFormatterIter):
-            return list(obj)
+            return self.default(self.default_model_iter(obj))
+        elif isinstance(obj, BaseFormatterIter):
+            return obj.format()
+        else:
+            return super(JSONEncoder, self).default(obj)
 
 
 class Factory:

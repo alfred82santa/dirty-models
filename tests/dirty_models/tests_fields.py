@@ -1,10 +1,10 @@
+import sys
 from datetime import date, datetime, time, timedelta, timezone
+from enum import Enum
 from unittest import TestCase
 
 import iso8601
-import sys
 from dateutil import tz
-from enum import Enum
 
 from dirty_models.fields import ArrayField, BooleanField, BytesField, DateField, DateTimeField, EnumField, FloatField, \
     HashMapField, IntegerField, ModelField, MultiTypeField, StringField, StringIdField, TimeField, TimedeltaField
@@ -30,6 +30,12 @@ class TestFields(TestCase):
         self.assertFalse(field.check_value("3.0"))
         self.assertTrue(field.can_use_value("3.0"))
         self.assertEqual(field.use_value("3.0"), 3.0)
+
+    def test_float_field_using_str_negative(self):
+        field = FloatField()
+        self.assertFalse(field.check_value("-3.0"))
+        self.assertTrue(field.can_use_value("-3.0"))
+        self.assertEqual(field.use_value("-3.0"), -3.0)
 
     def test_float_field_using_dict(self):
         field = FloatField()
@@ -1294,7 +1300,6 @@ class ArrayOfStringFieldTests(TestCase):
 
 
 class IntegerFieldTests(TestCase):
-
     class TestEnum(Enum):
         value_1 = 1
         value_2 = '2'
@@ -1645,7 +1650,6 @@ class TimeFieldWithTimezoneTests(TestCase):
 
 
 class EnumFieldTests(TestCase):
-
     class TestEnum(Enum):
         value_1 = 'value1'
         value_2 = 2
@@ -1689,6 +1693,54 @@ class EnumFieldTests(TestCase):
                           'enum_class': self.TestEnum,
                           'name': 'test_field', 'read_only': False},
                          self.field.export_definition())
+
+    def test_export_data(self):
+        class Model(BaseModel):
+            field = EnumField(enum_class=self.TestEnum)
+
+        model = Model(field=self.TestEnum.value_1)
+
+        self.assertEqual(model.export_data(), {'field': self.TestEnum.value_1})
+
+    def test_multitype_export_data(self):
+        class Model(BaseModel):
+            field = MultiTypeField(field_types=[EnumField(enum_class=self.TestEnum),
+                                                ArrayField(field_type=EnumField(enum_class=self.TestEnum))])
+
+        model = Model()
+        model.field = self.TestEnum.value_1
+
+        self.assertEqual(model.export_data(), {'field': self.TestEnum.value_1})
+
+    def test_multitype_export_data_inverted(self):
+        class Model(BaseModel):
+            field = MultiTypeField(field_types=[ArrayField(field_type=EnumField(enum_class=self.TestEnum)),
+                                                EnumField(enum_class=self.TestEnum)])
+
+        model = Model()
+        model.field = self.TestEnum.value_1
+
+        self.assertEqual(model.export_data(), {'field': self.TestEnum.value_1})
+
+    def test_multitype_export_data_array(self):
+        class Model(BaseModel):
+            field = MultiTypeField(field_types=[EnumField(enum_class=self.TestEnum),
+                                                ArrayField(field_type=EnumField(enum_class=self.TestEnum))])
+
+        model = Model()
+        model.field = [self.TestEnum.value_1, ]
+
+        self.assertEqual(model.export_data(), {'field': [self.TestEnum.value_1, ]})
+
+    def test_multitype_export_data_array_inverted(self):
+        class Model(BaseModel):
+            field = MultiTypeField(field_types=[ArrayField(field_type=EnumField(enum_class=self.TestEnum)),
+                                                EnumField(enum_class=self.TestEnum)])
+
+        model = Model()
+        model.field = [self.TestEnum.value_1, ]
+
+        self.assertEqual(model.export_data(), {'field': [self.TestEnum.value_1, ]})
 
 
 class BytesFieldTests(TestCase):
