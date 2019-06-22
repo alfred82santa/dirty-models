@@ -20,13 +20,14 @@ class BaseField:
     """Base field descriptor."""
 
     def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False,
-                 default=None, title=None, doc=None):
+                 default=None, title=None, doc=None, metadata=None):
         self._name = None
         self.name = name
         self.alias = alias
         self.read_only = read_only
         self.default = default
         self.title = title
+        self.metadata = metadata
         self._getter = getter
         self._setter = setter
         self.__doc__ = doc or self.get_field_docstring()
