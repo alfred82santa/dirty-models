@@ -2,12 +2,12 @@
 Fields to be used with dirty models.
 """
 
-from datetime import date, datetime, time, timedelta
-
 from collections import Mapping
-from dateutil.parser import parse as dateutil_parse
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from functools import wraps
+
+from dateutil.parser import parse as dateutil_parse
 
 from .model_types import ListModel
 
@@ -19,12 +19,14 @@ __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringI
 class BaseField:
     """Base field descriptor."""
 
-    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False, default=None, doc=None):
+    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False,
+                 default=None, title=None, doc=None):
         self._name = None
         self.name = name
         self.alias = alias
         self.read_only = read_only
         self.default = default
+        self.title = title
         self._getter = getter
         self._setter = setter
         self.__doc__ = doc or self.get_field_docstring()
@@ -212,9 +214,12 @@ class FloatField(BaseField):
 
     @can_use_enum
     def can_use_value(self, value):
-        return isinstance(value, int) \
-            or (isinstance(value, str) and
-                value.replace('.', '', 1).isnumeric())
+        try:
+            float(value)
+        except (ValueError, TypeError):
+            return False
+        else:
+            return True
 
 
 class BooleanField(BaseField):
@@ -642,12 +647,13 @@ class ModelField(BaseField):
     """
 
     def __init__(self, model_class=None, **kwargs):
-        self._model_class = None
-        self.model_class = model_class
-        self._model_setter = None
-        if 'setter' in kwargs:
-            self._model_setter = kwargs['setter']
-            del (kwargs['setter'])
+        self._model_class = model_class
+
+        try:
+            self._model_setter = kwargs.pop('setter')
+        except KeyError:
+            self._model_setter = None
+
         super(ModelField, self).__init__(**kwargs)
 
     def export_definition(self):
@@ -669,6 +675,7 @@ class ModelField(BaseField):
     @model_class.setter
     def model_class(self, model_class):
         """Model_class setter: model class used on field"""
+
         self._model_class = model_class
 
     def convert_value(self, value):
@@ -930,7 +937,10 @@ class EnumField(BaseField):
         except ValueError:
             pass
 
-        return value in self.enum_class.__members__.keys()
+        try:
+            return value in self.enum_class.__members__.keys()
+        except Exception:
+            return False
 
 
 class BytesField(BaseField):

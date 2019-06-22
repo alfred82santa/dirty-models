@@ -85,6 +85,14 @@ Features
 Changelog
 ---------
 
+Version 0.11.3
+--------------
+
+- Fix bug casting string negative float.
+- Fix exception casting non valid values to enumerations.
+- Added `title` property to fields.
+- Added `metadata` property to fields. It could be used to store anything.
+- Improved model formatter.
 
 Version 0.11.2
 --------------

@@ -1,8 +1,8 @@
-from datetime import date, datetime, timedelta
+from enum import Enum
 from json import dumps, loads
 from unittest.case import TestCase
 
-from enum import Enum
+from datetime import date, datetime, timedelta
 
 from dirty_models.fields import ArrayField, DateField, DateTimeField, EnumField, HashMapField, IntegerField, \
     ModelField, MultiTypeField, StringIdField, TimedeltaField
@@ -191,10 +191,25 @@ class JSONEncoderTests(TestCase):
 
         self.assertEqual(loads(json_str), data)
 
+    def test_model_json_enum_str(self):
+        model = TestModel(data={'test_enum': TestModel.TestEnum.value_2})
+
+        json_str = dumps(model, cls=JSONEncoder)
+
+        data = {'test_enum': '2'}
+
+        self.assertEqual(loads(json_str), data)
+
     def test_general_use_json(self):
         data = {'foo': 3, 'bar': 'str'}
         json_str = dumps(data, cls=JSONEncoder)
         self.assertEqual(loads(json_str), data)
+
+    def test_fail_unknown_type(self):
+        data = {'foo': {2, 3}}
+
+        with self.assertRaises(TypeError):
+            dumps(data, cls=JSONEncoder)
 
 
 class ModelIteratorTests(TestCase):
