@@ -525,6 +525,19 @@ class TestModels(TestCase):
 
         self.assertEqual(model_object.testField1.testBaseField1, 'setter_function')
 
+    def test_object_model_field_with_on_set_callback(self):
+        def update_testField2(model_object, field_name):
+            model_object.testField2 = field_name
+
+        class FakeModel(BaseModel):
+            testField1 = BaseField(on_set=update_testField2)
+            testField2 = BaseField()
+
+        model_object = FakeModel()
+        self.assertIsNone(model_object.testField2)
+        model_object.testField1 = "Value1"
+        self.assertEqual(model_object.testField2, "testField1")
+
     def test_get_field_obj(self):
         class FakeModel(BaseModel):
             testField1 = BaseField()

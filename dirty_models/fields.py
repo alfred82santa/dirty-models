@@ -20,7 +20,7 @@ class BaseField:
     """Base field descriptor."""
 
     def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False,
-                 default=None, title=None, doc=None, metadata=None):
+                 default=None, title=None, doc=None, metadata=None, on_set=None):
         self._name = None
         self.name = name
         self.alias = alias
@@ -30,6 +30,7 @@ class BaseField:
         self.metadata = metadata
         self._getter = getter
         self._setter = setter
+        self._on_set = on_set
         self.__doc__ = doc or self.get_field_docstring()
 
     def get_field_docstring(self):
@@ -117,6 +118,9 @@ class BaseField:
                 set_value(v())
 
         set_value(value)
+
+        if callable(self._on_set):
+            self._on_set(obj, self.name)
 
     def __delete__(self, obj):
         self._check_name()
