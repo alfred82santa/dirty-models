@@ -21,6 +21,11 @@ class BaseField:
 
     def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False,
                  default=None, title=None, doc=None, metadata=None):
+
+        if setter is None or not callable(setter):
+            from .utils import default_setter
+            setter = default_setter
+
         self._name = None
         self.name = name
         self.alias = alias
@@ -101,22 +106,7 @@ class BaseField:
 
     def __set__(self, obj, value):
         self._check_name()
-
-        if self._setter:
-            self._setter(self, obj, value)
-            return
-
-        from dirty_models.utils import Factory
-
-        def set_value(v):
-            if value is None:
-                self.delete_value(obj)
-            elif self.check_value(v) or self.can_use_value(v):
-                self.set_value(obj, self.use_value(v))
-            elif isinstance(value, Factory):
-                set_value(v())
-
-        set_value(value)
+        self._setter(self, obj, value)
 
     def __delete__(self, obj):
         self._check_name()

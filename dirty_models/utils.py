@@ -9,7 +9,7 @@ from .fields import MultiTypeField
 from .model_types import ListModel
 from .models import BaseModel
 
-__all__ = ['factory', 'JSONEncoder', 'Factory']
+__all__ = ['factory', 'JSONEncoder', 'Factory', 'Setter', 'default_setter']
 
 
 def underscore_to_camel(string):
@@ -151,3 +151,24 @@ class Factory:
 
 
 factory = Factory
+
+
+class Setter:
+    """
+    Default implementation for model field's setter.
+    """
+
+    def __call__(self, field, obj, value):
+
+        def set_value(v):
+            if value is None:
+                field.delete_value(obj)
+            elif field.check_value(v) or field.can_use_value(v):
+                field.set_value(obj, field.use_value(v))
+            elif isinstance(value, Factory):
+                set_value(v())
+
+        set_value(value)
+
+
+default_setter = Setter()
