@@ -1,11 +1,10 @@
 import pickle
 from datetime import date, datetime, time, timedelta
-from unittest import TestCase
-
 from enum import Enum
 from functools import partial
+from unittest import TestCase
 
-from dirty_models.base import Unlocker
+from dirty_models.base import AccessMode, Creating, Unlocker
 from dirty_models.fields import ArrayField, BaseField, BooleanField, DateField, DateTimeField, EnumField, FloatField, \
     HashMapField, IntegerField, ModelField, MultiTypeField, StringField, TimeField, TimedeltaField
 from dirty_models.models import BaseModel, CamelCaseMeta, DynamicModel, FastDynamicModel, HashMapModel
@@ -766,11 +765,11 @@ class TestModels(TestCase):
 
 class ModelReadOnly(BaseModel):
     testField1 = BaseField()
-    testField2 = BaseField(read_only=True)
+    testField2 = BaseField(access_mode=AccessMode.READ_ONLY)
     testField3 = BaseField()
-    testFieldModel = ModelField(read_only=True)
-    testFieldList = ArrayField(read_only=True, field_type=IntegerField())
-    testFieldModelList = ArrayField(read_only=True, field_type=ModelField())
+    testFieldModel = ModelField(access_mode=AccessMode.READ_ONLY)
+    testFieldList = ArrayField(access_mode=AccessMode.READ_ONLY, field_type=IntegerField())
+    testFieldModelList = ArrayField(access_mode=AccessMode.READ_ONLY, field_type=ModelField())
 
 
 class TestModelReadOnly(TestCase):
@@ -921,7 +920,7 @@ class TestModelReadOnly(TestCase):
     def test_documentation_default(self):
         class TestModel(BaseModel):
             field_1 = IntegerField()
-            field_2 = IntegerField(read_only=True)
+            field_2 = IntegerField(access_mode=AccessMode.READ_ONLY)
             field_3 = ArrayField(field_type=ModelField(model_class=IntegerField))
 
         self.assertEqual(TestModel.field_1.__doc__, 'IntegerField field')
@@ -1790,7 +1789,6 @@ class AvoidInternalAttributesTests(TestCase):
 
 
 class ContainsAttributeRegularModelTests(TestCase):
-
     class Model(HashMapModel):
         test_field = IntegerField()
 
@@ -1835,7 +1833,6 @@ class ContainsAttributeHashMapModelTests(ContainsAttributeRegularModelTests):
 
 
 class ExportModificationsTests(TestCase):
-
     class Model(BaseModel):
         test_field_int = IntegerField()
         test_array_int = ArrayField(field_type=IntegerField())
@@ -1999,7 +1996,6 @@ class IterFactory:
 
 
 class DefaultValueFactoryTests(TestCase):
-
     class Model(BaseModel):
         __default_data__ = {'test_field_float': factory(IterFactory())}
 
@@ -2022,7 +2018,6 @@ class DefaultValueFactoryTests(TestCase):
 
 
 class DefaultValueFactoryDateTimeTests(TestCase):
-
     class Model(BaseModel):
         __default_data__ = {'test_field_2': factory(datetime.now)}
 
@@ -2035,3 +2030,347 @@ class DefaultValueFactoryDateTimeTests(TestCase):
 
         self.assertIsInstance(model.test_field_1, datetime)
         self.assertIsInstance(model.test_field_2, datetime)
+
+
+class ModelWritableOnCreation(BaseModel):
+    testField1 = BaseField()
+    testField2 = BaseField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
+    testField3 = BaseField()
+    testFieldModel = ModelField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
+    testFieldList = ArrayField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION, field_type=IntegerField())
+    testFieldModelList = ArrayField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION,
+                                    field_type=ModelField())
+
+
+class TestModelSettableOnCreation(TestCase):
+
+    def test_no_writing(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelWritableOnCreation(data)
+        model.flat_data()
+
+        model.testField2 = 99
+        self.assertEqual(model.testField2, 2, 'Read only simple field')
+        self.assertFalse(model.is_modified())
+        self.assertTrue(model.is_locked())
+
+        model.testFieldModel.testField1 = 99
+        self.assertEqual(model.testFieldModel.testField1, 61, 'Read only embedded field')
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testFieldList.append(99)
+        self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                         [5, 6, 3, 66, 42, 22], 'Read only list field')
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 99
+
+        self.assertEqual(model.testFieldModelList[0].testField1, 61, 'Read only inside list field')
+        self.assertFalse(model.is_modified())
+
+    def test_unlock_writing(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelWritableOnCreation(data)
+        model.flat_data()
+
+        model.unlock()
+
+        model.testField2 = 99
+        self.assertEqual(model.testField2, 99, 'Read only simple field')
+        self.assertTrue(model.is_modified())
+
+        model.testField2 = 2
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testField1 = 99
+        self.assertEqual(model.testFieldModel.testField1, 99, 'Read only embedded field')
+        self.assertTrue(model.is_modified())
+
+        model.testFieldModel.testField1 = 61
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 99
+        self.assertEqual(model.testFieldModelList[0].testField1, 99, 'Read only inside list field')
+        self.assertTrue(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 61
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testFieldList.append(99)
+        self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                         [5, 6, 3, 66, 42, 22, 99], 'Read only list field')
+        self.assertTrue(model.is_modified())
+
+        self.assertFalse(model.is_locked())
+
+    def test_unlocklocker(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelWritableOnCreation(data)
+        model.flat_data()
+
+        with Unlocker(model):
+            model.testField2 = 99
+            self.assertEqual(model.testField2, 99, 'Read only simple field')
+            self.assertTrue(model.is_modified())
+
+            model.testField2 = 2
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModel.testField1 = 99
+            self.assertEqual(model.testFieldModel.testField1, 99, 'Read only embedded field')
+            self.assertTrue(model.is_modified())
+
+            model.testFieldModel.testField1 = 61
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModelList[0].testField1 = 99
+            self.assertEqual(model.testFieldModelList[0].testField1, 99, 'Read only inside list field')
+            self.assertTrue(model.is_modified())
+
+            model.testFieldModelList[0].testField1 = 61
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModel.testFieldList.append(99)
+            self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                             [5, 6, 3, 66, 42, 22, 99], 'Read only list field')
+            self.assertTrue(model.is_modified())
+
+            self.assertFalse(model.is_locked())
+
+        self.assertTrue(model.is_locked())
+
+    def test_documentation_default(self):
+        class TestModel(BaseModel):
+            field_1 = IntegerField()
+            field_2 = IntegerField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
+            field_3 = ArrayField(field_type=ModelField(model_class=IntegerField))
+
+        self.assertEqual(TestModel.field_1.__doc__, 'IntegerField field')
+        self.assertEqual(TestModel.field_2.__doc__, 'IntegerField field [WRITABLE ONLY ON CREATION]')
+        self.assertEqual(TestModel.field_3.__doc__,
+                         'Array of ModelField field (:class:`dirty_models.fields.IntegerField`)')
+
+    def test_import_data_readonly(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelWritableOnCreation(data)
+        model.flat_data()
+
+        model.testFieldModel.import_data({'testField1': 2})
+        self.assertEqual(model.testFieldModel.testField1, 61)
+
+    def test_mark_creating(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelWritableOnCreation(data)
+        model.flat_data()
+
+        model.start_creation()
+
+        model.testField2 = 99
+        self.assertEqual(model.testField2, 99, 'Read only simple field')
+        self.assertTrue(model.is_modified())
+
+        model.testField2 = 2
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testField1 = 99
+        self.assertEqual(model.testFieldModel.testField1, 99, 'Read only embedded field')
+        self.assertTrue(model.is_modified())
+
+        model.testFieldModel.testField1 = 61
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 99
+        self.assertEqual(model.testFieldModelList[0].testField1, 99, 'Read only inside list field')
+        self.assertTrue(model.is_modified())
+
+        model.testFieldModelList[0].testField1 = 61
+        self.assertFalse(model.is_modified())
+
+        model.testFieldModel.testFieldList.append(99)
+        self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                         [5, 6, 3, 66, 42, 22, 99], 'Read only list field')
+        self.assertTrue(model.is_modified())
+
+        self.assertTrue(model.is_creating())
+
+    def test_creating(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelWritableOnCreation(data)
+        model.flat_data()
+
+        with Creating(model):
+            model.testField2 = 99
+            self.assertEqual(model.testField2, 99, 'Read only simple field')
+            self.assertTrue(model.is_modified())
+
+            model.testField2 = 2
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModel.testField1 = 99
+            self.assertEqual(model.testFieldModel.testField1, 99, 'Read only embedded field')
+            self.assertTrue(model.is_modified())
+
+            model.testFieldModel.testField1 = 61
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModelList[0].testField1 = 99
+            self.assertEqual(model.testFieldModelList[0].testField1, 99, 'Read only inside list field')
+            self.assertTrue(model.is_modified())
+
+            model.testFieldModelList[0].testField1 = 61
+            self.assertFalse(model.is_modified())
+
+            model.testFieldModel.testFieldList.append(99)
+            self.assertEqual(model.testFieldModel.testFieldList.export_data(),
+                             [5, 6, 3, 66, 42, 22, 99], 'Read only list field')
+            self.assertTrue(model.is_modified())
+
+            self.assertTrue(model.is_locked())
+            self.assertTrue(model.is_creating())
+
+        self.assertTrue(model.is_locked())
+        self.assertFalse(model.is_creating())
+
+
+class ModelCreation(BaseModel):
+    testField1 = BaseField(access_mode=AccessMode.READ_ONLY)
+    testField2 = BaseField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
+    testField3 = BaseField(access_mode=AccessMode.HIDDEN)
+    testFieldModel = ModelField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
+    testFieldList = ArrayField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION, field_type=IntegerField())
+    testFieldModelList = ArrayField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION,
+                                    field_type=ModelField())
+
+
+class TestModelCreation(TestCase):
+
+    def test_ignore_read_only_on_creating_new_model(self):
+        data = {
+            'testField1': 1, 'testField2': 2, 'testField3': 3,
+            'testFieldList': [45, 56, 23, 676, 442, 242],
+            'testFieldModel': {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                               'testFieldList': [5, 6, 3, 66, 42, 22]},
+            'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]},
+                                   {'testField1': 61, 'testField2': 51, 'testField3': 41,
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+        }
+
+        model = ModelCreation.create_new_model(data)
+
+        self.assertIsNone(model.testField1)
+        self.assertIsNone(model.testField3)
+
+        self.assertEqual(model.testField2, 2, 'Read only simple field')
+
+        self.assertIsNone(model.testFieldModel.testField1)
+        self.assertIsNone(model.testFieldModel.testField3)
+
+        self.assertIsNone(model.testFieldModelList[0].testField1)
+        self.assertIsNone(model.testFieldModelList[0].testField3)
+
+
+class TestOverrideFieldModeAccessModel(TestCase):
+
+    def test_override_access_mode(self):
+        class ModelBase(BaseModel):
+            testField1 = BaseField(access_mode=AccessMode.READ_AND_WRITE)
+
+        class Model(ModelBase):
+            __override_field_access_modes__ = {'testField1': AccessMode.READ_ONLY}
+
+        model = Model(testField1=1)
+
+        model.testField1 = 2
+        self.assertEqual(model.testField1, 1, 'Read only simple field')
+
+    def test_override_access_mode_using_alias(self):
+        class ModelBase(BaseModel):
+            testField1 = BaseField(access_mode=AccessMode.READ_AND_WRITE, alias=['alias_field'])
+
+        class Model(ModelBase):
+            __override_field_access_modes__ = {'alias_field': AccessMode.READ_ONLY}
+
+        model = Model(testField1=1)
+
+        model.testField1 = 2
+        self.assertEqual(model.testField1, 1, 'Read only simple field')
+
+    def test_override_access_mode_multi_inheritance(self):
+        class ModelBase(BaseModel):
+            testField1 = BaseField(access_mode=AccessMode.READ_AND_WRITE)
+            testField2 = BaseField(access_mode=AccessMode.READ_AND_WRITE)
+
+        class ModelMiddle(ModelBase):
+            __override_field_access_modes__ = {'testField1': AccessMode.READ_ONLY}
+
+        class Model(ModelMiddle):
+            __override_field_access_modes__ = {'testField2': AccessMode.READ_ONLY}
+
+        model = Model(testField1=1, testField2=2)
+
+        model.testField1 = 2
+        self.assertEqual(model.testField1, 1)
+
+        model.testField1 = 3
+        self.assertEqual(model.testField2, 2)

@@ -1,9 +1,9 @@
+from datetime import date, datetime, timedelta
 from enum import Enum
 from json import dumps, loads
 from unittest.case import TestCase
 
-from datetime import date, datetime, timedelta
-
+from dirty_models import AccessMode
 from dirty_models.fields import ArrayField, DateField, DateTimeField, EnumField, HashMapField, IntegerField, \
     ModelField, MultiTypeField, StringIdField, TimedeltaField
 from dirty_models.models import BaseModel, DynamicModel, FastDynamicModel
@@ -41,13 +41,14 @@ class TestModel(BaseModel):
     test_array_multitype = ArrayField(field_type=MultiTypeField(field_types=[IntegerField(),
                                                                              DateTimeField(
                                                                                  parse_format="%Y-%m-%dT%H:%M:%S"
-                                                                             )]))
+    )]))
     test_model_field_1 = ArrayField(field_type=ArrayField(field_type=ModelField()))
     test_hash_map = HashMapField(field_type=DateField(parse_format="%Y-%m-%d date"))
     test_timedelta = TimedeltaField()
     test_enum = EnumField(enum_class=TestEnum)
     test_multi_field = MultiTypeField(field_types=[IntegerField(),
                                                    DateField(parse_format="%Y-%m-%d multi date")])
+    test_hidden = IntegerField(access_mode=AccessMode.HIDDEN)
 
 
 class ModelFormatterIterTests(TestCase):
@@ -69,7 +70,8 @@ class ModelFormatterIterTests(TestCase):
                                 'test_hash_map': {'foo': date(year=2015, month=7, day=30)},
                                 'test_timedelta': timedelta(seconds=32.1122),
                                 'test_enum': TestModel.TestEnum.value_3,
-                                'test_multi_field': date(year=2015, month=7, day=30)})
+                                'test_multi_field': date(year=2015, month=7, day=30),
+                                'test_hidden': 3})
 
         formatter = ModelFormatterIter(model)
         data = {k: v for k, v in formatter}
@@ -89,6 +91,7 @@ class ModelFormatterIterTests(TestCase):
         self.assertEqual(data['test_timedelta'], 32.1122)
         self.assertEqual(data['test_enum'], str(date(year=2015, month=7, day=30)))
         self.assertEqual(data['test_multi_field'], '2015-07-30 multi date')
+        self.assertNotIn('test_hidden', data)
 
     def test_dynamic_model_formatter(self):
         model = DynamicModel(data={'test_string_field_1': 'foo',
@@ -173,7 +176,8 @@ class JSONEncoderTests(TestCase):
                                 'test_hash_map': {'foo': date(year=2015, month=7, day=30)},
                                 'test_timedelta': timedelta(seconds=32.1122),
                                 'test_enum': TestModel.TestEnum.value_1,
-                                'test_multi_field': date(year=2015, month=7, day=30)})
+                                'test_multi_field': date(year=2015, month=7, day=30),
+                                'test_hidden': 3})
 
         json_str = dumps(model, cls=JSONEncoder)
 

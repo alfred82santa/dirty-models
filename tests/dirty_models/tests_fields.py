@@ -1,13 +1,15 @@
-import sys
 from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum
 from unittest import TestCase
 
 import iso8601
+import sys
 from dateutil import tz
 
-from dirty_models.fields import ArrayField, BooleanField, BytesField, DateField, DateTimeField, EnumField, FloatField, \
-    HashMapField, IntegerField, ModelField, MultiTypeField, StringField, StringIdField, TimeField, TimedeltaField
+from dirty_models.base import AccessMode
+from dirty_models.fields import ArrayField, BaseField, BooleanField, BytesField, DateField, DateTimeField, EnumField, \
+    FloatField, HashMapField, IntegerField, ModelField, MultiTypeField, StringField, StringIdField, TimeField, \
+    TimedeltaField
 from dirty_models.model_types import ListModel
 from dirty_models.models import BaseModel, HashMapModel
 
@@ -461,7 +463,11 @@ class TestFields(TestCase):
                                                      'doc': 'TimeField field',
                                                      'parse_format': None,
                                                      'name': None,
-                                                     'read_only': False})
+                                                     'default': None,
+                                                     'metadata': None,
+                                                     'json_schema': None,
+                                                     'title': None,
+                                                     'access_mode': AccessMode.READ_AND_WRITE})
 
     def test_time_field_using_float(self):
         field = TimeField()
@@ -482,7 +488,11 @@ class TestFields(TestCase):
                                                      'doc': 'TimeField field',
                                                      'parse_format': "%H:%M:%S",
                                                      'name': None,
-                                                     'read_only': False})
+                                                     'default': None,
+                                                     'metadata': None,
+                                                     'json_schema': None,
+                                                     'title': None,
+                                                     'access_mode': AccessMode.READ_AND_WRITE})
 
     def test_time_field_using_bad_str(self):
         field = TimeField(parse_format="%H:%M:%S")
@@ -875,7 +885,11 @@ class TestFields(TestCase):
                           'doc': 'ModelField field (:class:`tests.dirty_models.tests_fields.TestModel`)',
                           'model_class': TestModel,
                           'name': None,
-                          'read_only': False})
+                          'default': None,
+                          'metadata': None,
+                          'json_schema': None,
+                          'title': None,
+                          'access_mode': AccessMode.READ_AND_WRITE})
 
     def test_array_field(self):
         class TestModel(BaseModel):
@@ -1219,9 +1233,17 @@ class TestFields(TestCase):
             'field_type': (IntegerField, {'alias': None,
                                           'doc': 'IntegerField field [READ ONLY]',
                                           'name': None,
-                                          'read_only': True}),
+                                          'default': None,
+                                          'metadata': None,
+                                          'json_schema': None,
+                                          'title': None,
+                                          'access_mode': AccessMode.READ_ONLY}),
             'name': None,
-            'read_only': False})
+            'default': None,
+            'metadata': None,
+            'json_schema': None,
+            'title': None,
+            'access_mode': AccessMode.READ_AND_WRITE})
 
     def test_array_field_from_desc(self):
         field = ArrayField(field_type=(IntegerField, {'alias': None,
@@ -1234,9 +1256,17 @@ class TestFields(TestCase):
             'field_type': (IntegerField, {'alias': None,
                                           'doc': 'IntegerField field [READ ONLY]',
                                           'name': None,
-                                          'read_only': True}),
+                                          'default': None,
+                                          'metadata': None,
+                                          'json_schema': None,
+                                          'title': None,
+                                          'access_mode': AccessMode.READ_ONLY}),
             'name': None,
-            'read_only': False})
+            'default': None,
+            'metadata': None,
+            'json_schema': None,
+            'title': None,
+            'access_mode': AccessMode.READ_AND_WRITE})
 
     def test_hashmap_field(self):
         class FakeHashMapModel(HashMapModel):
@@ -1316,7 +1346,11 @@ class IntegerFieldTests(TestCase):
         self.assertEqual(field.export_definition(), {'alias': None,
                                                      'doc': 'IntegerField field',
                                                      'name': None,
-                                                     'read_only': False})
+                                                     'default': None,
+                                                     'metadata': None,
+                                                     'json_schema': None,
+                                                     'title': None,
+                                                     'access_mode': AccessMode.READ_AND_WRITE})
 
     def test_using_float(self):
         field = IntegerField()
@@ -1421,13 +1455,25 @@ class MultiTypeFieldSimpleTypesTests(TestCase):
             'field_types': [(IntegerField, {'alias': None,
                                             'doc': 'IntegerField field',
                                             'name': None,
-                                            'read_only': False}),
+                                            'default': None,
+                                            'metadata': None,
+                                            'json_schema': None,
+                                            'title': None,
+                                            'access_mode': AccessMode.READ_AND_WRITE}),
                             (StringField, {'alias': None,
                                            'doc': 'StringField field',
                                            'name': None,
-                                           'read_only': False})],
+                                           'default': None,
+                                           'metadata': None,
+                                           'json_schema': None,
+                                           'title': None,
+                                           'access_mode': AccessMode.READ_AND_WRITE})],
             'name': None,
-            'read_only': False})
+            'default': None,
+            'metadata': None,
+            'json_schema': None,
+            'title': None,
+            'access_mode': AccessMode.READ_AND_WRITE})
 
 
 class MultiTypeFieldComplexTypesTests(TestCase):
@@ -1594,7 +1640,12 @@ class DateTimeFieldWithTimezoneTests(TestCase):
                           'doc': 'DateTimeField field',
                           'force_timezone': True,
                           'default_timezone': timezone.utc,
-                          'name': 'test_field', 'read_only': False},
+                          'name': 'test_field',
+                          'default': None,
+                          'metadata': None,
+                          'json_schema': None,
+                          'title': None,
+                          'access_mode': AccessMode.READ_AND_WRITE},
                          field.export_definition())
 
 
@@ -1645,7 +1696,12 @@ class TimeFieldWithTimezoneTests(TestCase):
                          {'alias': [], 'parse_format': None,
                           'doc': 'TimeField field',
                           'default_timezone': timezone.utc,
-                          'name': 'test_field', 'read_only': False},
+                          'name': 'test_field',
+                          'default': None,
+                          'metadata': None,
+                          'json_schema': None,
+                          'title': None,
+                          'access_mode': AccessMode.READ_AND_WRITE},
                          field.export_definition())
 
 
@@ -1691,7 +1747,12 @@ class EnumFieldTests(TestCase):
                           'doc': 'EnumField field (:class:`{0}`)'.format('.'.join([self.TestEnum.__module__,
                                                                                    self.TestEnum.__name__])),
                           'enum_class': self.TestEnum,
-                          'name': 'test_field', 'read_only': False},
+                          'name': 'test_field',
+                          'default': None,
+                          'metadata': None,
+                          'json_schema': None,
+                          'title': None,
+                          'access_mode': AccessMode.READ_AND_WRITE},
                          self.field.export_definition())
 
     def test_export_data(self):
@@ -1784,5 +1845,40 @@ class BytesFieldTests(TestCase):
         self.assertEqual(self.field.export_definition(),
                          {'alias': [],
                           'doc': 'BytesField field',
-                          'name': 'test_field', 'read_only': False},
+                          'name': 'test_field',
+                          'default': None,
+                          'metadata': None,
+                          'json_schema': None,
+                          'title': None,
+                          'access_mode': AccessMode.READ_AND_WRITE},
                          self.field.export_definition())
+
+
+class BaseFieldDocTests(TestCase):
+
+    def test_doc(self):
+        field = BaseField(name='test_field')
+        self.assertEquals(field.get_field_docstring(), 'BaseField field')
+
+    def test_doc_writable_only_on_creation(self):
+        field = BaseField(name='test_field', access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
+        self.assertEquals(field.get_field_docstring(), 'BaseField field [WRITABLE ONLY ON CREATION]')
+
+    def test_doc_read_only(self):
+        field = BaseField(name='test_field', access_mode=AccessMode.READ_ONLY)
+        self.assertEquals(field.get_field_docstring(), 'BaseField field [READ ONLY]')
+
+    def test_doc_hidden(self):
+        field = BaseField(name='test_field', access_mode=AccessMode.HIDDEN)
+        self.assertEquals(field.get_field_docstring(), 'BaseField field [HIDDEN]')
+
+
+class BaseFieldOldReadOnlyTests(TestCase):
+
+    def test_old_read_only_true(self):
+        field = BaseField(name='test_field', read_only=True)
+        self.assertEquals(field.access_mode, AccessMode.READ_ONLY)
+
+    def test_old_read_only_false(self):
+        field = BaseField(name='test_field', read_only=False)
+        self.assertEquals(field.access_mode, AccessMode.READ_AND_WRITE)

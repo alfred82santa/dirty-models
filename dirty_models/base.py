@@ -4,35 +4,67 @@ Base classes for Dirty Models
 
 import weakref
 
+__all__ = ['Unlocker', 'Creating', 'AccessMode']
+
+from abc import abstractmethod
+
+from enum import IntEnum, auto
+
+
+class AccessMode(IntEnum):
+    READ_AND_WRITE = 0
+    WRITABLE_ONLY_ON_CREATION = auto()
+    READ_ONLY = auto()
+    HIDDEN = auto()
+
+    def __and__(self, other):
+        return max(self, other)
+
+    def __or__(self, other):
+        return min(self, other)
+
 
 class BaseData:
-
     """
     Base class for data inside dirty model.
     """
 
     __locked__ = None
-    __read_only__ = None
+    __access_mode__ = None
+    __is_creating__ = None
     __parent__ = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, __is_creating=False, **kwargs):
         self.__locked__ = True
-        self.__read_only__ = False
+        self.__access_mode__ = AccessMode.READ_AND_WRITE
+        self.__is_creating__ = __is_creating
         self.__parent__ = None
 
-    def get_read_only(self):
+    def get_access_mode(self):
         """
-        Returns whether model could be modified or not
+        Returns how model could be acceded
         """
-        return self.__read_only__
+        am = self.__access_mode__
+        if not am \
+                or (self.is_creating() and am <= AccessMode.WRITABLE_ONLY_ON_CREATION) \
+                or not self.is_locked():
+            am = AccessMode.READ_AND_WRITE
 
-    def set_read_only(self, value):
+        if self.get_parent():
+            am &= self.get_parent().get_access_mode()
+        return am
+
+    def set_access_mode(self, value):
         """
-        Sets whether model could be modified or not
+        Sets whether model could be acceded
         """
-        if self.__read_only__ != value:
-            self.__read_only__ = value
-            self._update_read_only()
+        if self.__access_mode__ != value:
+            self.__access_mode__ = value
+            self._update_access_mode()
+
+    @abstractmethod
+    def _update_access_mode(self):  # pragma: no cover
+        pass
 
     def get_parent(self):
         """
@@ -69,21 +101,37 @@ class BaseData:
 
         return True
 
+    def start_creation(self):
+        """
+        Mark model to be able to set creation-only fields.
+        """
+        self.__is_creating__ = True
+
+    def end_creation(self):
+        """
+        Unmark model to be able to set creation-only fields.
+        """
+        self.__is_creating__ = False
+
+    def is_creating(self):
+        """
+        Returns whether model is marked on creation mode.
+        """
+        if self.__is_creating__:
+            return True
+        elif self.get_parent():
+            return self.get_parent().is_creating()
+
+        return False
+
     def _prepare_child(self, value):
         try:
             value.set_parent(self)
         except AttributeError:
             pass
 
-        if self.get_read_only():
-            try:
-                value.set_read_only(True)
-            except AttributeError:
-                pass
-
 
 class InnerFieldTypeMixin:
-
     __field_type__ = None
 
     def __init__(self, *args, **kwargs):
@@ -96,7 +144,6 @@ class InnerFieldTypeMixin:
 
 
 class Unlocker():
-
     """
     Unlocker instances helps to lock and unlock models easily
     """
@@ -106,6 +153,23 @@ class Unlocker():
 
     def __enter__(self):
         self.item.unlock()
+        return self.item
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.item.lock()
+
+
+class Creating():
+    """
+    Creating instances helps to mark and unmark models as creating easily
+    """
+
+    def __init__(self, item):
+        self.item = item
+
+    def __enter__(self):
+        self.item.start_creation()
+        return self.item
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.item.end_creation()

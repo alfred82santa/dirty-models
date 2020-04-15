@@ -1,15 +1,23 @@
+import re
 from abc import abstractmethod
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from json.encoder import JSONEncoder as BaseJSONEncoder
 
-import re
-from datetime import date, datetime, time, timedelta
-
+from .base import AccessMode
 from .fields import MultiTypeField
 from .model_types import ListModel
 from .models import BaseModel
 
-__all__ = ['factory', 'JSONEncoder', 'Factory']
+__all__ = ['underscore_to_camel',
+           'BaseModelIterator',
+           'ModelIterator',
+           'ListFormatterIter',
+           'BaseModelFormatterIter',
+           'ModelFormatterIter',
+           'JSONEncoder',
+           'Factory',
+           'factory']
 
 
 def underscore_to_camel(string):
@@ -84,6 +92,9 @@ class BaseModelFormatterIter(BaseModelIterator, BaseFormatterIter):
 
     def __iter__(self):
         for name, field, value in super(BaseModelFormatterIter, self).__iter__():
+            if field.access_mode == AccessMode.HIDDEN:
+                continue
+
             yield name, self.format_field(field,
                                           self.model.get_field_value(name))
 
