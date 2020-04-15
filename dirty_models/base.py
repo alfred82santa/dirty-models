@@ -8,14 +8,14 @@ __all__ = ['Unlocker', 'Creating', 'AccessMode']
 
 from abc import abstractmethod
 
-from enum import IntEnum, auto
+from enum import IntEnum
 
 
 class AccessMode(IntEnum):
     READ_AND_WRITE = 0
-    WRITABLE_ONLY_ON_CREATION = auto()
-    READ_ONLY = auto()
-    HIDDEN = auto()
+    WRITABLE_ONLY_ON_CREATION = 1
+    READ_ONLY = 2
+    HIDDEN = 3
 
     def __and__(self, other):
         return max(self, other)
