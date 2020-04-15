@@ -2,17 +2,17 @@
 Base models for dirty_models.
 """
 
-import itertools
-from datetime import datetime, date, time, timedelta
-from enum import Enum
-
 from collections import Mapping
 from copy import deepcopy
+from datetime import date, datetime, time, timedelta
+from enum import Enum
 
-from dirty_models.fields import DateField, TimeField, TimedeltaField, EnumField
-from .base import BaseData, InnerFieldTypeMixin
-from .fields import IntegerField, FloatField, BooleanField, StringField, DateTimeField, \
-    BaseField, ModelField, ArrayField
+import itertools
+
+from dirty_models.fields import DateField, EnumField, TimeField, TimedeltaField
+from .base import AccessMode, BaseData, Creating, InnerFieldTypeMixin
+from .fields import ArrayField, BaseField, BooleanField, DateTimeField, FloatField, IntegerField, ModelField, \
+    StringField
 from .model_types import ListModel
 
 __all__ = ['BaseModel', 'DynamicModel', 'FastDynamicModel', 'HashMapModel']
@@ -30,22 +30,19 @@ class DirtyModelMeta(type):
         fields = {key: field for key, field in cls.__dict__.items() if isinstance(field, BaseField)}
 
         structure = {}
-        read_only_fields = []
         for key, field in fields.items():
             cls.process_base_field(field, key)
             structure[field.name] = field
-            if field.read_only:
-                read_only_fields.append(field.name)
 
         cls.__structure__ = structure
         default_data = {}
         for p in bases:
             try:
-                default_data.update(deepcopy(p.__default_data__))
+                default_data.update(deepcopy(p.get_default_data()))
             except AttributeError:
                 pass
 
-        default_data.update(deepcopy(cls.get_default_data()))
+        default_data.update(cls.get_default_data())
         default_data.update({f.name: f.default for f in structure.values() if f.default is not None})
 
         cls.__structure__ = {}
@@ -58,6 +55,18 @@ class DirtyModelMeta(type):
         cls.__structure__.update(structure)
         cls.check_structure()
         cls.__default_data__ = {k: v for k, v in default_data.items() if k in cls.__structure__.keys()}
+
+        override_field_access_modes = {}
+        for p in bases:
+            try:
+                override_field_access_modes.update(p.__override_field_access_modes__)
+            except AttributeError:
+                pass
+
+        override_field_access_modes.update({cls.get_field_obj(k).name: v
+                                            for k, v in cls.__override_field_access_modes__.items()})
+
+        cls.__override_field_access_modes__ = override_field_access_modes
 
     def process_base_field(cls, field, key):
         """
@@ -168,6 +177,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     """
 
     __default_data__ = {}
+    __override_field_access_modes__ = {}
 
     def __init__(self, data=None, flat=False, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
@@ -219,11 +229,12 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         else:
             self.__modified_data__[name] = value
             self._prepare_child(value)
-            if name not in self.__structure__ or not self.__structure__[name].read_only:
+
+            if name not in self.__structure__:
                 return
 
             try:
-                value.set_read_only(True)
+                value.set_access_mode(self.__structure__[name].access_mode & self.get_access_mode())
             except AttributeError:
                 pass
 
@@ -289,7 +300,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         """
         Set the fields established in data to the instance
         """
-        if self.get_read_only() and self.is_locked():
+        if self.get_access_mode() != AccessMode.READ_AND_WRITE:
             return
 
         if isinstance(data, BaseModel):
@@ -321,7 +332,7 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
         Set data fields to deleted
         """
 
-        if self.get_read_only() and self.is_locked():
+        if self.get_access_mode() != AccessMode.READ_AND_WRITE:
             return
 
         if isinstance(data, str):
@@ -546,18 +557,32 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
 
         return iterfunc()
 
+    def _get_field_access_mode(self, name):
+        if name not in self.__structure__:
+            return AccessMode.READ_AND_WRITE
+        try:
+            fam = self.__override_field_access_modes__[name]
+        except KeyError:
+            fam = self.__structure__[name].access_mode
+
+        if fam == AccessMode.READ_AND_WRITE \
+                or (fam == AccessMode.WRITABLE_ONLY_ON_CREATION
+                    and self.is_creating()) \
+                or not self.is_locked():
+            return AccessMode.READ_AND_WRITE
+        return fam
+
     def _can_write_field(self, name):
-        if name not in self.__structure__ or (not self.__structure__[name].read_only
-                                              and not self.get_read_only()) or not self.is_locked():
+        if (self._get_field_access_mode(name) & self.get_access_mode()) == AccessMode.READ_AND_WRITE:
             return True
         else:
             self._not_allowed_modify(name)
             return False
 
-    def _update_read_only(self):
-        for value in itertools.chain(self.__original_data__.values(), self.__modified_data__.values()):
+    def _update_access_mode(self):
+        for name, value in itertools.chain(self.__original_data__.items(), self.__modified_data__.items()):
             try:
-                value.set_read_only(self.get_read_only())
+                value.set_access_mode(self._get_field_access_mode(name) & self.get_access_mode())
             except AttributeError:
                 pass
 
@@ -710,6 +735,13 @@ class BaseModel(BaseData, metaclass=DirtyModelMeta):
     def __len__(self):
         return len(self.export_data())
 
+    @classmethod
+    def create_new_model(cls, data):
+        with Creating(cls()) as model:
+            model.import_data(data)
+
+        return model
+
 
 class BaseDynamicModel(BaseModel):
     """
@@ -817,7 +849,7 @@ class DynamicModel(BaseDynamicModel):
 
     def __setattr__(self, name, value):
         if not self.__hasattr__(name):
-            if not self.get_read_only() or not self.is_locked():
+            if not self.get_access_mode() or not self.is_locked():
                 if not self._define_new_field_by_value(name, value):
                     self._not_allowed_value(name, value)
                     return
@@ -914,7 +946,7 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
             setattr(self, key, value)
 
     def __setattr__(self, name, value):
-        if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+        if not self.__hasattr__(name) and (not self.get_access_mode() or not self.is_locked()):
             if value is None:
                 delattr(self, name)
                 return
@@ -947,7 +979,7 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
             return self.get_field_value(name)
 
     def __delattr__(self, name):
-        if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+        if not self.__hasattr__(name) and (not self.get_access_mode() or not self.is_locked()):
             self.delete_field_value(name)
             return
         super(HashMapModel, self).__delattr__(name)
@@ -1013,7 +1045,7 @@ class FastDynamicModel(BaseDynamicModel):
 
     def __setattr__(self, name, value):
         if self.__field_types__ is not None and not self.__hasattr__(name) \
-                and (not self.get_read_only() or not self.is_locked()):
+                and (not self.get_access_mode() or not self.is_locked()):
             if value is None:
                 delattr(self, name)
                 return
@@ -1048,7 +1080,7 @@ class FastDynamicModel(BaseDynamicModel):
         return True
 
     def __delattr__(self, name):
-        if not self.__hasattr__(name) and (not self.get_read_only() or not self.is_locked()):
+        if not self.__hasattr__(name) and (not self.get_access_mode() or not self.is_locked()):
             self.delete_field_value(name)
             return
         super(FastDynamicModel, self).__delattr__(name)

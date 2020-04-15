@@ -1,6 +1,5 @@
 language: python
 python:
-  - "3.3"
   - "3.4"
   - "3.5"
   - "3.6"
@@ -8,11 +7,9 @@ python:
 install:
   - make requirements
   - pip install -r requirements-test.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.3.* ]]; then pip install -r requirements-py33.txt --use-mirrors; fi
   - pip install coveralls
 # command to run tests
 script:
-  - if [[ $TRAVIS_PYTHON_VERSION -ne 3.3.* ]]; then flake8 dirty_models; fi
   - flake8 tests
   - nosetests --with-coverage -d --cover-package=dirty_models
 

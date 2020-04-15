@@ -7,5 +7,6 @@ Dirty Models package.
 from .models import *
 from .fields import *
 from .utils import *
+from .base import *
 
-__version__ = '0.11.3'
+__version__ = '0.12.0'

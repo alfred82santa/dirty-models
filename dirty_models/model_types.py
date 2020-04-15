@@ -1,11 +1,13 @@
 """
 Internal types for dirty models
 """
-import itertools
-
 from functools import wraps
 
-from .base import BaseData, InnerFieldTypeMixin
+import itertools
+
+from .base import AccessMode, BaseData, InnerFieldTypeMixin
+
+__all__ = ['ListModel']
 
 
 def modified_data_decorator(function):
@@ -17,7 +19,8 @@ def modified_data_decorator(function):
     @wraps(function)
     def func(self, *args, **kwargs):
         """Decorator function"""
-        if not self.get_read_only() or not self.is_locked():
+
+        if self.get_access_mode() == AccessMode.READ_AND_WRITE:
             self.initialise_modified_data()
             return function(self, *args, **kwargs)
         return lambda: None
@@ -26,7 +29,6 @@ def modified_data_decorator(function):
 
 
 def restore_list_model_from_data(list_class, field, common_data, original_list, modified_list):
-
     model = list_class(field_type=field[0](**field[1]))
 
     if original_list is not None:
@@ -60,13 +62,21 @@ class ListModel(InnerFieldTypeMixin, BaseData):
         """
         try:
             if self.get_field_type().check_value(value) or self.get_field_type().can_use_value(value):
-                data = self.get_field_type().use_value(value)
+                data = self.get_field_type().use_value(value, creating=self.is_creating())
                 self._prepare_child(data)
                 return data
             else:
                 return None
         except AttributeError:
             return value
+
+    def _prepare_child(self, value):
+        super(ListModel, self)._prepare_child(value)
+
+        try:
+            value.set_access_mode(self.__access_mode__)
+        except AttributeError:
+            pass
 
     def initialise_modified_data(self):
         """
@@ -333,7 +343,7 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             if parts[0].isnumeric:
                 self[int(parts[0])].import_deleted_fields(parts[1])
 
-        if not self.get_read_only() or not self.is_locked():
+        if not self.get_access_mode() or not self.is_locked():
             if isinstance(data, str):
                 data = [data]
             if isinstance(data, list):
@@ -384,11 +394,11 @@ class ListModel(InnerFieldTypeMixin, BaseData):
             except AttributeError:
                 pass
 
-    def _update_read_only(self):
+    def _update_access_mode(self):
         for value in itertools.chain(self.__original_data__ if self.__original_data__ else [],
                                      self.__modified_data__ if self.__modified_data__ else []):
             try:
-                value.set_read_only(self.get_read_only())
+                value.set_access_mode(self.get_access_mode())
             except AttributeError:
                 pass
 

@@ -9,6 +9,7 @@ from functools import wraps
 
 from dateutil.parser import parse as dateutil_parse
 
+from .base import AccessMode, Creating
 from .model_types import ListModel
 
 __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField',
@@ -19,29 +20,46 @@ __all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringI
 class BaseField:
     """Base field descriptor."""
 
-    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=False,
-                 default=None, title=None, doc=None, metadata=None):
+    def __init__(self, name=None, alias=None, getter=None, setter=None, read_only=None,
+                 default=None, title=None, doc=None, metadata=None, access_mode=AccessMode.READ_AND_WRITE,
+                 json_schema=None):
+        if read_only is not None:
+            if read_only:
+                access_mode = AccessMode.READ_ONLY & access_mode
+            else:
+                access_mode = AccessMode.READ_AND_WRITE & access_mode
+
         self._name = None
         self.name = name
         self.alias = alias
-        self.read_only = read_only
+        self.access_mode = access_mode
         self.default = default
         self.title = title
         self.metadata = metadata
+        self.json_schema = json_schema
         self._getter = getter
         self._setter = setter
         self.__doc__ = doc or self.get_field_docstring()
 
     def get_field_docstring(self):
         dcstr = '{0} field'.format(self.__class__.__name__)
-        if self.read_only:
-            dcstr += ' [READ ONLY]'
+        if self.access_mode:
+            if self.access_mode == AccessMode.WRITABLE_ONLY_ON_CREATION:
+                dcstr += ' [WRITABLE ONLY ON CREATION]'
+            elif self.access_mode == AccessMode.READ_ONLY:
+                dcstr += ' [READ ONLY]'
+            elif self.access_mode == AccessMode.HIDDEN:
+                dcstr += ' [HIDDEN]'
         return dcstr
 
     def export_definition(self):
         return {'name': self.name,
                 'alias': self.alias,
-                'read_only': self.read_only,
+                'access_mode': self.access_mode,
+                'title': self.title,
+                'default': self.default,
+                'json_schema': self.json_schema,
+                'metadata': self.metadata,
                 'doc': self.__doc__}
 
     @property
@@ -54,15 +72,20 @@ class BaseField:
         """Name setter: Field name or field alias that it will be set."""
         self._name = name
 
-    def use_value(self, value):
+    def use_value(self, value, creating=False):
         """Converts value to field type or use original"""
         if self.check_value(value):
             return value
+        if creating:
+            return self.convert_value_creating(value)
         return self.convert_value(value)
 
     def convert_value(self, value):
         """Converts value to field type"""
         return value
+
+    def convert_value_creating(self, value):
+        return self.convert_value(value)
 
     def check_value(self, value):
         """Checks whether value is field's type"""
@@ -112,7 +135,7 @@ class BaseField:
             if value is None:
                 self.delete_value(obj)
             elif self.check_value(v) or self.can_use_value(v):
-                self.set_value(obj, self.use_value(v))
+                self.set_value(obj, self.use_value(v, creating=obj.is_creating()))
             elif isinstance(value, Factory):
                 set_value(v())
 
@@ -682,6 +705,9 @@ class ModelField(BaseField):
     def convert_value(self, value):
         return self._model_class(value)
 
+    def convert_value_creating(self, value):
+        return self._model_class.create_new_model(value)
+
     def check_value(self, value):
         return isinstance(value, self._model_class)
 
@@ -751,19 +777,27 @@ class ArrayField(InnerFieldTypeMixin, BaseField):
         if self.field_type:
             return 'Array of {0}'.format(self.field_type.get_field_docstring())
 
-    def convert_value(self, value):
-        def convert_element(element):
-            """
-            Helper to convert a single item
-            """
-            if not self.field_type.check_value(element) and self._field_type.can_use_value(element):
-                return self.field_type.convert_value(element)
-            return element
+    def _convert_element(self, element):
+        """
+        Helper to convert a single item
+        """
+        if not self.field_type.check_value(element) and self._field_type.can_use_value(element):
+            return self.field_type.convert_value(element)
+        return element
 
+    def convert_value(self, value):
         if isinstance(value, (set, list, tuple, ListModel)):
-            return ListModel([convert_element(element) for element in value], field_type=self.field_type)
+            return ListModel([self._convert_element(element) for element in value], field_type=self.field_type)
         elif self.autolist:
-            return ListModel([convert_element(value)], field_type=self.field_type)
+            return ListModel([self._convert_element(value)], field_type=self.field_type)
+
+    def convert_value_creating(self, value):
+        lst = ListModel(field_type=self.field_type)
+
+        with Creating(lst):
+            lst.extend(value)
+
+        return lst
 
     def check_value(self, value):
         if not isinstance(value, ListModel) or not isinstance(value.get_field_type(), type(self.field_type)):

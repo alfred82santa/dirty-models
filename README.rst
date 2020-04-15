@@ -85,6 +85,26 @@ Features
 Changelog
 ---------
 
+Version 0.12.0
+--------------
+
+* Added `access_mode` property to fields.
+  It could be :class:`~dirty_models.base.AccessMode.READ_AND_WRITE` in order to allow to read and write.
+  :class:`~dirty_models.base.AccessMode.WRITABLE_ONLY_ON_CREATION` in order to set value only on creation.
+  :class:`~dirty_models.base.AccessMode.READ_ONLY` in order to prevent writing.
+  And :class:`~dirty_models.base.AccessMode.HIDDEN` in order to hide field.
+
+* Old field property `read_only` is deprecated in favor of `access_mode` but it can be used like until this version.
+
+* Helper :class:`~dirty_models.base.Creating` to mark model as in creation mode.
+
+* Added class method :meth:`~dirty_models.models.BaseModel.create_new_model` build a model and insert data
+  in creation mode.
+
+* Allowed to override field access model on inherited fields using
+  :attr:`~dirty_models.models.BaseModel.__override_field_access_modes__` hashmap.
+
+
 Version 0.11.3
 --------------
 
