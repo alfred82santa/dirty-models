@@ -12,9 +12,9 @@ from dateutil.parser import parse as dateutil_parse
 from .base import AccessMode, Creating
 from .model_types import ListModel
 
-__all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField',
+__all__ = ['IntegerField', 'FloatField', 'BooleanField', 'StringField', 'StringIdField', 'DateTimeBaseField',
            'TimeField', 'DateField', 'DateTimeField', 'TimedeltaField', 'ModelField', 'ArrayField',
-           'HashMapField', 'BlobField', 'MultiTypeField', 'EnumField']
+           'HashMapField', 'BlobField', 'MultiTypeField', 'EnumField', 'BytesField', 'BaseField']
 
 
 class BaseField:
@@ -895,6 +895,11 @@ class MultiTypeField(BaseField):
         for ft in self._field_types:
             if ft.can_use_value(value):
                 return ft.convert_value(value)
+
+    def convert_value_creating(self, value):
+        for ft in self._field_types:
+            if ft.can_use_value(value):
+                return ft.convert_value_creating(value)
 
     def check_value(self, value):
         for ft in self._field_types:

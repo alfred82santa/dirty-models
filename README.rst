@@ -85,6 +85,16 @@ Features
 Changelog
 ---------
 
+Version 0.12.1
+--------------
+
+* Fix :class:`~dirty_models.fields.MultiFieldType` on creation mode.
+
+* Fix :class:`~dirty_models.utils.BaseModelFormatterIter` to be aware about override access modes.
+
+* Exposed all useful classes on package root.
+
+
 Version 0.12.0
 --------------
 

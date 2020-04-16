@@ -9,4 +9,4 @@ from .fields import *
 from .utils import *
 from .base import *
 
-__version__ = '0.12.0'
+__version__ = '0.12.1'

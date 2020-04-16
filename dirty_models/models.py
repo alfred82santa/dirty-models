@@ -15,7 +15,7 @@ from .fields import ArrayField, BaseField, BooleanField, DateTimeField, FloatFie
     StringField
 from .model_types import ListModel
 
-__all__ = ['BaseModel', 'DynamicModel', 'FastDynamicModel', 'HashMapModel']
+__all__ = ['BaseModel', 'DynamicModel', 'FastDynamicModel', 'HashMapModel', 'DirtyModelMeta', 'CamelCaseMeta']
 
 
 class DirtyModelMeta(type):
