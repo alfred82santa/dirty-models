@@ -40,9 +40,9 @@ if sys.version_info < (3, 4):
 with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as desc_file:
     long_desc = desc_file.read()
 
-invalid_roles = ['meth', 'class']
+invalid_roles = ['meth', 'class', 'attr']
 
-long_desc = re.sub(r':({}):`([^`]+)`'.format('|'.join(invalid_roles)), r'``\2``', long_desc, re.M)
+long_desc = re.sub(r':(?:{}):`([^`]+)`'.format('|'.join(invalid_roles)), r'`\1`', long_desc)
 
 setup(
     name='dirty-models',
