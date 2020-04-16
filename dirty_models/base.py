@@ -140,7 +140,7 @@ class InnerFieldTypeMixin:
         super(InnerFieldTypeMixin, self).__init__(*args, **kwargs)
 
     def get_field_type(self):
-        return self.__field_type__
+        return self.__field_type__ or self.__class__.__field_type__
 
 
 class Unlocker():

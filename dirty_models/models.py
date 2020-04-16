@@ -912,7 +912,7 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
         return new_name if new_name else name
 
     def get_field_obj(self, name):
-        return super(HashMapModel, self).get_field_obj(name) or self.__field_type__
+        return super(HashMapModel, self).get_field_obj(name) or self.get_field_type()
 
     def copy(self):
         """
