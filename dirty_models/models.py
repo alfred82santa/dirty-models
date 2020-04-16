@@ -27,7 +27,9 @@ class DirtyModelMeta(type):
     def __init__(cls, name, bases, classdict):
         super(DirtyModelMeta, cls).__init__(name, bases, classdict)
 
-        fields = {key: field for key, field in cls.__dict__.items() if isinstance(field, BaseField)}
+        fields = {key: field
+                  for key, field in cls.__dict__.items()
+                  if isinstance(field, BaseField) and not key.startswith('__')}
 
         structure = {}
         for key, field in fields.items():
@@ -908,8 +910,15 @@ class HashMapModel(InnerFieldTypeMixin, BaseModel):
                                                   self.get_field_type().export_definition()))
 
     def get_real_name(self, name):
-        new_name = super(HashMapModel, self).get_real_name(name)
-        return new_name if new_name else name
+        obj = self.get_field_obj(name)
+
+        try:
+            if not obj.name.startswith('__'):
+                return obj.name
+        except AttributeError:
+            pass
+
+        return name
 
     def get_field_obj(self, name):
         return super(HashMapModel, self).get_field_obj(name) or self.get_field_type()
