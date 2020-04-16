@@ -2300,6 +2300,8 @@ class ModelCreation(BaseModel):
     testFieldList = ArrayField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION, field_type=IntegerField())
     testFieldModelList = ArrayField(access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION,
                                     field_type=ModelField())
+    testFieldMulti = MultiTypeField(field_types=[IntegerField(), StringField()],
+                                    access_mode=AccessMode.WRITABLE_ONLY_ON_CREATION)
 
 
 class TestModelCreation(TestCase):
@@ -2313,7 +2315,8 @@ class TestModelCreation(TestCase):
             'testFieldModelList': [{'testField1': 61, 'testField2': 51, 'testField3': 41,
                                     'testFieldList': [5, 6, 3, 66, 42, 22]},
                                    {'testField1': 61, 'testField2': 51, 'testField3': 41,
-                                    'testFieldList': [5, 6, 3, 66, 42, 22]}]
+                                    'testFieldList': [5, 6, 3, 66, 42, 22]}],
+            'testFieldMulti': 1.1
         }
 
         model = ModelCreation.create_new_model(data)
@@ -2328,6 +2331,8 @@ class TestModelCreation(TestCase):
 
         self.assertIsNone(model.testFieldModelList[0].testField1)
         self.assertIsNone(model.testFieldModelList[0].testField3)
+
+        self.assertEquals(model.testFieldMulti, 1)
 
 
 class TestOverrideFieldModeAccessModel(TestCase):

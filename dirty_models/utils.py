@@ -92,11 +92,23 @@ class BaseModelFormatterIter(BaseModelIterator, BaseFormatterIter):
 
     def __iter__(self):
         for name, field, value in super(BaseModelFormatterIter, self).__iter__():
-            if field.access_mode == AccessMode.HIDDEN:
+            if self.must_to_skip(name, field, value):
                 continue
 
             yield name, self.format_field(field,
                                           self.model.get_field_value(name))
+
+    def must_to_skip(self, name, field, value):
+        am = field.access_mode
+        try:
+            am = self.model.__override_field_access_modes__[name]
+        except KeyError:
+            pass
+
+        if am == AccessMode.HIDDEN:
+            return True
+
+        return False
 
     def format_field(self, field, value):
         if isinstance(field, MultiTypeField):
