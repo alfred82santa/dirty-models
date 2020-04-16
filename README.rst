@@ -85,6 +85,11 @@ Features
 Changelog
 ---------
 
+Version 0.12.2
+--------------
+
+* Fix access to HashMapsModel's field type when it is hardcoded in a class.
+
 Version 0.12.1
 --------------
 
