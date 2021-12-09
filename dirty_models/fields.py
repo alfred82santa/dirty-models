@@ -2,7 +2,7 @@
 Fields to be used with dirty models.
 """
 
-from collections import Mapping
+from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from functools import wraps
@@ -667,7 +667,7 @@ class ModelField(BaseField):
 
     * :class:`dict`.
 
-    * :class:`collections.Mapping`.
+    * :class:`collections.abc.Mapping`.
     """
 
     def __init__(self, model_class=None, **kwargs):

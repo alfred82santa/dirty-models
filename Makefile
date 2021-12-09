@@ -29,7 +29,7 @@ requirements-docs: requirements
 
 run-tests:
 	@echo "Running tests..."
-	nosetests --with-coverage -d --cover-package=dirty_models --cover-erase -x
+	nose2 --fail-fast --with-coverage --coverage-report term-missing --coverage=dirty_models
 
 publish: clean build
 	@echo "Publishing new version on Pypi..."
