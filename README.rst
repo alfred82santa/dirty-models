@@ -85,6 +85,11 @@ Features
 Changelog
 ---------
 
+Version 0.12.4
+--------------
+
+* Make it compatible with Python 3.10.
+
 Version 0.12.3
 --------------
 
